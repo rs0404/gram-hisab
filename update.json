@@ -1,8 +1,8 @@
 {
   "web": {
-    "version": "1.8.0",
+    "version": "1.8.1",
     "minNative": 9,
-    "bundle": "web-1.8.0.json"
+    "bundle": "web-1.8.1.json"
   },
   "apk": {
     "versionCode": 9,
