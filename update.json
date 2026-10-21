@@ -1,0 +1,13 @@
+{
+  "web": {
+    "version": "1.8.0",
+    "minNative": 9,
+    "bundle": "web-1.8.0.json"
+  },
+  "apk": {
+    "versionCode": 9,
+    "versionName": "1.8",
+    "file": "ChickenKhata-1.8.apk",
+    "notes": "Built-in updater, khutta-tauko, grain sales"
+  }
+}
