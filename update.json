@@ -1,13 +1,13 @@
 {
   "web": {
-    "version": "1.8.1",
+    "version": "1.9.0",
     "minNative": 9,
-    "bundle": "web-1.8.1.json"
+    "bundle": "web-1.9.0.json"
   },
   "apk": {
-    "versionCode": 9,
-    "versionName": "1.8",
-    "file": "ChickenKhata-1.8.apk",
-    "notes": "Built-in updater, khutta-tauko, grain sales"
+    "versionCode": 10,
+    "versionName": "1.9",
+    "file": "ChickenKhata-1.9.apk",
+    "notes": "Fixes voice popup and duplicate screens"
   }
 }
