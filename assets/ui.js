@@ -45,7 +45,7 @@ function go(v) {
 function render() {
   renderHeader();
   const active = document.activeElement;
-  if ((view === 'sell' || view === 'buy' || view === 'shop') && active && $('#v-' + view).contains(active) && /INPUT|TEXTAREA|SELECT/.test(active.tagName)) return;
+  if (active && $('#v-' + view) && $('#v-' + view).contains(active) && /INPUT|TEXTAREA|SELECT/.test(active.tagName)) return;
   renderView(view);
 }
 function renderView(v) {
@@ -94,7 +94,13 @@ function renderHome() {
         <div class="stat"><b style="color:var(--red)">${shortMoney(sh.goods)}</b><span>📦 Goods</span></div>
       </div>
       <div class="row between small muted" style="margin-top:8px"><span>${BS_MONTHS[adToBs(t).m - 1]}: collected ${money(shm.total)}</span><span>goods ${money(shm.goods)}</span></div>
-      <div class="btnrow" style="margin-top:10px"><button class="btn sm" data-act="shopMic">🎤 Speak shop amounts</button><button class="btn sm ghost" data-act="goShop">✎ Type</button></div>
+      <form class="hshop" data-form="homeShop">
+        <label><span>💵 Cash</span><input data-hs="cash" type="number" inputmode="decimal" step="any" placeholder="0"></label>
+        <label><span>📱 QR</span><input data-hs="qr" type="number" inputmode="decimal" step="any" placeholder="0"></label>
+        <label><span>📦 Goods</span><input data-hs="goods" type="number" inputmode="decimal" step="any" placeholder="0" enterkeyhint="done"></label>
+      </form>
+      <div class="btnrow" style="margin-top:8px"><button class="btn green" data-act="homeShopSave">✔ Add to today</button><button class="btn ghost" data-act="shopMic" aria-label="Speak shop amounts">🎤</button></div>
+      ${(() => { const n = shopEntries(t, t).length; return n ? `<div class="small muted" style="margin-top:6px">${n} entr${n === 1 ? 'y' : 'ies'} today · <a href="#" data-act="shopDay" data-d="${t}">see / edit</a></div>` : ''; })()}
     </div>`; })()}
     <div class="grid2">
       <div class="card tight"><div class="label">Last 7 days</div><div style="font-size:22px;font-weight:900">${money(wk.amount)}</div><div class="small muted">${kgs(wk.kg)}</div></div>
@@ -229,6 +235,17 @@ function grainChips(s, l) {
       <span style="font-size:11px;text-transform:none">${nfmt(round(s.feedByGrade[g], 1))} kg</span></div>`).join('')}
     <div class="stat" ${l ? ent(l, 'feed') : ''} style="padding:6px 10px;flex:1;min-width:76px;cursor:pointer"><span style="font-size:12px">Total</span><b style="font-size:20px">${nfmt(round(total / bag, 2))} <span style="font-size:13px">bora</span></b>
       <span style="font-size:11px;text-transform:none">${nfmt(round(total, 1))} kg</span></div></div>`;
+}
+// quick shop entry typed on the Home card
+function saveHomeShop() {
+  const v = k => num(($(`#v-home [data-hs=${k}]`) || {}).value);
+  const rec = { kind: 'shop', date: today(), cash: v('cash') || 0, qr: v('qr') || 0, goods: v('goods') || 0, note: '' };
+  if (!rec.cash && !rec.qr && !rec.goods) { toast('Type cash, QR or goods amount'); return; }
+  if (document.activeElement) document.activeElement.blur();
+  put(rec);
+  const d = shopRange(today(), today());
+  renderHome();
+  toast(`Shop ✓ today: collected ${money(d.total)} · goods ${money(d.goods)}`, rec.id);
 }
 // ---- tap a number on a lot card → the entries behind it (edit / delete each) ----
 const ent = (l, key) => `data-act="lotEntries" data-id="${l.id}" data-v="${key}"`;
@@ -1345,6 +1362,7 @@ document.addEventListener('click', e => {
     case 'shareShop': shareText(shopReportText()); break;
     case 'goShop': goShop(); break;
     case 'shopMic': if (view !== 'shop') go('shop'); listen(); break;
+    case 'homeShopSave': saveHomeShop(); break;
     case 'cancelEditBuy': buyDraft = null; go('records'); break;
     case 'askLeft': sayLeft({}, false); break;
     case 'askSummary': saySummary({ period: 'today' }, false); break;
@@ -1392,6 +1410,7 @@ document.addEventListener('change', e => {
 });
 document.addEventListener('submit', e => {
   e.preventDefault();
+  if (e.target.dataset.form === 'homeShop') { saveHomeShop(); return; }
   if (e.target.dataset.form === 'cmd') {
     const inp = $('#cmdInput'), t = inp.value.trim();
     if (!t) return;

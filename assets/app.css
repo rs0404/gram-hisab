@@ -196,3 +196,9 @@ a{color:var(--blue)}
 /* tappable numbers */
 .stat[data-act], .bar[data-act], .line[data-act] { cursor: pointer; }
 .stat[data-act]:active { transform: scale(.97); }
+
+/* quick shop entry on Home */
+.hshop { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+.hshop label span { display: block; font-size: 12px; font-weight: 800; color: var(--muted); margin: 0 0 3px 2px; }
+.hshop input { width: 100%; min-width: 0; border: 2px solid var(--line); border-radius: 12px; padding: 10px 8px; font-size: 19px; font-weight: 800; background: #fff; }
+.hshop input:focus { outline: none; border-color: var(--green); }
