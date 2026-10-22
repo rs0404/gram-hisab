@@ -12,7 +12,8 @@ const K_NE = [
   [/ट्र्याक्टर|ट्याक्टर|ट्रयाक्टर|ट्रक्टर/g, ' tractor '], [/टिलर/g, ' tiller '], [/पम्पसेट|पम्प/g, ' pump '], [/थ्रेसर|थ्रेशर/g, ' thresher '], [/हार्भेस्टर/g, ' harvester '],
   [/घण्टा|घन्टा/g, ' ghanta '], [/लिटर|लीटर/g, ' litre '], [/डिजेल|डीजेल/g, ' diesel '], [/पेट्रोल/g, ' petrol '], [/भाडा/g, ' bhada '],
   [/मुरी/g, ' muri '], [/पाथी/g, ' pathi '], [/माना/g, ' mana '], [/क्विन्टल|क्वीन्टल/g, ' quintal '], [/बोरा/g, ' bora '], [/केजी|किलो|के\.जी\.?/g, ' kg '],
-  [/बीउ|बिउ|बिऊ/g, ' biu '], [/युरिया/g, ' urea '], [/डीएपी|डिएपी|डि\s*ए\s*पि/g, ' dap '], [/पोटास|पोटाश/g, ' potash '], [/कम्पोस्ट|गोबर\s*मल|गोबर/g, ' compost '], [/मल/g, ' mal '],
+  [/बीउ|बिउ|बिऊ/g, ' biu '], [/थुन्से|थुनसे|थुन्सा/g, ' thunse '], [/कुखुराको|कुखुरा/g, ' kukhura '], [/भैंसीको|भैंसी|भैसीको|भैसी/g, ' bhaisi '],
+  [/बाख्राको|बाख्रा|बाख्राको/g, ' bakhra '], [/गाईको|गाई|गाइ/g, ' gai '], [/गेडे|गेडा/g, ' gede '], [/युरिया/g, ' urea '], [/डीएपी|डिएपी|डि\s*ए\s*पि/g, ' dap '], [/पोटास|पोटाश/g, ' potash '], [/कम्पोस्ट|गोबर\s*मल|गोबर/g, ' compost '], [/मल/g, ' mal '],
   [/उत्पादन|फसल|भित्र्याएको|भित्र्यायो|फल्यो|फलेको/g, ' harvest '],
   [/पूरा|पुरा|दिनभरि|दिनभर/g, ' pura '], [/दिन/g, ' din '], [/घर/g, ' ghar '],
   [/तिरें|तिरेँ|तिरे|तिर्यो|तिरेको|दिएँ|दिए|दियो|भुक्तानी/g, ' paid '], [/तिर्ने|तिर्न/g, ' tirne '], [/गएको|गयो|गए|गाको/g, ' gaye '], [/आएको|आयो|आए/g, ' aaye '],
@@ -31,7 +32,9 @@ const K_ROMAN = [
   [/\b(ghanta|ghante|ghantaa|hours?|hrs?)\b/g, ' ghanta '], [/\b(litres?|liters?|ltrs?|ltr)\b/g, ' litre '], [/\b(dijel|dizel|disel)\b/g, ' diesel '],
   [/\b(quintals?|kwintal|kuintal)\b/g, ' quintal '], [/\b(boras?|bags?|sacks?)\b/g, ' bora '], [/\b(muris?)\b/g, ' muri '], [/\b(pathis?)\b/g, ' pathi '], [/\b(manas?)\b/g, ' mana '],
   [/\b(kgs|kilos?|kilograms?|keji)\b/g, ' kg '],
-  [/\b(biu|beu|biyu|seeds?)\b/g, ' biu '], [/\b(khad|fertili[sz]ers?|maal)\b/g, ' mal '], [/\b(gobar|compost)\b/g, ' compost '], [/\b(d\s*a\s*p)\b/g, ' dap '], [/\b(yuria|uria)\b/g, ' urea '],
+  [/\b(biu|beu|biyu|seeds?)\b/g, ' biu '], [/\b(thunse|thunshe|thunsey|thunsa|basket)\b/g, ' thunse '],
+  [/\b(kukhurako|kukhura|kukura|chicken)\b/g, ' kukhura '], [/\b(bhaisiko|bhaisi|bhainsi|bhaishi|buffalo)\b/g, ' bhaisi '], [/\b(bakhrako|bakhra|bakra|goat)\b/g, ' bakhra '],
+  [/\b(gaiko|gaai|gai|cow)\b/g, ' gai '], [/\b(gede|gedey|geda)\b/g, ' gede '], [/\b(khad|fertili[sz]ers?|maal)\b/g, ' mal '], [/\b(gobar|compost)\b/g, ' compost '], [/\b(d\s*a\s*p)\b/g, ' dap '], [/\b(yuria|uria)\b/g, ' urea '],
   [/\b(harvest(?:ed)?|utpadan|fasal|bhitryayo|falyo|yield)\b/g, ' harvest '],
   [/\b(pura|puraa|full|fullday|dinbhari)\b/g, ' pura '], [/\b(half|halfday)\b/g, ' halfshift '], [/\b(days?|din)\b/g, ' din '],
   [/\b(tirey|tire|tiren|tiryo|tireko|diye|diyen|diyo|paid|pay|payment|bhuktani)\b/g, ' paid '], [/\b(tirne|tirna)\b/g, ' tirne '], [/\b(gaye|gayo|gako|gaeko|went)\b/g, ' gaye '],
@@ -42,7 +45,7 @@ const K_ROMAN = [
   [/\b(khetma|khet|field|bari)\b/g, ' khet ']
 ];
 // strong Kheti words: used to send a sentence to the Kheti parser from any section
-const KHETI_WORD_RE = /\b(khetala|parma|ropai|godmel|jotne|goru|bause|lathe|tractor|tiller|pump|thresher|ghanta|muri|pathi|mana|quintal|biu|urea|dap|potash|compost|mal|harvest|khet|dhaan|gahun|makai)\b/;
+const KHETI_WORD_RE = /\b(khetala|parma|ropai|godmel|jotne|goru|bause|lathe|tractor|tiller|pump|thresher|ghanta|muri|pathi|mana|quintal|biu|urea|dap|gede|potash|compost|mal|thunse|harvest|khet|dhaan|gahun|makai)\b/;
 
 function kNorm(text) {
   let t = ' ' + String(text || '').toLowerCase() + ' ';
@@ -89,7 +92,8 @@ function kMoney(ctx) {
   return null;
 }
 const K_WORK_WORDS = { goru: 'goru', jotne: 'tractorjot', bause: 'bause', lathe: 'lathe', aali: 'aali', ropai: 'ropai', godmel: 'godmel', sinchai: 'sinchai', katne: 'katne', dain: 'dain' };
-const K_FERT = { urea: 'Urea', dap: 'DAP', potash: 'Potash', compost: 'Compost / Gobar mal' };
+const K_FERT = { urea: 'Urea', dap: 'Gede mal (DAP)', gede: 'Gede mal (DAP)', potash: 'Potash', kukhura: 'Kukhura mal', bhaisi: 'Bhaisi mal', bakhra: 'Bakhra mal', gai: 'Gai mal', compost: 'Gai mal' };
+const K_ANIMAL_MAL = ['kukhura', 'bhaisi', 'bakhra', 'gai', 'compost']; // only manure when "mal" / thunse / bora is said too
 const K_CROP_WORDS = ['dhaan', 'gahun', 'makai', 'kodo', 'maas', 'masuro', 'aalu', 'tori', 'kerau', 'bhatmas'];
 
 function parseKheti(text) {
@@ -145,19 +149,20 @@ function parseKheti(text) {
   }
   // --- harvest: "dhaan 20 muri", "harvest 5 quintal gahun"
   const hu = new RegExp(KN + '\\s*(muri|pathi|mana|quintal|kg|bora)\\b').exec(s());
-  if (hu && (/\bharvest\b/.test(s()) || /\b(muri|pathi|mana|quintal)\b/.test(s())) && !/\brs\b/.test(s()) && !/\b(biu|mal|urea|dap|potash|compost)\b/.test(s())) {
+  if (hu && (/\bharvest\b/.test(s()) || /\b(muri|pathi|mana|quintal)\b/.test(s())) && !/\brs\b/.test(s()) && !/\b(biu|mal|urea|dap|gede|potash|compost|thunse)\b/.test(s())) {
     return Object.assign(p, { intent: 'kHarvest', qty: parseFloat(hu[1]), unit: hu[2] });
   }
   // --- seed / fertilizer: "DAP 2 bora 9000", "biu 10 kg 1200", "mal 3 bora"
-  const fert = Object.keys(K_FERT).find(f => new RegExp('\\b' + f + '\\b').test(s()));
+  const manureCtx = /\b(mal|thunse|bora)\b/.test(s());
+  const fert = Object.keys(K_FERT).find(f => new RegExp('\\b' + f + '\\b').test(s()) && (!K_ANIMAL_MAL.includes(f) || manureCtx));
   if (fert || /\b(biu|mal)\b/.test(s())) {
     const isSeed = !fert && /\bbiu\b/.test(s());
-    const q = kTake(ctx, new RegExp(KN + '\\s*(kg|bora|packet)\\b'));
+    const q = kTake(ctx, new RegExp(KN + '\\s*(kg|bora|packet|thunse|mana|pathi)\\b'));
     let money = kMoney(ctx);
     const rest = (s().match(/\d+(?:\.\d+)?/g) || []).map(parseFloat);
     if (money == null && rest.length) money = rest.pop();
     return Object.assign(p, { intent: 'kInput', type: isSeed ? 'seed' : 'fert', item: isSeed ? (p.crop ? cropById(p.crop).en + ' seed' : 'Seed') : fert ? K_FERT[fert] : 'Other',
-      qty: q ? parseFloat(q[1]) : 0, unit: q ? q[2] : 'kg', cost: money || 0 });
+      qty: q ? parseFloat(q[1]) : 0, unit: q ? q[2] : (isSeed ? 'kg' : 'bora'), cost: money || 0 });
   }
   // --- work day: work type, named workers (pura / halfshift), "6 khetala", "2 halfshift khetala", "3 parma Thapa"
   const wt = Object.keys(K_WORK_WORDS).find(w => new RegExp('\\b' + w + '\\b').test(s()));

@@ -30,7 +30,15 @@ const MACHINES = {
   pump: { en: 'Water pump', ne: 'पम्प', icon: '💧' },
   thresher: { en: 'Thresher / harvester', ne: 'थ्रेसर', icon: '🌾', hired: true }
 };
-const FERTILIZERS = ['Urea', 'DAP', 'Potash', 'Compost / Gobar mal', 'Zinc', 'Other'];
+// मल: animal manure and chemical fertilizer (item is saved as the English name)
+const FERTILIZERS = [
+  { id: 'kukhura', en: 'Kukhura mal', ne: 'कुखुराको मल' }, { id: 'bhaisi', en: 'Bhaisi mal', ne: 'भैंसीको मल' },
+  { id: 'bakhra', en: 'Bakhra mal', ne: 'बाख्राको मल' }, { id: 'gai', en: 'Gai mal', ne: 'गाईको मल' },
+  { id: 'urea', en: 'Urea', ne: 'युरिया' }, { id: 'gede', en: 'Gede mal (DAP)', ne: 'गेडे मल' }, { id: 'potash', en: 'Potash', ne: 'पोटास' }
+];
+const FERT_ALIAS = { DAP: 'Gede mal (DAP)' };   // older entries
+const INPUT_UNITS = { seed: ['kg', 'mana', 'pathi', 'bora', 'packet'], fert: ['bora', 'thunse'] };
+const UNIT_NE = { kg: 'kg', mana: 'माना', pathi: 'पाथी', bora: 'बोरा', packet: 'packet', thunse: 'थुन्से' };
 const HARVEST_UNITS = { kg: 'kg', quintal: 'quintal', muri: 'muri (मुरी)', pathi: 'pathi (पाथी)', mana: 'mana (माना)', bora: 'bora' };
 const PATHI_KG_DEFAULT = { dhaan: 3.6, gahun: 4.5, makai: 4.2, kodo: 4.2, maas: 4.4, masuro: 4.6, kerau: 4.4 };
 

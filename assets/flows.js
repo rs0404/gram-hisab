@@ -59,7 +59,7 @@ function handleInput(alts, origin) {
   // "patro", "calendar", "पात्रो" → the Nepali calendar
   if (alts.some(a => /^\s*(?:(?:aaja|aja|today|आज)\s*(?:ko)?\s*)?(?:patro|patra|calendar|calender|पात्रो|पत्रो|miti|मिति)(?:\s+(?:kholnu(?:s|hos)?|khola|open|show|dekhau))?\s*$/i.test(a))) { openCalendar(); if (voiceMode) { const b = adToBs(today()); speak(`Today is ${BS_MONTHS[b.m - 1]} ${b.d}, ${b.y}.`); } return; }
   // Kheti words (or the Kheti section): try the Kheti parser first
-  if (typeof parseKheti === 'function' && ((typeof section !== 'undefined' && section === 'kheti') || alts.some(khetiLikely))) {
+  if (typeof parseKheti === 'function' && ((typeof section !== 'undefined' && section === 'kheti') || (view !== 'shop' && alts.some(khetiLikely)))) {
     for (const a of alts) { const kp = parseKheti(a); if (kp) { flowKheti(kp, voiceMode); return; } }
   }
   let best = null;
@@ -753,7 +753,7 @@ function helpHtml(short) {
   const krows = [
     ['🌾 Work day', 'Purbe khet ropai 6 khetala 3 parma Thapa ghar', 'Ram Hari pura Sita aadha godmel', 'पूर्बे खेत रोपाइँ ६ खेताला'],
     ['🚜 Machine', 'tractor 3 ghanta 1500', 'aafno tractor diesel 5 litre 750', 'pump 2 ghanta diesel 3 litre 450'],
-    ['🧪 Seed / मल', 'DAP 2 bora 9000', 'urea 1 bora 1800', 'biu 10 kg 1200'],
+    ['🧪 Seed / मल', 'gede mal 2 bora 9000', 'bhaisi ko mal 10 thunse', 'kukhura mal 5 bora 1500', 'urea 1 bora 1800', 'dhaan biu 3 pathi 600', 'makai biu 4 mana'],
     ['🌾 Harvest', 'dhaan 20 muri', 'gahun 5 quintal', 'धान २० मुरी'],
     ['💵 Pay worker', 'Ram lai 2000 tirey', 'Ram settle'],
     ['🤝 Parma', 'Thapa ghar parma tirne 2 din', 'parma kati baki'],

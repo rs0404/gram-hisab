@@ -278,7 +278,7 @@ function saveMachineForm() {
 }
 
 function openInputForm(rec, khetiId) {
-  kDraft = Object.assign({ kind: 'finput', khetiId: khetiId || (activeKhetis()[0] || {}).id || '', date: today(), type: 'fert', item: 'Urea', qty: '', unit: 'kg', cost: '', note: '' }, rec || {});
+  kDraft = Object.assign({ kind: 'finput', khetiId: khetiId || (activeKhetis()[0] || {}).id || '', date: today(), type: 'fert', item: 'Urea', qty: '', unit: 'bora', cost: '', note: '' }, rec || {});
   renderInputForm();
 }
 function renderInputForm() {
@@ -287,9 +287,9 @@ function renderInputForm() {
     ${khetiChips(d.khetiId)}
     <div class="field"><label>Date (नेपाली)</label>${bsDateHtml('kinput', d.date)}</div>
     <div class="field"><label>What</label><div class="chips">${kChip('kfInType', 'seed', d.type === 'seed', '🌱 Seed / बीउ')}${kChip('kfInType', 'fert', d.type === 'fert', '🧪 Fertilizer / मल')}</div></div>
-    ${d.type === 'fert' ? `<div class="field"><label>Fertilizer</label><div class="chips">${FERTILIZERS.map(x => kChip('kfInItem', x, d.item === x, esc(x))).join('')}</div></div>`
+    ${d.type === 'fert' ? `<div class="field"><label>Which मल</label><div class="chips">${FERTILIZERS.map(x => kChip('kfInItem', x.en, (FERT_ALIAS[d.item] || d.item) === x.en, `${esc(x.ne)} <span style="opacity:.7">${esc(x.en.replace(/ mal.*$/, ''))}</span>`)).join('')}${kChip('kfInItem', 'Other', !FERTILIZERS.some(x => x.en === (FERT_ALIAS[d.item] || d.item)), 'अन्य Other')}</div>${FERTILIZERS.some(x => x.en === (FERT_ALIAS[d.item] || d.item)) ? '' : `<input data-k="item" value="${esc(d.item || '')}" placeholder="Name of the मल" autocomplete="off" style="margin-top:8px">`}</div>`
       : `<div class="field"><label>Seed (variety)</label><input data-k="item" value="${esc(d.item === 'Urea' ? '' : d.item || '')}" placeholder="e.g. Dhaan Radha-4" autocomplete="off"></div>`}
-    <div class="grid2">${kNum('qty', 'Quantity', d.qty)}<div class="field"><label>Unit</label><div class="chips">${['kg', 'bora', 'packet'].map(u => kChip('kfInUnit', u, d.unit === u, u)).join('')}</div></div></div>
+    <div class="grid2">${kNum('qty', 'Quantity', d.qty)}<div class="field"><label>Unit</label><div class="chips">${INPUT_UNITS[d.type === 'fert' ? 'fert' : 'seed'].concat(INPUT_UNITS[d.type === 'fert' ? 'fert' : 'seed'].includes(d.unit) ? [] : [d.unit]).map(u => kChip('kfInUnit', u, d.unit === u, UNIT_NE[u] || u)).join('')}</div></div></div>
     ${kNum('cost', 'Cost Rs', d.cost)}
     <div class="field"><label>Note <span class="muted">(optional)</span></label><input data-k="note" value="${esc(d.note || '')}" placeholder="—" autocomplete="off"></div>
     <button class="btn big green" data-act="kSaveInput">✔ Save</button>
@@ -729,8 +729,8 @@ function khetiClick(act, b) {
     case 'kfMach': rr(() => { kDraft.type = v; renderMachineForm(); }); break;
     case 'kfFuel': rr(() => { kDraft.fuel = v; renderMachineForm(); }); break;
     case 'kSaveMachine': saveMachineForm(); break;
-    case 'kfInType': rr(() => { kDraft.type = v; kDraft.item = v === 'fert' ? 'Urea' : ''; renderInputForm(); }); break;
-    case 'kfInItem': rr(() => { kDraft.item = v; renderInputForm(); }); break;
+    case 'kfInType': rr(() => { kDraft.type = v; kDraft.item = v === 'fert' ? 'Urea' : ''; kDraft.unit = INPUT_UNITS[v][0]; renderInputForm(); }); break;
+    case 'kfInItem': rr(() => { kDraft.item = v === 'Other' ? '' : v; renderInputForm(); if (v === 'Other') { const i = $('#kForm [data-k=item]'); if (i) i.focus(); } }); break;
     case 'kfInUnit': rr(() => { kDraft.unit = v; renderInputForm(); }); break;
     case 'kSaveInput': saveInputForm(); break;
     case 'kfHCrop': rr(() => { kDraft.crop = v; renderHarvestForm(); }); break;

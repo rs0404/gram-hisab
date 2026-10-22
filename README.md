@@ -66,7 +66,8 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
   - Each worker has an account (earned − paid = due) with **Pay**, **Settle** and a shareable statement.
 - **Parma balance per family:** days they came to help, minus days we went to theirs.
 - **Machines:** hired tractor (hours × rate), own tractor, power tiller, water pump, thresher/harvester, with **petrol/diesel litres and cost**.
-- **Seed and fertilizer** (Urea, DAP, Potash, compost…) by kg, bora or packet.
+- **Seed** by kg, **mana, pathi**, bora or packet.
+- **मल (manure/fertilizer):** कुखुरा, भैंसी, बाख्रा, गाई, युरिया, गेडे (DAP), पोटास or other, counted in **bora or थुन्से (thunse)**.
 - **Harvest** in kg, quintal, **muri/pathi/mana** or bora, converted to kg. 1 pathi of each crop is set in Settings.
 - **Cost per kheti, like cost per lot:** labour + machine + fuel + seed + fertilizer, the harvest, and **cost per kg**.
   - Each field card shows its current crop and investment, and every number opens its entries to edit or delete.
@@ -131,7 +132,7 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
 |---|---|
 | 🌾 Work day | "Purbe khet ropai 6 khetala 3 parma Thapa ghar", "Ram Hari pura Sita aadha godmel", "पूर्बे खेत रोपाइँ ६ खेताला" |
 | 🚜 Machine | "tractor 3 ghanta 1500", "aafno tractor diesel 5 litre 750", "pump 2 ghanta diesel 3 litre 450" |
-| 🧪 Seed / मल | "DAP 2 bora 9000", "urea ek bora athara saya", "dhaan biu 10 kg 1200" |
+| 🧪 Seed / मल | "gede mal 2 bora 9000", "bhaisi ko mal 10 thunse", "भैंसीको मल २० थुन्से", "urea ek bora athara saya", "dhaan biu 3 pathi 600" |
 | 🌾 Harvest | "dhaan 20 muri", "gahun 5 quintal", "धान २० मुरी" |
 | 👷 Pay / parma | "Ram lai 2000 tirey", "Ram settle", "Rai ghar parma tirne 2 din", "Ram ko hisab", "parma kati baki" |
 | Sell meat | "chicken sold 1 kg", "1kg masu", "एक केजी मासु" |
