@@ -1,4 +1,4 @@
-/* Poultry Record — screens */
+/* Hisab ko Sathi — screens */
 'use strict';
 
 let view = 'home';
@@ -83,6 +83,7 @@ function renderHome() {
         <div class="stat"><b>${nfmt(td.meatKg)}</b><span>Meat kg</span></div>
         <div class="stat"><b>${td.dead}</b><span>Dead</span></div>
       </div>
+      ${homeSaleHtml()}
     </div>
 
     ${(() => { const sh = shopRange(t, t), shm = shopRange(bsMonthStart(t), t); return `<div class="card" style="border-left:8px solid var(--green)">
@@ -235,6 +236,66 @@ function grainChips(s, l) {
       <span style="font-size:11px;text-transform:none">${nfmt(round(s.feedByGrade[g], 1))} kg</span></div>`).join('')}
     <div class="stat" ${l ? ent(l, 'feed') : ''} style="padding:6px 10px;flex:1;min-width:76px;cursor:pointer"><span style="font-size:12px">Total</span><b style="font-size:20px">${nfmt(round(total / bag, 2))} <span style="font-size:13px">bora</span></b>
       <span style="font-size:11px;text-transform:none">${nfmt(round(total, 1))} kg</span></div></div>`;
+}
+// ---- quick chicken sale typed on the Home card ----
+function homeSaleState() {
+  const act = activeLots();
+  const h = db.meta.homeSale || (db.meta.homeSale = { type: getSet('defaultType') || 'meat' });
+  if (!act.some(l => l.id === h.lotId)) h.lotId = act.length ? act[0].id : '';
+  const lot = lotById(h.lotId);
+  if (lot && !lotBreeds(lot).includes(h.breed)) h.breed = lotBreeds(lot)[0];
+  return h;
+}
+function homeSaleCalc() {
+  const h = homeSaleState(), lot = lotById(h.lotId);
+  const v = k => num(($(`#v-home [data-hsale=${k}]`) || {}).value);
+  const rate = priceFor(h.type, h.breed);
+  let kg = v('kg'), amount = v('amount'), kgEst = false, told = false, r = rate;
+  if (kg && amount) { r = round(amount / kg, 2); told = true; }
+  else if (!kg && amount && rate) { kg = round(amount / rate, 2); kgEst = true; told = false; }
+  else if (kg && !amount) amount = round(kg * rate, 2);
+  let birds = v('birds'), est = null;
+  if (h.type === 'parts') birds = 0;
+  else if (lot && kg && birds == null) { est = saleBirdEstimate({ lotId: lot.id, breed: h.breed, type: h.type, kg, date: today() }); birds = est.birds; }
+  return { h, lot, rate: r, defRate: rate, kg, amount, birds, kgEst, told, est };
+}
+function homeSaleHtml() {
+  const act = activeLots();
+  if (!act.length) return `<button class="btn" style="margin-top:12px;width:100%" data-act="newLot">+ Add a lot to start selling</button>`;
+  const h = homeSaleState(), lot = lotById(h.lotId);
+  const chip = (act_, v, on, label, extra) => `<button class="chip sm ${on ? 'on' : ''}" data-act="${act_}" data-v="${v}" ${extra || ''}>${label}</button>`;
+  return `<div class="hsale">
+    <div class="chips">${chip('hsType', 'live', h.type === 'live', '🐔 Live')}${chip('hsType', 'meat', h.type === 'meat', '🔪 Meat')}${chip('hsType', 'parts', h.type === 'parts', '🍗 Khutta')}</div>
+    ${act.length > 1 ? `<div class="chips">${act.map(l => chip('hsLot', l.id, h.lotId === l.id, 'Lot ' + lotVoiceNo(l) + ' · ' + BS_MONTHS[lotBs(l).m - 1] + ' ' + lotBs(l).d)).join('')}</div>` : ''}
+    ${lot && lotBreeds(lot).length > 1 && h.type !== 'parts' ? `<div class="chips">${lotBreeds(lot).map(b => chip('hsBreed', b, h.breed === b, esc(breedName(b)))).join('')}</div>` : ''}
+    <form class="hshop" data-form="homeSale">
+      <label><span>⚖️ Kg</span><input data-hsale="kg" type="number" inputmode="decimal" step="any" placeholder="0"></label>
+      <label><span>💰 Rs total</span><input data-hsale="amount" type="number" inputmode="decimal" step="any" placeholder="auto"></label>
+      <label><span>${h.type === 'meat' ? '🔪 Cut' : '🐔 Birds'}</span><input data-hsale="birds" type="number" inputmode="numeric" placeholder="${h.type === 'parts' ? '—' : 'auto'}" ${h.type === 'parts' ? 'disabled' : ''} enterkeyhint="done"></label>
+    </form>
+    <div class="small hsale-hint" id="hsaleHint">${esc(homeSaleHint())}</div>
+    <button class="btn big" style="background:#fff;color:var(--amber-d);margin-top:8px" data-act="homeSaleSave">✔ Save sale</button>
+  </div>`;
+}
+function homeSaleHint() {
+  const c = homeSaleCalc();
+  const what = c.h.type === 'parts' ? 'Khutta-tauko' : `${breedName(c.h.breed)} ${c.h.type}`;
+  if (!c.kg && !c.amount) return `${what} · Rs ${nfmt(c.defRate)}/kg — type kg or the amount`;
+  return `${c.kgEst ? '≈ ' : ''}${nfmt(c.kg || 0)} kg × Rs ${nfmt(c.rate)} = ${money(c.amount || 0)}${c.h.type === 'parts' ? '' : ` · ${c.birds || 0} ${c.h.type === 'meat' ? 'cut' : 'bird' + (c.birds === 1 ? '' : 's')}${c.est ? ' (auto)' : ''}`}`;
+}
+function saveHomeSale() {
+  const c = homeSaleCalc();
+  if (!c.lot) { toast('Add a lot first'); return; }
+  if (!c.kg && !c.amount) { toast('Type the kg or the amount'); return; }
+  if (!c.rate && !c.amount) { toast('Set the price first (💰 Prices)'); return; }
+  if (c.h.type === 'live' && !(c.birds > 0)) { toast('How many birds? Type at least 1'); return; }
+  if (document.activeElement) document.activeElement.blur();
+  const sale = { kind: 'sale', date: today(), lotId: c.lot.id, breed: c.h.breed, type: c.h.type, kg: c.kg || 0, birds: c.birds || 0, rate: c.rate, amount: c.amount,
+    invoice: '', flag: false, note: '' };
+  if (c.kgEst) sale.kgEst = true;
+  persist();
+  saveSale(sale, c.told, false);
+  renderHome();
 }
 // quick shop entry typed on the Home card
 function saveHomeShop() {
@@ -845,7 +906,7 @@ function renderSettings() {
       </div>
       <p class="small muted">The sync file is also a full backup.</p>
     </div>
-    <p class="small muted" style="text-align:center">Poultry Record v${APP_VERSION} · ${counts.lot} lots · ${counts.sale} sales · ${counts.event} process entries</p>`;
+    <p class="small muted" style="text-align:center">Hisab ko Sathi v${APP_VERSION} · ${counts.lot} lots · ${counts.sale} sales · ${counts.event} process entries</p>`;
 }
 function openPriceSheet() {
   openSheet(`<h2>Prices by chicken type</h2><p class="small muted">Rs per kg. Used as the default rate for each sale.</p>
@@ -860,8 +921,8 @@ function openSyncSetup() {
   openSheet(`<h2>Use on many phones</h2>
     <p>All phones share one Google Sheet. Do this <b>once</b> on a computer or phone (5 minutes):</p>
     <ol class="steps">
-      <li>Open <b>sheets.google.com</b> and create a blank sheet named <b>Poultry Record</b>.</li>
-      <li>Menu <b>Extensions → Apps Script</b>. Delete what is there and paste the code from the file <b>PoultryRecord-Sync.gs</b> (I gave it to you with the app).</li>
+      <li>Open <b>sheets.google.com</b> and create a blank sheet named <b>Hisab ko Sathi</b>.</li>
+      <li>Menu <b>Extensions → Apps Script</b>. Delete what is there and paste the code from the file <b>HisabKoSathi-Sync.gs</b> (I gave it to you with the app).</li>
       <li>In the code, change <code>SYNC_KEY</code> to a secret word, e.g. <code>myfarm2026</code>. Press 💾 Save.</li>
       <li>Click <b>Deploy → New deployment</b> → type <b>Web app</b>. “Execute as”: <b>Me</b>. “Who has access”: <b>Anyone</b>. Click Deploy and allow access.</li>
       <li>Copy the <b>Web app URL</b> (ends with <code>/exec</code>).</li>
@@ -871,7 +932,7 @@ function openSyncSetup() {
     <button class="btn big primary" data-act="closeSheet">OK</button>`);
 }
 function onboarding() {
-  openSheet(`<div style="text-align:center;font-size:56px">🐔</div><h2 style="text-align:center">Welcome to Poultry Record</h2>
+  openSheet(`<span class="logo-img logo-big"></span><h2 style="text-align:center">Welcome to Hisab ko Sathi</h2>
     <p class="muted" style="text-align:center">Record sales, deaths and feed by voice. Let's set a few things.</p>
     <div id="onbForm">
     <div class="field"><label>👤 Your name (who is entering)</label><input data-o="userName" value="${esc(db.meta.userName || '')}" placeholder="e.g. Ram"></div>
@@ -916,15 +977,15 @@ function exportCsv(which) {
 
 function exportSync() {
   const data = { app: 'chickenkhata', kind: 'sync', version: 1, from: db.meta.deviceName, exportedAt: new Date().toISOString(), records: Object.values(db.records) };
-  const name = 'poultry-record-' + normName(db.meta.deviceName).slice(0, 12) + '-' + today() + '.json';
+  const name = 'hisab-ko-sathi-' + normName(db.meta.deviceName).slice(0, 12) + '-' + today() + '.json';
   saveTextFile(name, 'application/json', JSON.stringify(data), ok => toast(ok ? 'Saved. Now send this file to the other phone and Import it there.' : 'Not saved'));
 }
 function importSync() {
   openTextFile(text => {
     if (!text) { toast('No file opened'); return; }
     let data;
-    try { data = JSON.parse(text); } catch (e) { toast('This is not a Poultry Record sync file'); return; }
-    if (!data || data.app !== 'chickenkhata' || !Array.isArray(data.records)) { toast('This is not a Poultry Record sync file'); return; }
+    try { data = JSON.parse(text); } catch (e) { toast('This is not a Hisab ko Sathi sync file'); return; }
+    if (!data || data.app !== 'chickenkhata' || !Array.isArray(data.records)) { toast('This is not a Hisab ko Sathi sync file'); return; }
     const before = {};
     data.records.forEach(r => { if (r && r.id) before[r.id] = db.records[r.id] && db.records[r.id].updatedAt; });
     const n = mergeRecords(data.records);
@@ -935,7 +996,7 @@ function importSync() {
 }
 function shareSummary() {
   const t = today(), s = periodStats(t, t), st = computeStats();
-  const lines = [`🐔 Poultry Record — ${fmtDate(t, true)}`, `Sales: ${money(s.amount)} (${s.count} sales)`, `Live: ${kgs(s.liveKg)} · Meat: ${kgs(s.meatKg)}`, `Dead today: ${s.dead}`, '',
+  const lines = [`🐔 Hisab ko Sathi — ${fmtDate(t, true)}`, `Sales: ${money(s.amount)} (${s.count} sales)`, `Live: ${kgs(s.liveKg)} · Meat: ${kgs(s.meatKg)}`, `Dead today: ${s.dead}`, '',
     ...activeLots().map(l => `${l.name}: ${st[l.id].remaining} left (day ${st[l.id].age})`)];
   shareText(lines.join('\n'));
 }
@@ -1226,7 +1287,7 @@ function renderProfit() {
 function reportText() {
   const [from, to, label] = reportRange(reportPeriod);
   const R = farmReport(from, to), st = computeStats();
-  return [`🐔 Poultry Record — ${label}`, `Sales: ${money(R.sales)} (live ${kgs(R.liveKg)}, meat ${kgs(R.meatKg)})`,
+  return [`🐔 Hisab ko Sathi — ${label}`, `Sales: ${money(R.sales)} (live ${kgs(R.liveKg)}, meat ${kgs(R.meatKg)})`,
     `Costs: ${money(R.costs)} (chicks ${money(R.chicksCost)}, feed ${money(R.feed)}, medicine ${money(R.med)}, other ${money(R.other + R.expenses + R.equip)})`,
     `${R.profit >= 0 ? 'PROFIT' : 'LOSS'}: ${money(Math.abs(R.profit))}`, R.credit ? `To receive (credit sales): ${money(R.credit)}` : '', R.payable ? `To pay (credit purchases): ${money(R.payable)}` : '', '',
     ...lots().filter(l => !l.closed || (l.closedDate || '') >= from).map(l => `${l.name}: profit ${money(st[l.id].profit)}, left ${st[l.id].remaining}, dead ${st[l.id].dead}`)].filter((x, i, a) => x !== '' || a[i - 1] !== '').join('\n');
@@ -1363,6 +1424,10 @@ document.addEventListener('click', e => {
     case 'goShop': goShop(); break;
     case 'shopMic': if (view !== 'shop') go('shop'); listen(); break;
     case 'homeShopSave': saveHomeShop(); break;
+    case 'homeSaleSave': saveHomeSale(); break;
+    case 'hsType': homeSaleState().type = v; persist(); renderHome(); break;
+    case 'hsLot': homeSaleState().lotId = v; persist(); renderHome(); break;
+    case 'hsBreed': homeSaleState().breed = v; persist(); renderHome(); break;
     case 'cancelEditBuy': buyDraft = null; go('records'); break;
     case 'askLeft': sayLeft({}, false); break;
     case 'askSummary': saySummary({ period: 'today' }, false); break;
@@ -1380,6 +1445,7 @@ document.addEventListener('input', e => {
   if (el.dataset.f && sellDraft) sellInput(el);
   if (el.dataset.b && buyDraft) buyInput(el);
   if (el.dataset.s && shopDraft) shopInput(el);
+  if (el.dataset.hsale) { const hint = $('#hsaleHint'); if (hint) hint.textContent = homeSaleHint(); }
   if (el.dataset.lf && lotDraft) {
     lotDraft[el.dataset.lf] = el.value;
     if (el.dataset.lf === 'name') lotDraft.nameManual = true;
@@ -1411,6 +1477,7 @@ document.addEventListener('change', e => {
 document.addEventListener('submit', e => {
   e.preventDefault();
   if (e.target.dataset.form === 'homeShop') { saveHomeShop(); return; }
+  if (e.target.dataset.form === 'homeSale') { saveHomeSale(); return; }
   if (e.target.dataset.form === 'cmd') {
     const inp = $('#cmdInput'), t = inp.value.trim();
     if (!t) return;

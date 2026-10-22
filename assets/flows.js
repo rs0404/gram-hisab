@@ -1,4 +1,4 @@
-/* Poultry Record — conversation flows (ask → answer by voice or tap → save → speak back) */
+/* Hisab ko Sathi — conversation flows (ask → answer by voice or tap → save → speak back) */
 'use strict';
 
 let pendingAsk = null;

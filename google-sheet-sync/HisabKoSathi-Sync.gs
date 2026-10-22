@@ -1,8 +1,8 @@
 /**
- * Poultry Record — Google Sheet sync for many phones.
+ * Hisab ko Sathi — Google Sheet sync for many phones.
  *
  * Setup (once):
- *  1. Create a blank Google Sheet named "Poultry Record".
+ *  1. Create a blank Google Sheet named "Hisab ko Sathi".
  *  2. Extensions → Apps Script. Delete everything there and paste this whole file.
  *  3. Change SYNC_KEY below to your own secret word. Save (💾).
  *  4. Deploy → New deployment → type "Web app".
@@ -22,7 +22,7 @@
 const SYNC_KEY = 'change-me';
 
 function doGet() {
-  return out_({ ok: true, app: 'chickenkhata', message: 'Poultry Record sync is working. Paste this URL in the app.' });
+  return out_({ ok: true, app: 'chickenkhata', message: 'Hisab ko Sathi sync is working. Paste this URL in the app.' });
 }
 
 function doPost(e) {

@@ -1,4 +1,4 @@
-/* Poultry Record — Shop register: daily cash + QR collection and goods bought */
+/* Hisab ko Sathi — Shop register: daily cash + QR collection and goods bought */
 'use strict';
 
 let shopDraft = null;

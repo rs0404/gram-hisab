@@ -1,8 +1,8 @@
-/* Poultry Record — data, stats and sync */
+/* Hisab ko Sathi — data, stats and sync */
 'use strict';
 
 const HAS_ANDROID = typeof window.Android !== 'undefined';
-const APP_VERSION = '1.11.0';
+const APP_VERSION = '1.12.0';
 
 // ---------- small utils ----------
 const $ = (sel, el) => (el || document).querySelector(sel);

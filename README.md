@@ -1,4 +1,6 @@
-# Poultry Record 🐔
+<p align="center"><img src="docs/logo.png" width="150" alt="Hisab ko Sathi logo"></p>
+
+# Hisab ko Sathi
 
 A voice-first Android app for my home poultry farm and shop. It records chicken sales (live, cut meat, khutta-tauko), grain and medicine purchases, deaths and feeding lot by lot, plus the shop's daily cash and QR collection. It also shows profit. It runs on several phones, uses the Nepali (BS) calendar, and understands English and Nepali voice.
 
@@ -43,6 +45,7 @@ A voice-first Android app for my home poultry farm and shop. It records chicken 
 - Archive a lot instead of deleting it, and restore it any time.
 
 **Selling**
+- **Quick sale on Home:** pick Live / Meat / Khutta and the lot, then type the kg *or* the amount. The price and the bird count fill in by themselves.
 - Sale types: **live**, **cut meat**, **khutta-tauko** (own rate, default Rs 150/kg) and **grain** (B0–B3, by bora or kg).
 - Default prices per chicken type, and buy/sell rates per grain size. If you give a different price, the app asks whether to save it as the new default.
 - If you give only the amount, the app works out the kg from the rate (and the other way round).
@@ -89,26 +92,26 @@ A voice-first Android app for my home poultry farm and shop. It records chicken 
 | Dates | "yesterday …", "Kartik 2 gate …" |
 
 ## Install on a phone
-1. On the phone, open the latest release: <https://github.com/rs0404/poultry-record/releases/latest>. Download **PoultryRecord-x.y.apk** and install it, allowing "Install unknown apps" when asked.
+1. On the phone, open the latest release: <https://github.com/rs0404/hisab-ko-sathi/releases/latest>. Download **HisabKoSathi-x.y.apk** and install it, allowing "Install unknown apps" when asked.
 2. Open the app, enter your name and the prices, then add your first lot.
 3. After that, the phone updates itself.
 
 > On Samsung phones with **Dual Apps**, install only the normal copy. A dual copy has separate, empty data.
 
 ## Several phones: Google Sheet sync
-Paste [`google-sheet-sync/PoultryRecord-Sync.gs`](google-sheet-sync/PoultryRecord-Sync.gs) into a Google Sheet (Extensions → Apps Script). Deploy it as a web app, then paste the link and the sync key into Settings on every phone. The steps are at the top of the file.
+Paste [`google-sheet-sync/HisabKoSathi-Sync.gs`](google-sheet-sync/HisabKoSathi-Sync.gs) into a Google Sheet (Extensions → Apps Script). Deploy it as a web app, then paste the link and the sync key into Settings on every phone. The steps are at the top of the file.
 
 ## Build and release (developer)
 Needs the Android SDK command line tools (build-tools 35, platform 35) and a JDK. No Gradle.
 ```bash
-./build.sh      # builds PoultryRecord.apk and dist/ (update.json, web-<ver>.json, APK)
+./build.sh      # builds HisabKoSathi.apk and dist/ (update.json, web-<ver>.json, APK)
 ./publish.sh    # creates GitHub Release v<WEB_VERSION> with the dist/ files
 ```
 - Versions are in [`version.env`](version.env):
   - Raise `WEB_VERSION` for screen and logic changes (installed silently).
   - Raise `APK_CODE`/`APK_NAME` only when `src/` or `AndroidManifest.xml` changes.
 - The signing key (`signing/`) stays on the build computer and is **never committed**. Every update must be signed with it.
-- Phones read `https://github.com/rs0404/poultry-record/releases/latest/download/update.json`.
+- Phones read `https://github.com/rs0404/hisab-ko-sathi/releases/latest/download/update.json`.
 - To try the screens in a browser: `python3 devserver.py` → <http://localhost:8765>.
 
 ## Project layout

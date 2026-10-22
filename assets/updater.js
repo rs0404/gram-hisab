@@ -1,13 +1,13 @@
-/* Poultry Record — built-in updater.
+/* Hisab ko Sathi — built-in updater.
    Updates are GitHub Releases: each release has update.json, web-<version>.json and the APK attached,
    and phones read them from …/releases/latest/download/.
    update.json looks like:
    { "web": { "version": "1.8.1", "minNative": 9, "bundle": "web-1.8.1.json" },
-     "apk": { "versionCode": 9, "versionName": "1.8", "file": "PoultryRecord-1.8.apk", "notes": "…" } }
+     "apk": { "versionCode": 9, "versionName": "1.8", "file": "HisabKoSathi-1.8.apk", "notes": "…" } }
    Screens/logic (web) update silently; a new APK shows an "Install" banner (Android asks to confirm). */
 'use strict';
 
-const DEFAULT_UPDATE_URL = 'https://github.com/rs0404/poultry-record/releases/latest/download/';
+const DEFAULT_UPDATE_URL = 'https://github.com/rs0404/hisab-ko-sathi/releases/latest/download/';
 let updateInfo = null;      // { apk: {...} } when a newer APK is available
 let updateBusy = false;
 
@@ -37,7 +37,7 @@ async function checkForUpdates(manual) {
   try {
     const info = JSON.parse(await httpGet(updateBase() + 'update.json'));
     db.meta.lastUpdateCheck = Date.now();
-    let msg = 'Poultry Record is up to date ✓';
+    let msg = 'Hisab ko Sathi is up to date ✓';
     // 1) newer APK?
     if (info.apk && Number(info.apk.versionCode) > nativeCode()) {
       updateInfo = { apk: info.apk };
@@ -64,7 +64,7 @@ async function checkForUpdates(manual) {
 
 window.onApkProgress = pct => {
   if (pct === -1) toast('Update download failed. Check internet and try again.');
-  else if (pct === -2) toast('Allow “Install unknown apps” for Poultry Record, then tap Install again.');
+  else if (pct === -2) toast('Allow “Install unknown apps” for Hisab ko Sathi, then tap Install again.');
   else if (pct === 101) toast('Tap “Update” on the next screen');
   else if (pct >= 0) toast(`Downloading update… ${pct}%`);
 };

@@ -1,4 +1,4 @@
-/* Poultry Record — voice: speech in/out, command parser, conversation flows */
+/* Hisab ko Sathi — voice: speech in/out, command parser, conversation flows */
 'use strict';
 
 // ======================= speech output =======================
@@ -82,7 +82,7 @@ window.onVoiceState = function (state, data) {
       network: 'Voice needs internet, or download the offline voice pack (Settings → Voice).',
       unavailable: 'Voice typing is not available. Install or enable “Google” voice typing.',
       audio: 'Microphone problem. Please try again.',
-      permission: 'Allow the microphone: Settings → Apps → Poultry Record → Permissions → Microphone.',
+      permission: 'Allow the microphone: Settings → Apps → Hisab ko Sathi → Permissions → Microphone.',
       error11: 'Voice is busy. Tap 🎤 again.', error8: 'Voice is busy. Tap 🎤 again.', error5: 'Voice was interrupted. Tap 🎤 again.',
       error12: 'This voice language is not available offline — check Settings → Voice.', error13: 'This voice language is not downloaded — check Settings → Voice.'
     }[data];
