@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.farm.chickenkhata"
-    android:versionCode="13"
-    android:versionName="1.12">
+    android:versionCode="14"
+    android:versionName="1.13">
 
     <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="34" />
 
@@ -23,7 +23,7 @@
     </queries>
 
     <application
-        android:label="Hisab ko Sathi"
+        android:label="Gram Hisab"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
         android:allowBackup="true"

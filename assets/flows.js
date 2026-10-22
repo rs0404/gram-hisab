@@ -1,4 +1,4 @@
-/* Hisab ko Sathi — conversation flows (ask → answer by voice or tap → save → speak back) */
+/* Gram Hisab — conversation flows (ask → answer by voice or tap → save → speak back) */
 'use strict';
 
 let pendingAsk = null;

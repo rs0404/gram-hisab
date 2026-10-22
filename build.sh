@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds HisabKoSathi.apk without Gradle, using the Android SDK command line tools.
+# Builds GramHisab.apk without Gradle, using the Android SDK command line tools.
 set -euo pipefail
 cd "$(dirname "$0")"
 SDK="${ANDROID_HOME:-/opt/homebrew/share/android-commandlinetools}"
@@ -35,23 +35,23 @@ KS_PASS=$(cat signing/keystore.pass)
 if [ ! -f "$KS" ]; then
   keytool -genkeypair -keystore "$KS" -storepass "$KS_PASS" -keypass "$KS_PASS" \
     -alias chickenkhata -keyalg RSA -keysize 2048 -validity 10000 \
-    -dname "CN=Hisab ko Sathi, O=Farm, C=NP"
+    -dname "CN=Gram Hisab, O=Farm, C=NP"
 fi
 "$BT/apksigner" sign --ks "$KS" --ks-pass "pass:$KS_PASS" --key-pass "pass:$KS_PASS" \
-  --out HisabKoSathi.apk "$OUT/aligned.apk"
-"$BT/apksigner" verify HisabKoSathi.apk
-echo "Built: $(pwd)/HisabKoSathi.apk ($(du -h HisabKoSathi.apk | cut -f1))"
+  --out GramHisab.apk "$OUT/aligned.apk"
+"$BT/apksigner" verify GramHisab.apk
+echo "Built: $(pwd)/GramHisab.apk ($(du -h GramHisab.apk | cut -f1))"
 
 # update files for the built-in updater (publish with ./publish.sh)
 rm -rf dist; mkdir -p dist
-cp HisabKoSathi.apk "dist/HisabKoSathi-$APK_NAME.apk"
+cp GramHisab.apk "dist/GramHisab-$APK_NAME.apk"
 python3 - "$WEB_VERSION" "$MIN_NATIVE" "$APK_CODE" "$APK_NAME" "$APK_NOTES" <<'PY'
 import json, os, sys
 web, min_native, code, name, notes = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4], sys.argv[5]
 files = {f: open(os.path.join('assets', f), encoding='utf-8').read() for f in sorted(os.listdir('assets')) if not f.startswith('.')}
 json.dump({'version': web, 'files': files}, open(f'dist/web-{web}.json', 'w', encoding='utf-8'), ensure_ascii=False)
 json.dump({'web': {'version': web, 'minNative': min_native, 'bundle': f'web-{web}.json'},
-           'apk': {'versionCode': code, 'versionName': name, 'file': f'HisabKoSathi-{name}.apk', 'notes': notes}},
+           'apk': {'versionCode': code, 'versionName': name, 'file': f'GramHisab-{name}.apk', 'notes': notes}},
           open('dist/update.json', 'w'), indent=2)
 print('Update files:', ', '.join(sorted(os.listdir('dist'))))
 PY

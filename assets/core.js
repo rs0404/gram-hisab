@@ -1,8 +1,8 @@
-/* Hisab ko Sathi — data, stats and sync */
+/* Gram Hisab — data, stats and sync */
 'use strict';
 
 const HAS_ANDROID = typeof window.Android !== 'undefined';
-const APP_VERSION = '1.12.0';
+const APP_VERSION = '1.13.0';
 
 // ---------- small utils ----------
 const $ = (sel, el) => (el || document).querySelector(sel);

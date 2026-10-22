@@ -1,4 +1,4 @@
-/* Hisab ko Sathi — Shop register: daily cash + QR collection and goods bought */
+/* Gram Hisab — Shop register: daily cash + QR collection and goods bought */
 'use strict';
 
 let shopDraft = null;
