@@ -1,8 +1,8 @@
-/* Chicken Khata — data, stats and sync */
+/* Poultry Record — data, stats and sync */
 'use strict';
 
 const HAS_ANDROID = typeof window.Android !== 'undefined';
-const APP_VERSION = '1.10.1';
+const APP_VERSION = '1.11.0';
 
 // ---------- small utils ----------
 const $ = (sel, el) => (el || document).querySelector(sel);

@@ -1,4 +1,4 @@
-/* Chicken Khata — screens */
+/* Poultry Record — screens */
 'use strict';
 
 let view = 'home';
@@ -845,7 +845,7 @@ function renderSettings() {
       </div>
       <p class="small muted">The sync file is also a full backup.</p>
     </div>
-    <p class="small muted" style="text-align:center">Chicken Khata v${APP_VERSION} · ${counts.lot} lots · ${counts.sale} sales · ${counts.event} process entries</p>`;
+    <p class="small muted" style="text-align:center">Poultry Record v${APP_VERSION} · ${counts.lot} lots · ${counts.sale} sales · ${counts.event} process entries</p>`;
 }
 function openPriceSheet() {
   openSheet(`<h2>Prices by chicken type</h2><p class="small muted">Rs per kg. Used as the default rate for each sale.</p>
@@ -860,8 +860,8 @@ function openSyncSetup() {
   openSheet(`<h2>Use on many phones</h2>
     <p>All phones share one Google Sheet. Do this <b>once</b> on a computer or phone (5 minutes):</p>
     <ol class="steps">
-      <li>Open <b>sheets.google.com</b> and create a blank sheet named <b>Chicken Khata</b>.</li>
-      <li>Menu <b>Extensions → Apps Script</b>. Delete what is there and paste the code from the file <b>ChickenKhata-Sync.gs</b> (I gave it to you with the app).</li>
+      <li>Open <b>sheets.google.com</b> and create a blank sheet named <b>Poultry Record</b>.</li>
+      <li>Menu <b>Extensions → Apps Script</b>. Delete what is there and paste the code from the file <b>PoultryRecord-Sync.gs</b> (I gave it to you with the app).</li>
       <li>In the code, change <code>SYNC_KEY</code> to a secret word, e.g. <code>myfarm2026</code>. Press 💾 Save.</li>
       <li>Click <b>Deploy → New deployment</b> → type <b>Web app</b>. “Execute as”: <b>Me</b>. “Who has access”: <b>Anyone</b>. Click Deploy and allow access.</li>
       <li>Copy the <b>Web app URL</b> (ends with <code>/exec</code>).</li>
@@ -871,7 +871,7 @@ function openSyncSetup() {
     <button class="btn big primary" data-act="closeSheet">OK</button>`);
 }
 function onboarding() {
-  openSheet(`<div style="text-align:center;font-size:56px">🐔</div><h2 style="text-align:center">Welcome to Chicken Khata</h2>
+  openSheet(`<div style="text-align:center;font-size:56px">🐔</div><h2 style="text-align:center">Welcome to Poultry Record</h2>
     <p class="muted" style="text-align:center">Record sales, deaths and feed by voice. Let's set a few things.</p>
     <div id="onbForm">
     <div class="field"><label>👤 Your name (who is entering)</label><input data-o="userName" value="${esc(db.meta.userName || '')}" placeholder="e.g. Ram"></div>
@@ -916,15 +916,15 @@ function exportCsv(which) {
 
 function exportSync() {
   const data = { app: 'chickenkhata', kind: 'sync', version: 1, from: db.meta.deviceName, exportedAt: new Date().toISOString(), records: Object.values(db.records) };
-  const name = 'chicken-khata-' + normName(db.meta.deviceName).slice(0, 12) + '-' + today() + '.json';
+  const name = 'poultry-record-' + normName(db.meta.deviceName).slice(0, 12) + '-' + today() + '.json';
   saveTextFile(name, 'application/json', JSON.stringify(data), ok => toast(ok ? 'Saved. Now send this file to the other phone and Import it there.' : 'Not saved'));
 }
 function importSync() {
   openTextFile(text => {
     if (!text) { toast('No file opened'); return; }
     let data;
-    try { data = JSON.parse(text); } catch (e) { toast('This is not a Chicken Khata sync file'); return; }
-    if (!data || data.app !== 'chickenkhata' || !Array.isArray(data.records)) { toast('This is not a Chicken Khata sync file'); return; }
+    try { data = JSON.parse(text); } catch (e) { toast('This is not a Poultry Record sync file'); return; }
+    if (!data || data.app !== 'chickenkhata' || !Array.isArray(data.records)) { toast('This is not a Poultry Record sync file'); return; }
     const before = {};
     data.records.forEach(r => { if (r && r.id) before[r.id] = db.records[r.id] && db.records[r.id].updatedAt; });
     const n = mergeRecords(data.records);
@@ -935,7 +935,7 @@ function importSync() {
 }
 function shareSummary() {
   const t = today(), s = periodStats(t, t), st = computeStats();
-  const lines = [`🐔 Chicken Khata — ${fmtDate(t, true)}`, `Sales: ${money(s.amount)} (${s.count} sales)`, `Live: ${kgs(s.liveKg)} · Meat: ${kgs(s.meatKg)}`, `Dead today: ${s.dead}`, '',
+  const lines = [`🐔 Poultry Record — ${fmtDate(t, true)}`, `Sales: ${money(s.amount)} (${s.count} sales)`, `Live: ${kgs(s.liveKg)} · Meat: ${kgs(s.meatKg)}`, `Dead today: ${s.dead}`, '',
     ...activeLots().map(l => `${l.name}: ${st[l.id].remaining} left (day ${st[l.id].age})`)];
   shareText(lines.join('\n'));
 }
@@ -1226,7 +1226,7 @@ function renderProfit() {
 function reportText() {
   const [from, to, label] = reportRange(reportPeriod);
   const R = farmReport(from, to), st = computeStats();
-  return [`🐔 Chicken Khata — ${label}`, `Sales: ${money(R.sales)} (live ${kgs(R.liveKg)}, meat ${kgs(R.meatKg)})`,
+  return [`🐔 Poultry Record — ${label}`, `Sales: ${money(R.sales)} (live ${kgs(R.liveKg)}, meat ${kgs(R.meatKg)})`,
     `Costs: ${money(R.costs)} (chicks ${money(R.chicksCost)}, feed ${money(R.feed)}, medicine ${money(R.med)}, other ${money(R.other + R.expenses + R.equip)})`,
     `${R.profit >= 0 ? 'PROFIT' : 'LOSS'}: ${money(Math.abs(R.profit))}`, R.credit ? `To receive (credit sales): ${money(R.credit)}` : '', R.payable ? `To pay (credit purchases): ${money(R.payable)}` : '', '',
     ...lots().filter(l => !l.closed || (l.closedDate || '') >= from).map(l => `${l.name}: profit ${money(st[l.id].profit)}, left ${st[l.id].remaining}, dead ${st[l.id].dead}`)].filter((x, i, a) => x !== '' || a[i - 1] !== '').join('\n');

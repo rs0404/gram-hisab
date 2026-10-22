@@ -1,4 +1,4 @@
-/* Chicken Khata — conversation flows (ask → answer by voice or tap → save → speak back) */
+/* Poultry Record — conversation flows (ask → answer by voice or tap → save → speak back) */
 'use strict';
 
 let pendingAsk = null;

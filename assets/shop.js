@@ -1,4 +1,4 @@
-/* Chicken Khata — Shop register: daily cash + QR collection and goods bought */
+/* Poultry Record — Shop register: daily cash + QR collection and goods bought */
 'use strict';
 
 let shopDraft = null;

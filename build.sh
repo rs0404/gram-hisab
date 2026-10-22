@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds ChickenKhata.apk without Gradle, using the Android SDK command line tools.
+# Builds PoultryRecord.apk without Gradle, using the Android SDK command line tools.
 set -euo pipefail
 cd "$(dirname "$0")"
 SDK="${ANDROID_HOME:-/opt/homebrew/share/android-commandlinetools}"
@@ -35,23 +35,23 @@ KS_PASS=$(cat signing/keystore.pass)
 if [ ! -f "$KS" ]; then
   keytool -genkeypair -keystore "$KS" -storepass "$KS_PASS" -keypass "$KS_PASS" \
     -alias chickenkhata -keyalg RSA -keysize 2048 -validity 10000 \
-    -dname "CN=Chicken Khata, O=Farm, C=NP"
+    -dname "CN=Poultry Record, O=Farm, C=NP"
 fi
 "$BT/apksigner" sign --ks "$KS" --ks-pass "pass:$KS_PASS" --key-pass "pass:$KS_PASS" \
-  --out ChickenKhata.apk "$OUT/aligned.apk"
-"$BT/apksigner" verify ChickenKhata.apk
-echo "Built: $(pwd)/ChickenKhata.apk ($(du -h ChickenKhata.apk | cut -f1))"
+  --out PoultryRecord.apk "$OUT/aligned.apk"
+"$BT/apksigner" verify PoultryRecord.apk
+echo "Built: $(pwd)/PoultryRecord.apk ($(du -h PoultryRecord.apk | cut -f1))"
 
 # update files for the built-in updater (publish with ./publish.sh)
 rm -rf dist; mkdir -p dist
-cp ChickenKhata.apk "dist/ChickenKhata-$APK_NAME.apk"
+cp PoultryRecord.apk "dist/PoultryRecord-$APK_NAME.apk"
 python3 - "$WEB_VERSION" "$MIN_NATIVE" "$APK_CODE" "$APK_NAME" "$APK_NOTES" <<'PY'
 import json, os, sys
 web, min_native, code, name, notes = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4], sys.argv[5]
 files = {f: open(os.path.join('assets', f), encoding='utf-8').read() for f in sorted(os.listdir('assets')) if not f.startswith('.')}
 json.dump({'version': web, 'files': files}, open(f'dist/web-{web}.json', 'w', encoding='utf-8'), ensure_ascii=False)
 json.dump({'web': {'version': web, 'minNative': min_native, 'bundle': f'web-{web}.json'},
-           'apk': {'versionCode': code, 'versionName': name, 'file': f'ChickenKhata-{name}.apk', 'notes': notes}},
+           'apk': {'versionCode': code, 'versionName': name, 'file': f'PoultryRecord-{name}.apk', 'notes': notes}},
           open('dist/update.json', 'w'), indent=2)
 print('Update files:', ', '.join(sorted(os.listdir('dist'))))
 PY
