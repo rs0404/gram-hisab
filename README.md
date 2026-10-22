@@ -30,7 +30,7 @@ A voice-first Android app for my home farm: 🌾 **Kheti** (fields, crops, kheta
 <td align="center"><img src="docs/screenshots/26-date-picker.png" width="230"><br><sub>📅 पात्रो date picker in every form</sub></td>
 </tr>
 <tr>
-<td align="center"><img src="docs/screenshots/01-home.png" width="230"><br><sub>Home: chicken & shop today</sub></td>
+<td align="center"><img src="docs/screenshots/01-home.png" width="230"><br><sub>🐔 Chicken home: today's sales, quick sale</sub></td>
 <td align="center"><img src="docs/screenshots/02-lots.png" width="230"><br><sub>Lot card: birds left, spent, grain in bora</sub></td>
 <td align="center"><img src="docs/screenshots/05-voice-confirm.png" width="230"><br><sub>Voice: "sold 2.5 kg live" → confirm</sub></td>
 </tr>
@@ -93,7 +93,7 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
 - Archive a lot instead of deleting it, and restore it any time.
 
 **Selling**
-- **Quick sale on Home:** pick Live / Meat / Khutta and the lot, then type the kg *or* the amount. The price and the bird count fill in by themselves.
+- **Quick sale on the chicken home:** pick Live / Meat / Khutta and the lot, then type the kg *or* the amount. The price and the bird count fill in by themselves.
 - Sale types: **live**, **cut meat**, **khutta-tauko** (own rate, default Rs 150/kg) and **grain** (B0–B3, by bora or kg).
 - Default prices per chicken type, and buy/sell rates per grain size. If you give a different price, the app asks whether to save it as the new default.
 - If you give only the amount, the app works out the kg from the rate (and the other way round).
@@ -116,6 +116,10 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
 **Voice (English and Nepali)**
 - Tap 🎤 and speak. The app shows what it heard, asks "Save?", and you answer by voice or by tapping.
 - It understands Nepali numbers, including डेढ, साढे दुई, आधा, सय and हजार, and Devanagari or romanized words such as masu, jiudo, mare, dana, kineko, nagad and gate.
+
+**Settings**
+- Settings has tabs: **🌾 Kheti · 🐔 Chicken · 🏪 Shop · ⚙️ Others** (open-the-app-in, voice, phones & sync, updates, full change log). It opens on the tab of the section you are in.
+- The chicken section shows only chicken data. The shop has its own section, and the full change log is in ⚙️ Others.
 
 **Several phones and users**
 - Every entry stores **who** entered it and **when**. Edits and deletes are logged in a **change log**.

@@ -36,6 +36,7 @@ function toast(msg, undoId, isRestore) {
 // ---------- navigation ----------
 function go(v) {
   if (v === 'lots' || v === 'records') { reportTab = v; v = 'reports'; }
+  if (v === 'settings' && view !== 'settings') settingsTab = section || 'kheti';
   view = v;
   if (VIEW_SECTION[v]) setSection(VIEW_SECTION[v]);
   $$('.view').forEach(s => s.classList.toggle('on', s.id === 'v-' + v));
@@ -67,14 +68,13 @@ function renderHome() {
   const td = periodStats(t, t), wk = periodStats(addDays(t, -6), t), mo = periodStats(bsMonthStart(t), t);
   const st = computeStats();
   const act = activeLots();
-  const flags = computeFlags();
+  const flags = computeFlags().filter(f => f.act !== 'countCheck'); // count reminders are not shown on the chicken home
   const days = [];
   for (let i = 6; i >= 0; i--) { const d = addDays(t, -i); days.push({ d, s: periodStats(d, d) }); }
   const max = Math.max(1, ...days.map(x => x.s.amount));
   const recent = recentRecords(6);
 
   $('#v-home').innerHTML = `
-    <form class="cmd" data-form="cmd"><input id="cmdInput" placeholder="Type: sold 2 kg meat" autocomplete="off" enterkeyhint="go"><button class="btn primary" type="submit">Go</button></form>
     ${moveBannerHtml()}${removeOldBannerHtml()}
     ${updateBannerHtml()}
     ${flags.map(f => `<button class="flag ${f.cls}" data-act="${f.act}" ${f.id ? `data-id="${f.id}"` : ''}><span class="fi">${f.icon}</span><span>${esc(f.text)}</span><span class="go">${f.go}</span></button>`).join('')}
@@ -90,23 +90,6 @@ function renderHome() {
       ${homeSaleHtml()}
     </div>
 
-    ${(() => { const sh = shopRange(t, t), shm = shopRange(bsMonthStart(t), t); return `<div class="card" style="border-left:8px solid var(--green)">
-      <div class="row between"><div class="label">🏪 Shop today</div><button class="btn sm ghost" data-act="goShop">Open shop</button></div>
-      <div class="huge" style="margin:6px 0 10px;color:var(--green)">${money(sh.total)}</div>
-      <div class="grid3">
-        <div class="stat"><b>${shortMoney(sh.cash)}</b><span>💵 Cash</span></div>
-        <div class="stat"><b>${shortMoney(sh.qr)}</b><span>📱 QR</span></div>
-        <div class="stat"><b style="color:var(--red)">${shortMoney(sh.goods)}</b><span>📦 Goods</span></div>
-      </div>
-      <div class="row between small muted" style="margin-top:8px"><span>${BS_MONTHS[adToBs(t).m - 1]}: collected ${money(shm.total)}</span><span>goods ${money(shm.goods)}</span></div>
-      <form class="hshop" data-form="homeShop">
-        <label><span>💵 Cash</span><input data-hs="cash" type="number" inputmode="decimal" step="any" placeholder="0"></label>
-        <label><span>📱 QR</span><input data-hs="qr" type="number" inputmode="decimal" step="any" placeholder="0"></label>
-        <label><span>📦 Goods</span><input data-hs="goods" type="number" inputmode="decimal" step="any" placeholder="0" enterkeyhint="done"></label>
-      </form>
-      <div class="btnrow" style="margin-top:8px"><button class="btn green" data-act="homeShopSave">✔ Add to today</button><button class="btn ghost" data-act="shopMic" aria-label="Speak shop amounts">🎤</button></div>
-      ${(() => { const n = shopEntries(t, t).length; return n ? `<div class="small muted" style="margin-top:6px">${n} entr${n === 1 ? 'y' : 'ies'} today · <a href="#" data-act="shopDay" data-d="${t}">see / edit</a></div>` : ''; })()}
-    </div>`; })()}
     <div class="grid2">
       <div class="card tight"><div class="label">Last 7 days</div><div style="font-size:22px;font-weight:900">${money(wk.amount)}</div><div class="small muted">${kgs(wk.kg)}</div></div>
       <div class="card tight"><div class="label">${BS_MONTHS[adToBs(t).m - 1]} (month)</div><div style="font-size:22px;font-weight:900">${money(mo.amount)}</div><div class="small muted">${kgs(mo.kg)}</div></div>
@@ -212,14 +195,23 @@ function historyHtml(id) {
   return `<details style="margin-top:12px"${list.length > 1 ? ' open' : ''}><summary class="small" style="font-weight:800;color:var(--muted)">📜 History (${list.length || 1})</summary>
     <div class="summary small" style="margin-top:6px">${list.length ? list.map(a => auditLine(a, false)).join('') : `<div class="line"><span>➕ <b>${esc((r && (r.by || r.device)) || '')}</b> added</span><span class="muted">${r ? fmtStamp(r.createdAt) : ''}</span></div>`}</div></details>`;
 }
+const POULTRY_LOG_KINDS = ['sale', 'grainsale', 'purchase', 'event', 'lot'];
+let logAll = false;
 function renderLog() {
   const users = knownUsers();
   const f = recFilter.logUser || '';
-  const list = Object.values(db.records).filter(r => r.kind === 'audit' && (!f || r.by === f)).sort((a, b) => b.at - a.at);
-  $('#repBody').innerHTML = `
+  const list = Object.values(db.records).filter(r => r.kind === 'audit' && (!f || r.by === f) && (logAll || POULTRY_LOG_KINDS.includes(r.refKind))).sort((a, b) => b.at - a.at);
+  const el = logAll ? $('#fullLog') : $('#repBody');
+  if (!el) return;
+  el.innerHTML = `
     <div class="chips" style="margin-bottom:10px"><button class="chip sm ${!f ? 'on' : ''}" data-act="logUser" data-v="">Everyone</button>${users.map(u => `<button class="chip sm ${f === u ? 'on' : ''}" data-act="logUser" data-v="${esc(u)}">👤 ${esc(u)}</button>`).join('')}</div>
     ${list.length ? `<div class="summary small">${list.slice(0, 300).map(a => auditLine(a, true)).join('')}</div>` : '<div class="card empty"><div class="e">📜</div><p>No changes logged yet.</p></div>'}
-    <p class="small muted">Every add, change, delete and archive is logged with the user, date and time — on every phone.</p>`;
+    <p class="small muted">${logAll ? 'Every add, change, delete and archive in Kheti, chicken, shop and settings' : 'Chicken changes only (sales, purchases, process, lots). The full log is in ⚙️ Settings → Others'} — with the user, date and time, from every phone.</p>`;
+}
+function openFullLog() {
+  logAll = true;
+  openSheet(`<h2>📜 Change log</h2><div id="fullLog"></div><button class="btn big primary" data-act="closeSheet">Close</button>`);
+  renderLog();
 }
 function openUserSwitch(first) {
   const users = knownUsers();
@@ -690,13 +682,13 @@ function openDay(date, lotId, fromCal) {
   const sales = day.filter(r => r.kind === 'sale' || (!lotId && r.kind === 'grainsale'));
   const buys = day.filter(r => r.kind === 'purchase' || (r.kind === 'event' && r.type === 'restock'));
   const proc = day.filter(r => r.kind === 'event' && r.type !== 'restock');
-  const shop = lotId ? [] : day.filter(r => r.kind === 'shop');
+  const shop = lotId || !fromCal ? [] : day.filter(r => r.kind === 'shop');
   const sum = (l, k) => l.reduce((a, r) => a + (Number(r[k]) || 0), 0);
   const by = t => sales.filter(r => r.type === t);
   const perLot = {};
   if (!lotId) sales.filter(r => r.lotId).forEach(r => { perLot[r.lotId] = (perLot[r.lotId] || 0) + (Number(r.amount) || 0); });
   const sh = shopSum(shop);
-  const kh = lotId ? { line: '', list: '' } : dayKhetiHtml(date);
+  const kh = lotId || !fromCal ? { line: '', list: '' } : dayKhetiHtml(date);
   const wd = WEEK_NE[weekday(date)] + 'बार', bb = adToBs(date);
   openSheet(`${lot ? `<button class="btn sm ghost" data-act="openLot" data-id="${lot.id}">‹ Back to ${esc(lot.name)}</button>` : `<button class="btn sm ghost" data-act="openCalendar" data-d="${date}">‹ 📅 ${BS_MONTHS_NE[bb.m - 1]} ${neNum(bb.y)}</button>`}
     <h2>${fmtDate(date, true)}${lot ? ' · ' + esc(lot.name) : ''}</h2>
@@ -851,11 +843,18 @@ function openArchive() {
 }
 
 // ---------- SETTINGS ----------
+let settingsTab = 'kheti';
+const SETTINGS_TABS = [['kheti', '🌾 Kheti'], ['poultry', '🐔 Chicken'], ['shop', '🏪 Shop'], ['other', '⚙️ Others']];
 function renderSettings() {
   const m = db.meta, pend = Object.keys(m.pending).length;
   const counts = { sale: all('sale').length, event: all('event').length, lot: all('lot').length };
-  $('#v-settings').innerHTML = `
-    ${khetiSettingsHtml()}
+  const tab = SETTINGS_TABS.some(t => t[0] === settingsTab) ? settingsTab : 'kheti';
+  const exp = list => `<div class="grid2">${list.map(([v, l]) => `<button class="btn" data-act="exportCsv" data-v="${v}">📄 ${l}</button>`).join('')}</div>`;
+  const parts = {
+    kheti: () => `${khetiSettingsHtml()}
+    <h2>Kheti reports</h2>
+    <div class="card">${exp([['kheti', 'Kheti (CSV)'], ['khetiwork', 'Kheti work (CSV)']])}</div>`,
+    poultry: () => `
     <h2>🐔 Chicken types & prices</h2>
     <div class="card">
       ${breedPriceTable('sp')}
@@ -878,6 +877,19 @@ function renderSettings() {
       <p class="small muted">Types, prices and alerts are shared with all your phones.</p>
     </div>
 
+    <h2>Chicken reports</h2>
+    <div class="card">${exp([['sales', 'Sales (CSV)'], ['process', 'Process (CSV)'], ['lots', 'Lots (CSV)'], ['purchases', 'Purchases (CSV)']])}
+      <div style="height:8px"></div><button class="btn big ghost" data-act="shareSummary">💬 Share today's chicken summary</button></div>`,
+    shop: () => `<h2>🏪 Shop</h2>
+    <div class="card">
+      <p class="small muted" style="margin-top:0">The shop register keeps each day's 💵 cash, 📱 QR (eSewa, Khalti, Fonepay) and 📦 goods bought. It is separate from the chicken accounts.</p>
+      ${exp([['shop', 'Shop (CSV)']])}
+      <div style="height:8px"></div>
+      <div class="btnrow"><button class="btn" data-act="shareShop">💬 Share shop report</button><button class="btn ghost" data-act="section" data-v="shop">🏪 Open shop</button></div>
+    </div>`,
+    other: () => `<h2>Open the app in</h2>
+    <div class="card"><div class="chips">${Object.keys(SECTIONS).map(k => `<button class="chip ${openSectionPref() === k ? 'on' : ''}" data-act="setOpenSection" data-v="${k}">${SECTIONS[k].label}</button>`).join('')}</div>
+      <div class="hint">Only for this phone. Each phone can open in its own section.</div></div>
     <h2>Voice</h2>
     <div class="card">
       <div class="field"><label>Voice language</label><select data-meta="voiceLang">
@@ -907,21 +919,14 @@ function renderSettings() {
     </div>
 
     ${updatesCardHtml()}
-    <h2>Reports & backup</h2>
+    <h2>Change log & backup</h2>
     <div class="card">
-      <div class="grid2">
-        <button class="btn" data-act="exportCsv" data-v="sales">📄 Sales (Excel CSV)</button>
-        <button class="btn" data-act="exportCsv" data-v="process">📄 Process (CSV)</button>
-        <button class="btn" data-act="exportCsv" data-v="lots">📄 Lots (CSV)</button>
-        <button class="btn" data-act="exportCsv" data-v="purchases">📄 Purchases (CSV)</button>
-        <button class="btn" data-act="exportCsv" data-v="shop">📄 Shop (CSV)</button>
-        <button class="btn" data-act="exportCsv" data-v="kheti">📄 Kheti (CSV)</button>
-        <button class="btn" data-act="exportCsv" data-v="khetiwork">📄 Kheti work (CSV)</button>
-        <button class="btn" data-act="shareSummary">💬 Share today</button>
-      </div>
-      <p class="small muted">The sync file is also a full backup.</p>
+      <button class="btn big ghost" data-act="openFullLog">📜 Change log — everything (Kheti, chicken, shop, settings)</button>
+      <p class="small muted">The sync file (above) is also a full backup.</p>
     </div>
-    <p class="small muted" style="text-align:center">Gram Hisab v${APP_VERSION} · ${counts.lot} lots · ${counts.sale} sales · ${counts.event} process entries</p>`;
+    <p class="small muted" style="text-align:center">Gram Hisab v${APP_VERSION} · ${fields().length} fields · ${counts.lot} lots · ${counts.sale} sales · ${all('shop').length} shop days</p>`
+  };
+  $('#v-settings').innerHTML = `<div class="seg settabs" style="margin-top:6px">${SETTINGS_TABS.map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" data-act="settingsTab" data-v="${k}">${l}</button>`).join('')}</div>${parts[tab]()}`;
 }
 function openPriceSheet() {
   openSheet(`<h2>Prices by chicken type</h2><p class="small muted">Rs per kg. Used as the default rate for each sale.</p>
@@ -1247,6 +1252,7 @@ function reportRange(key) {
   }
 }
 function renderReports() {
+  logAll = false;
   const tabs = [['profit', '📊 Profit'], ['lots', '🐣 Lots'], ['stock', '📦 Stock'], ['records', '📋 Records'], ['log', '📜 Log']];
   $('#v-reports').innerHTML = `<div class="seg" style="margin-top:6px">${tabs.map(([k, l]) => `<button class="${reportTab === k ? 'on' : ''}" data-act="repTab" data-v="${k}">${l}</button>`).join('')}</div><div id="repBody"></div>`;
   ({ profit: renderProfit, lots: renderLots, stock: renderStock, records: renderRecords, log: renderLog })[reportTab]();
@@ -1432,7 +1438,7 @@ document.addEventListener('click', e => {
     case 'switchUser': openUserSwitch(false); break;
     case 'pickUser': db.meta.userName = v; persist(true); closeSheet(); render(); toast(`👤 Now entering as ${v}`); break;
     case 'pickUserNew': { const nm = ($('#newUser').value || '').trim(); if (!nm) { toast('Type a name'); return; } db.meta.userName = nm; persist(true); closeSheet(); render(); toast(`👤 Now entering as ${nm}`); break; }
-    case 'logUser': recFilter.logUser = v; renderLog(); break;
+    case 'logUser': recFilter.logUser = v; logAll = !!$('#fullLog'); renderLog(); break;
     case 'recUser': recFilter.user = v; renderRecords(); break;
     case 'installApk': installApkUpdate(); break;
     case 'openStock': closeSheet(); goReport('stock'); break;
@@ -1464,6 +1470,8 @@ document.addEventListener('click', e => {
     case 'help': info('Voice commands', helpHtml(), '', false); break;
     case 'voiceSettings': Android.openVoiceSettings(); break;
     case 'setDefType': setSet('defaultType', v); renderSettings(); break;
+    case 'settingsTab': settingsTab = v; renderSettings(); window.scrollTo(0, 0); break;
+    case 'openFullLog': openFullLog(); break;
     case 'exportCsv': exportCsv(v); break;
     case 'exportSync': exportSync(); break;
     case 'importSync': importSync(); break;

@@ -565,7 +565,6 @@ function khetiSettingsHtml() {
   const sys = landSystem();
   return `<h2>🌾 Kheti</h2>
     <div class="card">
-      <div class="field"><label>Open the app in (this phone)</label><div class="chips">${Object.keys(SECTIONS).map(s => kChip('setOpenSection', s, openSectionPref() === s, SECTIONS[s].label)).join('')}</div></div>
       <div class="field"><label>Land units (this phone)</label><div class="chips">${kChip('setLandSys', 'pahad', sys === 'pahad', '⛰️ Ropani-Aana-Paisa-Daam')}${kChip('setLandSys', 'tarai', sys === 'tarai', '🌾 Bigha-Kattha-Dhur')}</div>
         <div class="hint">The other system is shown in small text. <a href="#" data-act="openConverter">📐 Converter</a></div></div>
       <h3>👷 Khetala rates (Rs per person)</h3>
