@@ -56,6 +56,8 @@ function handleInput(alts, origin) {
   // On the Shop page, amounts without farm words are shop entries ("cash 5000 qr 3000", "नगद ५०००")
   if (typeof view !== 'undefined' && view === 'shop')
     alts = alts.map(a => /\b(kg|kilo|lot|dead|died|feed|dana|chicken|kukhura|masu|live|sold|bought)\b|केजी|किलो|कुखुरा|मासु|मरे|दाना|बेच/i.test(a) ? a : 'shop ' + a);
+  // "patro", "calendar", "पात्रो" → the Nepali calendar
+  if (alts.some(a => /^\s*(?:(?:aaja|aja|today|आज)\s*(?:ko)?\s*)?(?:patro|patra|calendar|calender|पात्रो|पत्रो|miti|मिति)(?:\s+(?:kholnu(?:s|hos)?|khola|open|show|dekhau))?\s*$/i.test(a))) { openCalendar(); if (voiceMode) { const b = adToBs(today()); speak(`Today is ${BS_MONTHS[b.m - 1]} ${b.d}, ${b.y}.`); } return; }
   // Kheti words (or the Kheti section): try the Kheti parser first
   if (typeof parseKheti === 'function' && ((typeof section !== 'undefined' && section === 'kheti') || alts.some(khetiLikely))) {
     for (const a of alts) { const kp = parseKheti(a); if (kp) { flowKheti(kp, voiceMode); return; } }

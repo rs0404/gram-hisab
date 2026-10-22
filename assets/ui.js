@@ -683,7 +683,7 @@ function lotDailyHtml(l) {
       <div class="summary small" style="margin-top:6px">${list.map(d => `<div class="line" data-act="dayDetail" data-d="${d}" data-id="${l.id}" style="cursor:pointer"><span><b>${fmtDate(d, true)}</b><br><span class="muted">${byDay[d].n} sale${byDay[d].n > 1 ? 's' : ''} · ${kgs(byDay[d].kg)} · ${byDay[d].birds} birds</span></span><b style="color:var(--green)">${money(byDay[d].amount)} ›</b></div>`).join('')}</div></details>` : ''}`;
 }
 // everything recorded on one day (optionally for one lot)
-function openDay(date, lotId) {
+function openDay(date, lotId, fromCal) {
   const lot = lotId ? lotById(lotId) : null;
   const inLot = r => !lotId || r.lotId === lotId;
   const day = Object.values(db.records).filter(r => !hidden(r) && r.date === date && inLot(r));
@@ -696,9 +696,13 @@ function openDay(date, lotId) {
   const perLot = {};
   if (!lotId) sales.filter(r => r.lotId).forEach(r => { perLot[r.lotId] = (perLot[r.lotId] || 0) + (Number(r.amount) || 0); });
   const sh = shopSum(shop);
-  openSheet(`${lot ? `<button class="btn sm ghost" data-act="openLot" data-id="${lot.id}">‹ Back to ${esc(lot.name)}</button>` : ''}
+  const kh = lotId ? { line: '', list: '' } : dayKhetiHtml(date);
+  const wd = WEEK_NE[weekday(date)] + 'बार', bb = adToBs(date);
+  openSheet(`${lot ? `<button class="btn sm ghost" data-act="openLot" data-id="${lot.id}">‹ Back to ${esc(lot.name)}</button>` : `<button class="btn sm ghost" data-act="openCalendar" data-d="${date}">‹ 📅 ${BS_MONTHS_NE[bb.m - 1]} ${neNum(bb.y)}</button>`}
     <h2>${fmtDate(date, true)}${lot ? ' · ' + esc(lot.name) : ''}</h2>
+    <div class="small muted" style="margin:-6px 0 10px">${BS_MONTHS_NE[bb.m - 1]} ${neNum(bb.d)}, ${neNum(bb.y)} · ${wd} · AD ${date}</div>
     <div class="summary">
+      ${kh.line}
       <div class="line"><span><b>Sales</b> (${sales.length})</span><b style="font-size:22px;color:var(--green)">${money(sum(sales, 'amount'))}</b></div>
       ${by('live').length ? `<div class="line"><span>🐔 Live</span><b>${kgs(sum(by('live'), 'kg'))} · ${sum(by('live'), 'birds')} birds · ${money(sum(by('live'), 'amount'))}</b></div>` : ''}
       ${by('meat').length ? `<div class="line"><span>🔪 Meat</span><b>${kgs(sum(by('meat'), 'kg'))} · ${sum(by('meat'), 'birds')} cut · ${money(sum(by('meat'), 'amount'))}</b></div>` : ''}
@@ -708,13 +712,14 @@ function openDay(date, lotId) {
       ${buys.length ? `<div class="line"><span><b>Bought</b> (${buys.length})</span><b style="color:var(--red)">${money(sum(buys, 'amount'))}</b></div>` : ''}
       ${shop.length ? `<div class="line"><span>🏪 Shop collected</span><b>${money(sh.total)} <span class="small muted">(goods ${money(sh.goods)})</span></b></div>` : ''}
     </div>
-    ${sales.length ? `<h3>💰 Sales</h3>${sales.sort((a, b) => a.createdAt - b.createdAt).map(itemHtml).join('')}` : '<p class="muted">No sales this day.</p>'}
+    ${kh.list}
+    ${sales.length ? `<h3>💰 Sales</h3>${sales.sort((a, b) => a.createdAt - b.createdAt).map(itemHtml).join('')}` : lotId ? '<p class="muted">No sales this day.</p>' : ''}
     ${buys.length ? `<h3>🛒 Purchases</h3>${buys.map(itemHtml).join('')}` : ''}
     ${proc.length ? `<h3>📝 Process</h3>${proc.map(itemHtml).join('')}` : ''}
     ${shop.length ? `<h3>🏪 Shop</h3>${shop.map(r => `<button class="item" data-act="editShopFromDay" data-id="${r.id}"><div class="ic" style="background:var(--green-l)">🏪</div><div class="mid"><div class="t">Collected ${money((Number(r.cash) || 0) + (Number(r.qr) || 0))}${r.goods ? ' · Goods ' + money(r.goods) : ''}</div><div class="s">Cash ${money(r.cash)} · QR ${money(r.qr)} · ${whoWhen(r)}</div></div></button>`).join('')}` : ''}
     <div style="height:10px"></div>
-    <div class="btnrow"><button class="btn ghost" data-act="dayShift" data-d="${addDays(date, -1)}" data-id="${lotId || ''}">‹ ${esc(fmtDate(addDays(date, -1)))}</button>
-      ${date < today() ? `<button class="btn ghost" data-act="dayShift" data-d="${addDays(date, 1)}" data-id="${lotId || ''}">${esc(fmtDate(addDays(date, 1)))} ›</button>` : ''}</div>
+    <div class="btnrow"><button class="btn ghost" data-act="${fromCal ? 'calDay' : 'dayShift'}" data-d="${addDays(date, -1)}" data-id="${lotId || ''}">‹ ${esc(fmtDate(addDays(date, -1)))}</button>
+      ${date < today() || fromCal ? `<button class="btn ghost" data-act="${fromCal ? 'calDay' : 'dayShift'}" data-d="${addDays(date, 1)}" data-id="${lotId || ''}">${esc(fmtDate(addDays(date, 1)))} ›</button>` : ''}</div>
     <div style="height:10px"></div><button class="btn big primary" data-act="closeSheet">Close</button>`);
 }
 
@@ -1031,9 +1036,11 @@ function bsDateHtml(key, adIso) {
     </div>
     <div class="row between" style="margin-top:6px">
       <div class="chips"><button class="chip sm ${adIso === today() ? 'on' : ''}" data-act="bsQuick" data-key="${key}" data-days="0">Today</button>
-      <button class="chip sm ${adIso === addDays(today(), -1) ? 'on' : ''}" data-act="bsQuick" data-key="${key}" data-days="-1">Yesterday</button></div>
+      <button class="chip sm ${adIso === addDays(today(), -1) ? 'on' : ''}" data-act="bsQuick" data-key="${key}" data-days="-1">Yesterday</button>
+      <button class="chip sm" data-act="bsCalToggle" data-key="${key}">📅 पात्रो</button></div>
       <span class="hint" data-bshint="${key}">AD ${adIso}</span>
-    </div>`;
+    </div>
+    <div data-bscalbox="${key}"></div>`;
 }
 
 function readBsDate(wrap) {
@@ -1328,7 +1335,7 @@ document.addEventListener('click', e => {
   if (!b) return;
   const act = b.dataset.act, id = b.dataset.id, v = b.dataset.v;
   if (b.tagName === 'A') e.preventDefault();
-  if (khetiClick(act, b)) return;
+  if (khetiClick(act, b) || calendarClick(act, b)) return;
   switch (act) {
     case 'go': closeSheet(); go(b.dataset.view); break;
     case 'mic': if (listening) cancelListening(); else listen(); break;

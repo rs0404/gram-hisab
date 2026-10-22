@@ -540,6 +540,7 @@ function setSection(s) {
   section = s;
   document.body.className = document.body.className.replace(/\bsec-\w+/g, '').trim() + ' sec-' + s;
   renderSecbar(); renderNav();
+  const pc = $('#priceChip'); if (pc) pc.classList.toggle('hidden', s !== 'poultry');
 }
 function renderSecbar() {
   const el = $('#secbar');

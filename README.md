@@ -25,6 +25,11 @@ A voice-first Android app for my home farm: 🌾 **Kheti** (fields, crops, kheta
 <td align="center"><img src="docs/screenshots/22-converter.png" width="230"><br><sub>Ropani ⇄ Bigha converter</sub></td>
 </tr>
 <tr>
+<td align="center"><img src="docs/screenshots/24-calendar.png" width="230"><br><sub>📅 Nepali calendar: days with entries, month totals</sub></td>
+<td align="center"><img src="docs/screenshots/25-calendar-day.png" width="230"><br><sub>Tap a day: Kheti, sales, shop of that day</sub></td>
+<td align="center"><img src="docs/screenshots/26-date-picker.png" width="230"><br><sub>📅 पात्रो date picker in every form</sub></td>
+</tr>
+<tr>
 <td align="center"><img src="docs/screenshots/01-home.png" width="230"><br><sub>Home: chicken & shop today</sub></td>
 <td align="center"><img src="docs/screenshots/02-lots.png" width="230"><br><sub>Lot card: birds left, spent, grain in bora</sub></td>
 <td align="center"><img src="docs/screenshots/05-voice-confirm.png" width="230"><br><sub>Voice: "sold 2.5 kg live" → confirm</sub></td>
@@ -67,6 +72,12 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
   - Each field card shows its current crop and investment, and every number opens its entries to edit or delete.
   - Past khetis and the lifetime cost of each field are kept.
 - Reports by season, CSV export, and readable **Fields / Kheti / Kheti work / Workers / Payments / Machines / Inputs / Harvest / Parma** tabs in the Google Sheet.
+
+**📅 Nepali calendar (पात्रो)**
+- Tap 📅 at the top, or say "patro". The month view shows BS dates in Nepali digits with the English date in small text, Saturdays in red, and today ringed.
+- Coloured dots mark the days with Kheti, poultry or shop entries, and the month totals sit under the grid. Tap a day to see everything recorded on it, then go to the day before or after.
+- Every date field has a **📅 पात्रो** button that opens a calendar for picking the date.
+- An AD ⇄ BS date converter.
 
 **Chickens and lots**
 - Lots are auto-named from the Nepali date the chicks arrived, e.g. `Ashar83_10_1_100`: Ashar 2083, day 10, the 1st lot that month, 100 chicks.
@@ -160,6 +171,6 @@ Needs the Android SDK command line tools (build-tools 35, platform 35) and a JDK
 | Path | What |
 |---|---|
 | `src/…/MainActivity.java` | Android shell: WebView, voice (SpeechRecognizer), text-to-speech, files, updater, APK installer |
-| `assets/` | The app: `core.js` (data, stats, sync), `parser.js` (voice → command), `flows.js` (conversations), `ui.js` (screens), `kheti.js` / `kheti-ui.js` / `kheti-voice.js` (🌾 Kheti data, screens, voice), `landunits.js` (Ropani/Bigha), `shop.js`, `updater.js`, `nepcal.js` (BS calendar from [yarsa/nepal-compliance](https://github.com/yarsa/nepal-compliance)) |
+| `assets/` | The app: `core.js` (data, stats, sync), `parser.js` (voice → command), `flows.js` (conversations), `ui.js` (screens), `kheti.js` / `kheti-ui.js` / `kheti-voice.js` (🌾 Kheti data, screens, voice), `landunits.js` (Ropani/Bigha), `calendar.js` (Nepali calendar), `shop.js`, `updater.js`, `nepcal.js` (BS calendar from [yarsa/nepal-compliance](https://github.com/yarsa/nepal-compliance)) |
 | `google-sheet-sync/` | Google Apps Script for multi-phone sync |
 | `docs/screenshots/` | README images (demo data) |
