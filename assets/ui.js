@@ -55,6 +55,7 @@ function renderHeader() {
   const t = today(), b = adToBs(t), d = new Date();
   $('#topDate').textContent = DAY[d.getDay()] + ', ' + BS_MONTHS[b.m - 1] + ' ' + b.d + ', ' + b.y + ' · 👤 ' + currentUser();
   $('#priceChip').innerHTML = '💰 Prices';
+  if (isOldApp()) $('.appname').textContent = 'ग्राम हिसाब (पुरानो)';
   updateSyncDot();
 }
 
@@ -72,6 +73,7 @@ function renderHome() {
 
   $('#v-home').innerHTML = `
     <form class="cmd" data-form="cmd"><input id="cmdInput" placeholder="Type: sold 2 kg meat" autocomplete="off" enterkeyhint="go"><button class="btn primary" type="submit">Go</button></form>
+    ${moveBannerHtml()}${removeOldBannerHtml()}
     ${updateBannerHtml()}
     ${flags.map(f => `<button class="flag ${f.cls}" data-act="${f.act}" ${f.id ? `data-id="${f.id}"` : ''}><span class="fi">${f.icon}</span><span>${esc(f.text)}</span><span class="go">${f.go}</span></button>`).join('')}
 
@@ -941,7 +943,9 @@ function onboarding() {
     ${breedPriceTable('op')}
     <button class="btn big green" data-act="saveOnb">Continue → add first lot</button>
     <div style="height:10px"></div>
-    <button class="btn big ghost" data-act="syncHelpFromOnb">I already use it on another phone</button></div>`);
+    <button class="btn big ghost" data-act="syncHelpFromOnb">I already use it on another phone</button>
+    <div style="height:10px"></div>
+    <button class="btn big ghost" data-act="pasteSetup">🚚 Moving from the old Gram Hisab? Paste setup code</button></div>`);
 }
 
 // ---------- export / import ----------
@@ -1399,6 +1403,13 @@ document.addEventListener('click', e => {
     case 'showFlagged': recFilter = { kind: 'flag', lot: '', limit: 150 }; go('records'); break;
     case 'openReport': closeSheet(); goReport('profit'); break;
     case 'checkUpdates': checkForUpdates(true); break;
+    case 'openMove': openMove(); break;
+    case 'moveSync': syncNow(true).then(() => openMove()); break;
+    case 'moveInstall': if (v) { toast('Downloading the new app…'); Android.installApk(updateBase() + v); } break;
+    case 'moveCopy': shareText(setupCode()); break;
+    case 'removeOld': Android.uninstallPackage(OLD_PKG); break;
+    case 'pasteSetup': ask({ title: 'Paste the setup code', sub: 'Copied from the old app (starts with GRAMHISAB-SETUP:)', input: { text: true, placeholder: 'GRAMHISAB-SETUP:…' },
+      onAnswer: t => setupFromText(t), onCancel: () => onboarding() }); break;
     case 'switchUser': openUserSwitch(false); break;
     case 'pickUser': db.meta.userName = v; persist(true); closeSheet(); render(); toast(`👤 Now entering as ${v}`); break;
     case 'pickUserNew': { const nm = ($('#newUser').value || '').trim(); if (!nm) { toast('Type a name'); return; } db.meta.userName = nm; persist(true); closeSheet(); render(); toast(`👤 Now entering as ${nm}`); break; }
@@ -1497,6 +1508,7 @@ window.onBack = function () {
 window.onAppPause = () => { persist(true); stopSpeaking(); };
 let lastDay = today();
 window.onAppResume = () => {
+  setTimeout(checkClipboardSetup, 600);
   if (today() !== lastDay) { lastDay = today(); render(); }
   scheduleSync(300);
   if (!db.meta.lastUpdateCheck || Date.now() - db.meta.lastUpdateCheck > 3 * 3600 * 1000) checkForUpdates(false);
@@ -1506,7 +1518,7 @@ window.onAppResume = () => {
 loadDb();
 go('home');
 renderHeader();
-if (!Object.keys(db.records).length) onboarding();
+if (!Object.keys(db.records).length) { onboarding(); setTimeout(checkClipboardSetup, 1200); }
 else if (!db.meta.userName) setTimeout(() => openUserSwitch(true), 600);
 if (db.meta.syncUrl) scheduleSync(800);
 startUpdater();

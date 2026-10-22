@@ -1,4 +1,4 @@
-package com.farm.chickenkhata;
+package com.gramhisab.app;
 
 import android.Manifest;
 import android.app.Activity;
@@ -468,6 +468,60 @@ public class MainActivity extends Activity {
         }
 
         private String safe(String name) { return name.replaceAll("[^A-Za-z0-9._-]", "_"); }
+
+        // ---------- moving from the old app ID (com.farm.chickenkhata) ----------
+        @JavascriptInterface
+        public String packageName() { return getPackageName(); }
+
+        @JavascriptInterface
+        public boolean isInstalled(String pkg) {
+            try { getPackageManager().getPackageInfo(pkg, 0); return true; } catch (Exception e) { return false; }
+        }
+
+        // Reads the clipboard (only works while this app is on screen) to pick up the setup code.
+        @JavascriptInterface
+        public String readClipboard() {
+            final String[] out = { null };
+            final java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
+            runOnUiThread(() -> {
+                try {
+                    android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                    if (cm != null && cm.hasPrimaryClip() && cm.getPrimaryClip().getItemCount() > 0) {
+                        CharSequence t = cm.getPrimaryClip().getItemAt(0).coerceToText(MainActivity.this);
+                        out[0] = t == null ? null : t.toString();
+                    }
+                } catch (Exception ignored) {}
+                done.countDown();
+            });
+            try { done.await(2, java.util.concurrent.TimeUnit.SECONDS); } catch (InterruptedException ignored) {}
+            return out[0];
+        }
+
+        @JavascriptInterface
+        public void copyText(final String text) {
+            runOnUiThread(() -> {
+                try {
+                    android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                    cm.setPrimaryClip(android.content.ClipData.newPlainText("Gram Hisab", text));
+                } catch (Exception ignored) {}
+            });
+        }
+
+        // Opens Android's own "Uninstall this app?" dialog (the user confirms).
+        @JavascriptInterface
+        public void uninstallPackage(final String pkg) {
+            runOnUiThread(() -> {
+                try { startActivity(new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + pkg))); } catch (Exception ignored) {}
+            });
+        }
+
+        @JavascriptInterface
+        public boolean openApp(final String pkg) {
+            Intent i = getPackageManager().getLaunchIntentForPackage(pkg);
+            if (i == null) return false;
+            runOnUiThread(() -> startActivity(i));
+            return true;
+        }
 
         // ---------- updater ----------
         @JavascriptInterface

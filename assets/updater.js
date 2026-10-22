@@ -39,7 +39,7 @@ async function checkForUpdates(manual) {
     db.meta.lastUpdateCheck = Date.now();
     let msg = 'Gram Hisab is up to date ✓';
     // 1) newer APK?
-    if (info.apk && Number(info.apk.versionCode) > nativeCode()) {
+    if (info.apk && Number(info.apk.versionCode) > nativeCode() && !isOldApp()) {
       updateInfo = { apk: info.apk };
       msg = `App update v${info.apk.versionName} is ready — tap Install`;
     } else updateInfo = null;
