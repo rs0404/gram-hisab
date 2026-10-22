@@ -4,11 +4,26 @@
 
 *ग्राम (gram) is Sanskrit for "village", so the name means "village accounts".*
 
-A voice-first Android app for my home poultry farm and shop. It records chicken sales (live, cut meat, khutta-tauko), grain and medicine purchases, deaths and feeding lot by lot, plus the shop's daily cash and QR collection. It also shows profit. It runs on several phones, uses the Nepali (BS) calendar, and understands English and Nepali voice.
+A voice-first Android app for my home farm: 🌾 **Kheti** (fields, crops, khetala, parma, tractor and harvest), 🐔 **poultry** and 🏪 the **shop**. It records chicken sales (live, cut meat, khutta-tauko), grain and medicine purchases, deaths and feeding lot by lot, plus the shop's daily cash and QR collection. It also shows profit. It runs on several phones, uses the Nepali (BS) calendar, and understands English and Nepali voice.
 
 > Screenshots use **demo data**.
 
 <table>
+<tr>
+<td align="center"><img src="docs/screenshots/14-kheti.png" width="230"><br><sub>🌾 Kheti: all fields, crops and money spent</sub></td>
+<td align="center"><img src="docs/screenshots/15-kheti-field.png" width="230"><br><sub>Field card: cost of this kheti, harvest, cost per kg</sub></td>
+<td align="center"><img src="docs/screenshots/16-kheti-voice.png" width="230"><br><sub>Voice: "katne Ram pura Sita aadha 4 khetala 3 parma"</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/screenshots/17-kheti-work.png" width="230"><br><sub>Work day: named khetala full/half, parma</sub></td>
+<td align="center"><img src="docs/screenshots/18-workers.png" width="230"><br><sub>Workers by family: wages due, parma balance</sub></td>
+<td align="center"><img src="docs/screenshots/19-worker-account.png" width="230"><br><sub>Worker account: call, save contact, pay, settle</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/screenshots/20-kheti-entries.png" width="230"><br><sub>Kheti cost breakdown and entries</sub></td>
+<td align="center"><img src="docs/screenshots/21-kheti-report.png" width="230"><br><sub>Kheti report by season</sub></td>
+<td align="center"><img src="docs/screenshots/22-converter.png" width="230"><br><sub>Ropani ⇄ Bigha converter</sub></td>
+</tr>
 <tr>
 <td align="center"><img src="docs/screenshots/01-home.png" width="230"><br><sub>Home: chicken & shop today</sub></td>
 <td align="center"><img src="docs/screenshots/02-lots.png" width="230"><br><sub>Lot card: birds left, spent, grain in bora</sub></td>
@@ -32,6 +47,26 @@ A voice-first Android app for my home poultry farm and shop. It records chicken 
 </table>
 
 ## Features
+
+The top bar switches between **🌾 खेती Kheti · 🐔 कुखुरा Poultry · 🏪 पसल Shop**. Each phone chooses which one the app opens in (Settings; Kheti by default).
+
+**🌾 Kheti (खेती)**
+- **Fields (खेत)** with their own names and areas in **Ropani-Aana-Paisa-Daam** (Pahad) or **Bigha-Kattha-Dhur** (Tarai). Each phone picks its system and sees the other in small text. A built-in converter also shows m² and sq ft.
+- **Kheti = one crop cycle** on a field, so a field can be planted 1–4 times a year. The season is named automatically from the planting date: बर्खे Barkhe, हिउँदे Hiude, चैते Chaite.
+- **One main crop plus aali crops** (आली), e.g. Dhaan with Maas and Masuro on the bunds. The built-in list covers grains, pulses, cash crops and vegetables, and you can add your own.
+- **Labour:** each work type has its own **full-day and half-day rate**. Built-in types include goru jotne, tractor jotne, bause, lathe, aali lagaune, byad, ropai, godmel, mal halne, sinchai, dawai, katne, bhari, dain, sukaune and aalu khanne; you can add more.
+  - On a work day you tap the named khetala (full → half) and/or type counts of others, plus **parma** (परमा) families.
+- **Workers book:** name, family (ghar), phone.
+  - 📇 Pick a worker from your phone contacts, 💾 save one to contacts, 📞 call, or 📤 share.
+  - Each worker has an account (earned − paid = due) with **Pay**, **Settle** and a shareable statement.
+- **Parma balance per family:** days they came to help, minus days we went to theirs.
+- **Machines:** hired tractor (hours × rate), own tractor, power tiller, water pump, thresher/harvester, with **petrol/diesel litres and cost**.
+- **Seed and fertilizer** (Urea, DAP, Potash, compost…) by kg, bora or packet.
+- **Harvest** in kg, quintal, **muri/pathi/mana** or bora, converted to kg. 1 pathi of each crop is set in Settings.
+- **Cost per kheti, like cost per lot:** labour + machine + fuel + seed + fertilizer, the harvest, and **cost per kg**.
+  - Each field card shows its current crop and investment, and every number opens its entries to edit or delete.
+  - Past khetis and the lifetime cost of each field are kept.
+- Reports by season, CSV export, and readable **Fields / Kheti / Kheti work / Workers / Payments / Machines / Inputs / Harvest / Parma** tabs in the Google Sheet.
 
 **Chickens and lots**
 - Lots are auto-named from the Nepali date the chicks arrived, e.g. `Ashar83_10_1_100`: Ashar 2083, day 10, the 1st lot that month, 100 chicks.
@@ -79,6 +114,11 @@ A voice-first Android app for my home poultry farm and shop. It records chicken 
 ## Things you can say
 | What | Say |
 |---|---|
+| 🌾 Work day | "Purbe khet ropai 6 khetala 3 parma Thapa ghar", "Ram Hari pura Sita aadha godmel", "पूर्बे खेत रोपाइँ ६ खेताला" |
+| 🚜 Machine | "tractor 3 ghanta 1500", "aafno tractor diesel 5 litre 750", "pump 2 ghanta diesel 3 litre 450" |
+| 🧪 Seed / मल | "DAP 2 bora 9000", "urea ek bora athara saya", "dhaan biu 10 kg 1200" |
+| 🌾 Harvest | "dhaan 20 muri", "gahun 5 quintal", "धान २० मुरी" |
+| 👷 Pay / parma | "Ram lai 2000 tirey", "Ram settle", "Rai ghar parma tirne 2 din", "Ram ko hisab", "parma kati baki" |
 | Sell meat | "chicken sold 1 kg", "1kg masu", "एक केजी मासु" |
 | Sell live | "sold 3 live giriraj chickens 7 kg at 320", "डेढ केजी जिउँदो कुखुरा" |
 | Only amount | "sold live 550 rupees" |
@@ -95,7 +135,7 @@ A voice-first Android app for my home poultry farm and shop. It records chicken 
 
 ## Install on a phone
 1. On the phone, open the latest release: <https://github.com/rs0404/gram-hisab/releases/latest>. Download **GramHisab-x.y.apk** and install it, allowing "Install unknown apps" when asked.
-2. Open the app, enter your name and the prices, then add your first lot.
+2. Open the app and enter your name. Then add your fields (🌾 Kheti), your first lot (🐔) or the shop's day (🏪).
 3. After that, the phone updates itself.
 
 > On Samsung phones with **Dual Apps**, install only the normal copy. A dual copy has separate, empty data.
@@ -120,6 +160,6 @@ Needs the Android SDK command line tools (build-tools 35, platform 35) and a JDK
 | Path | What |
 |---|---|
 | `src/…/MainActivity.java` | Android shell: WebView, voice (SpeechRecognizer), text-to-speech, files, updater, APK installer |
-| `assets/` | The app: `core.js` (data, stats, sync), `parser.js` (voice → command), `flows.js` (conversations), `ui.js` (screens), `shop.js`, `updater.js`, `nepcal.js` (BS calendar from [yarsa/nepal-compliance](https://github.com/yarsa/nepal-compliance)) |
+| `assets/` | The app: `core.js` (data, stats, sync), `parser.js` (voice → command), `flows.js` (conversations), `ui.js` (screens), `kheti.js` / `kheti-ui.js` / `kheti-voice.js` (🌾 Kheti data, screens, voice), `landunits.js` (Ropani/Bigha), `shop.js`, `updater.js`, `nepcal.js` (BS calendar from [yarsa/nepal-compliance](https://github.com/yarsa/nepal-compliance)) |
 | `google-sheet-sync/` | Google Apps Script for multi-phone sync |
 | `docs/screenshots/` | README images (demo data) |

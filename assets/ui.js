@@ -37,6 +37,7 @@ function toast(msg, undoId, isRestore) {
 function go(v) {
   if (v === 'lots' || v === 'records') { reportTab = v; v = 'reports'; }
   view = v;
+  if (VIEW_SECTION[v]) setSection(VIEW_SECTION[v]);
   $$('.view').forEach(s => s.classList.toggle('on', s.id === 'v-' + v));
   $$('.navbtn').forEach(b => b.classList.toggle('on', b.dataset.view === v));
   renderView(v);
@@ -49,12 +50,13 @@ function render() {
   renderView(view);
 }
 function renderView(v) {
-  ({ home: renderHome, sell: renderSell, buy: renderBuy, shop: renderShop, reports: renderReports, settings: renderSettings })[v]();
+  ({ kheti: renderKheti, kwork: renderKWork, workers: renderWorkers, kreports: renderKReports, home: renderHome, sell: renderSell, buy: renderBuy, shop: renderShop, reports: renderReports, settings: renderSettings })[v]();
 }
 function renderHeader() {
   const t = today(), b = adToBs(t), d = new Date();
   $('#topDate').textContent = DAY[d.getDay()] + ', ' + BS_MONTHS[b.m - 1] + ' ' + b.d + ', ' + b.y + ' · 👤 ' + currentUser();
   $('#priceChip').innerHTML = '💰 Prices';
+  $('#priceChip').classList.toggle('hidden', section !== 'poultry');
   if (isOldApp()) $('.appname').textContent = 'ग्राम हिसाब (पुरानो)';
   updateSyncDot();
 }
@@ -792,6 +794,7 @@ function renderRecords() {
 function editRec(id) {
   const r = db.records[id];
   if (!r) return;
+  if (KHETI_KINDS.includes(r.kind)) { khetiEditRec(r); return; }
   if (r.kind === 'sale') goSell(r);
   else if (r.kind === 'grainsale') { sellDraft = Object.assign({}, r, { type: 'grain', amountManual: true }); closeSheet(); go('sell'); }
   else if (r.kind === 'purchase') goBuy(r);
@@ -800,7 +803,9 @@ function editRec(id) {
 function deleteRec(id, after) {
   const r = db.records[id];
   if (!r) return;
-  ask({ title: 'Delete this entry?', sub: r.kind === 'sale' ? `${kgs(r.kg)} ${r.type} · ${money(r.amount)} · ${fmtDate(r.date)}` : r.kind === 'purchase' ? `Bought ${purchaseTitle(r)} · ${money(r.amount)}` : r.kind === 'grainsale' ? `Sold grain ${r.grade} · ${money(r.amount)}` : `${lotName(r.lotId)}: ${eventTitle(r)}`,
+  const blocked = KHETI_KINDS.includes(r.kind) ? khetiDeleteBlock(r) : '';
+  if (blocked) { info("Can't delete yet", `<p>${esc(blocked)}</p>`, '', false); return; }
+  ask({ title: 'Delete this entry?', sub: KHETI_KINDS.includes(r.kind) ? khetiRecSummary(r) : r.kind === 'sale' ? `${kgs(r.kg)} ${r.type} · ${money(r.amount)} · ${fmtDate(r.date)}` : r.kind === 'purchase' ? `Bought ${purchaseTitle(r)} · ${money(r.amount)}` : r.kind === 'grainsale' ? `Sold grain ${r.grade} · ${money(r.amount)}` : `${lotName(r.lotId)}: ${eventTitle(r)}`,
     buttons: [{ label: '🗑 Delete', value: 'yes', cls: 'red' }, { label: 'Keep', value: 'no' }],
     onAnswer: a => {
       if (a !== 'yes') return;
@@ -845,7 +850,8 @@ function renderSettings() {
   const m = db.meta, pend = Object.keys(m.pending).length;
   const counts = { sale: all('sale').length, event: all('event').length, lot: all('lot').length };
   $('#v-settings').innerHTML = `
-    <h2>Chicken types & prices</h2>
+    ${khetiSettingsHtml()}
+    <h2>🐔 Chicken types & prices</h2>
     <div class="card">
       ${breedPriceTable('sp')}
       <div class="field" style="margin-top:12px"><label>🍗 Khutta-tauko price Rs/kg</label><input data-set="partsPrice" type="number" inputmode="decimal" value="${getSet('partsPrice')}"></div>
@@ -904,6 +910,8 @@ function renderSettings() {
         <button class="btn" data-act="exportCsv" data-v="lots">📄 Lots (CSV)</button>
         <button class="btn" data-act="exportCsv" data-v="purchases">📄 Purchases (CSV)</button>
         <button class="btn" data-act="exportCsv" data-v="shop">📄 Shop (CSV)</button>
+        <button class="btn" data-act="exportCsv" data-v="kheti">📄 Kheti (CSV)</button>
+        <button class="btn" data-act="exportCsv" data-v="khetiwork">📄 Kheti work (CSV)</button>
         <button class="btn" data-act="shareSummary">💬 Share today</button>
       </div>
       <p class="small muted">The sync file is also a full backup.</p>
@@ -953,7 +961,8 @@ const csvCell = v => { const s = v == null ? '' : String(v); return /[",\n]/.tes
 const csv = rows => '﻿' + rows.map(r => r.map(csvCell).join(',')).join('\r\n');
 function exportCsv(which) {
   let rows, name;
-  if (which === 'sales') {
+  if (which === 'kheti' || which === 'khetiwork') ({ rows, name } = khetiCsv(which));
+  else if (which === 'sales') {
     rows = [['Date (BS)', 'Date (AD)', 'Lot', 'Chicken type', 'Sale type', 'Kg', 'Birds', 'Rate', 'Amount', 'Invoice', 'Flag', 'Note', 'Phone']];
     all('sale').sort((a, b) => a.date.localeCompare(b.date)).forEach(r => rows.push([bsIso(r.date), r.date, lotName(r.lotId), breedName(r.breed || lotBreed(lotById(r.lotId))), r.type, r.kg, r.birds || '', r.rate, r.amount, r.invoice || '', r.flag ? 'FLAG' : '', r.note || '', r.device || '']));
     all('grainsale').sort((a, b) => a.date.localeCompare(b.date)).forEach(r => rows.push([bsIso(r.date), r.date, '', 'Grain ' + r.grade, 'grain', r.unit === 'kg' ? r.qty : r.qty * bagKg(), '', r.rate, r.amount, r.invoice || '', r.flag ? 'FLAG' : '', (r.unit === 'kg' ? '' : r.qty + ' bora ') + (r.note || ''), r.device || '']));
@@ -1037,6 +1046,7 @@ function setBsDraftDate(key, ad) {
   else if (key === 'ev' && eventDraft) eventDraft.date = ad;
   else if (key === 'lot' && lotDraft) { lotDraft.startDate = ad; updateLotAutoName(); }
   else if (key === 'buy' && buyDraft) buyDraft.date = ad;
+  else if (/^k/.test(key)) khetiDate(key, ad);
   else if (key === 'shop' && shopDraft) { $$('#shopForm [data-s]').forEach(el => { shopDraft[el.dataset.s] = el.value; }); shopDraft.date = ad; renderShop(); }
 }
 
@@ -1317,6 +1327,8 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]');
   if (!b) return;
   const act = b.dataset.act, id = b.dataset.id, v = b.dataset.v;
+  if (b.tagName === 'A') e.preventDefault();
+  if (khetiClick(act, b)) return;
   switch (act) {
     case 'go': closeSheet(); go(b.dataset.view); break;
     case 'mic': if (listening) cancelListening(); else listen(); break;
@@ -1453,6 +1465,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('input', e => {
   const el = e.target;
+  khetiInput(el);
   if (el.dataset.f && sellDraft) sellInput(el);
   if (el.dataset.b && buyDraft) buyInput(el);
   if (el.dataset.s && shopDraft) shopInput(el);
@@ -1467,6 +1480,7 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => {
   const el = e.target;
   if (el.dataset.bsp) { bsDateChanged(el); return; }
+  if (khetiChange(el)) return;
   if (el.dataset.f && sellDraft) sellInput(el);
   if (el.dataset.b && buyDraft) buyInput(el);
   if (el.dataset.sp) { saveBreeds(readBreedPrices('sp')); renderHeader(); toast('Price saved ✓'); }
@@ -1490,7 +1504,7 @@ document.addEventListener('submit', e => {
   if (e.target.dataset.form === 'homeShop') { saveHomeShop(); return; }
   if (e.target.dataset.form === 'homeSale') { saveHomeSale(); return; }
   if (e.target.dataset.form === 'cmd') {
-    const inp = $('#cmdInput'), t = inp.value.trim();
+    const inp = e.target.querySelector('input'), t = inp.value.trim();
     if (!t) return;
     inp.value = ''; inp.blur();
     handleInput([t], 'text');
@@ -1502,7 +1516,7 @@ $('#sheet').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target
 window.onBack = function () {
   if (listening) { cancelListening(); return true; }
   if (sheetOpen()) { closeSheet(); return true; }
-  if (view !== 'home') { go('home'); return true; }
+  if (view !== SECTIONS[section].home) { go(SECTIONS[section].home); return true; }
   return false;
 };
 window.onAppPause = () => { persist(true); stopSpeaking(); };
@@ -1516,7 +1530,8 @@ window.onAppResume = () => {
 
 // ---------- start ----------
 loadDb();
-go('home');
+setSection(openSectionPref());
+go(SECTIONS[section].home);
 renderHeader();
 if (!Object.keys(db.records).length) { onboarding(); setTimeout(checkClipboardSetup, 1200); }
 else if (!db.meta.userName) setTimeout(() => openUserSwitch(true), 600);

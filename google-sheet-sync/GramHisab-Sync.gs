@@ -145,6 +145,105 @@ function rebuildReadable_(ss, data) {
   write_(ss, 'Purchases', ['Date (BS)', 'Date (AD)', 'Category', 'Grain size', 'Item', 'Qty', 'Unit', 'Rate', 'Amount', 'Supplier', 'Bill no.', 'Credit', 'For lot', 'Note', 'Phone'], purchases);
   write_(ss, 'Process', ['Date (BS)', 'Date (AD)', 'Lot', 'Type', 'Grain size', 'Item', 'Birds', 'Qty', 'Unit', 'Cost', 'Note', 'Phone'], process);
   write_(ss, 'Lots', ['Lot', 'Chicken type', 'Start (BS)', 'Start (AD)', 'Status', 'Chicks', 'Dead', 'Sold live', 'Cut', 'Left', 'Live kg', 'Meat kg', 'Sales Rs', 'Costs Rs', 'Profit Rs'], lotRows);
+  rebuildKheti_(ss, recs);
+}
+
+// ---------- 🌾 Kheti tabs ----------
+const CROP_NAMES_ = { dhaan: 'धान Rice', gahun: 'गहुँ Wheat', makai: 'मकै Maize', kodo: 'कोदो Millet', jau: 'जौ Barley', phapar: 'फापर Buckwheat', kerau: 'केराउ Pea',
+  masuro: 'मसुरो Lentil', maas: 'मास Black gram', mugi: 'मुगी Mung', rahar: 'रहर Pigeon pea', bhatmas: 'भटमास Soybean', chana: 'चना Gram', tori: 'तोरी Mustard',
+  aalu: 'आलु Potato', ukhu: 'उखु Sugarcane', aduwa: 'अदुवा Ginger', besar: 'बेसार Turmeric', kauli: 'काउली Cauliflower', banda: 'बन्दा Cabbage', golbheda: 'गोलभेडा Tomato',
+  bhanta: 'भन्टा Brinjal', khursani: 'खुर्सानी Chilli', simi: 'सिमी Beans', bodi: 'बोडी Bodi', bhindi: 'भिन्डी Okra', karela: 'करेला Bitter gourd', lauka: 'लौका Bottle gourd',
+  farsi: 'फर्सी Pumpkin', kakro: 'काँक्रो Cucumber', mula: 'मुला Radish', gajar: 'गाजर Carrot', pyaj: 'प्याज Onion', lasun: 'लसुन Garlic', saag: 'साग Greens' };
+const WORK_NAMES_ = { goru: 'Goru jotne', tractorjot: 'Tractor jotne', bause: 'Bause', lathe: 'Lathe', aali: 'Aali lagaune', byad: 'Byad / Biu rakhne', ropai: 'Ropai',
+  godmel: 'Godmel', malhalne: 'Mal halne', sinchai: 'Sinchai', dawai: 'Dawai chharne', katne: 'Katne', bhari: 'Bhari bokne', dain: 'Dain / Thresher', sukaune: 'Sukaune',
+  aalukhanne: 'Aalu khanne', other: 'Other' };
+const MACHINE_NAMES_ = { hiredTractor: 'Tractor (hired)', ownTractor: 'Own tractor', powerTiller: 'Power tiller', pump: 'Water pump', thresher: 'Thresher / harvester' };
+const PATHI_KG_ = { dhaan: 3.6, gahun: 4.5, makai: 4.2, kodo: 4.2, maas: 4.4, masuro: 4.6, kerau: 4.4 };
+function rebuildKheti_(ss, recs) {
+  const of = kind => recs.filter(r => r.kind === kind);
+  const setting = key => { const r = recs.filter(x => x.id === 'set:' + key)[0]; return r && r.value; };
+  const pathiKg = c => Number((setting('pathiKg') || {})[c]) || PATHI_KG_[c] || 4, boraKg = c => Number((setting('boraKg') || {})[c]) || 50;
+  const kgOf = r => {
+    if (Number(r.kg)) return Number(r.kg);
+    const q = Number(r.qty) || 0;
+    return { quintal: q * 100, muri: q * 20 * pathiKg(r.crop), pathi: q * pathiKg(r.crop), mana: q * pathiKg(r.crop) / 8, bora: q * boraKg(r.crop) }[r.unit] || q;
+  };
+  const cropN = {}, workN = {};
+  Object.keys(CROP_NAMES_).forEach(k => { cropN[k] = CROP_NAMES_[k]; });
+  (setting('cropList') || []).forEach(c => { cropN[c.id] = c.ne === c.en ? c.en : c.ne + ' ' + c.en; });
+  Object.keys(WORK_NAMES_).forEach(k => { workN[k] = WORK_NAMES_[k]; });
+  (setting('workTypes') || []).forEach(w => { workN[w.id] = w.en; });
+  const crop = id => cropN[id] || id || '', work = id => workN[id] || id || '';
+  const fields = {}, khetis = {}, workers = {}, fam = {};
+  of('field').forEach(f => { fields[f.id] = f; });
+  of('worker').forEach(w => { workers[w.id] = { w: w, earned: 0, paid: 0, full: 0, half: 0 }; });
+  const kc = () => ({ labour: 0, parma: 0, hire: 0, hours: 0, fuel: 0, litres: 0, seed: 0, fert: 0, harvest: {} });
+  of('kheti').forEach(k => { khetis[k.id] = { k: k, c: kc() }; });
+  const mainCrop = k => { const c = (k.crops || []).filter(x => x.role === 'main')[0] || (k.crops || [])[0]; return c ? c.crop : ''; };
+  const title = id => { const x = khetis[id]; if (!x) return ''; const f = fields[x.k.fieldId]; return (f ? f.name : '?') + ' · ' + crop(mainCrop(x.k)); };
+  const wname = id => workers[id] ? workers[id].w.name + (workers[id].w.family ? ' (' + workers[id].w.family + ')' : '') : '';
+  const by = r => (r.by || r.device || '');
+  const famOf = n => fam[n] || (fam[n] = { came: 0, went: 0 });
+  const workRows = [], payRows = [], machRows = [], inRows = [], harvRows = [], parmaRows = [];
+  recs.forEach(r => {
+    const c = khetis[r.khetiId] ? khetis[r.khetiId].c : null;
+    if (r.kind === 'fwork') {
+      const named = (r.workers || []).reduce((a, x) => a + (Number(x.rate) || 0), 0);
+      const amt = named + (Number(r.extraFull) || 0) * (Number(r.rateFull) || 0) + (Number(r.extraHalf) || 0) * (Number(r.rateHalf) || 0);
+      const pd = (r.parma || []).reduce((a, p) => a + (Number(p.full) || 0) + (Number(p.half) || 0) * 0.5, 0);
+      (r.workers || []).forEach(x => { const w = workers[x.workerId]; if (w) { w.earned += Number(x.rate) || 0; if (x.shift === 'half') w.half++; else w.full++; } });
+      (r.parma || []).forEach(p => { if (p.family) famOf(p.family).came += (Number(p.full) || 0) + (Number(p.half) || 0) * 0.5; });
+      if (c) { c.labour += amt; c.parma += pd; }
+      workRows.push([r.bs || '', r.date, title(r.khetiId), work(r.workType),
+        (r.workers || []).map(x => (workers[x.workerId] ? workers[x.workerId].w.name : '?') + (x.shift === 'half' ? ' ½' : '')).join(', '),
+        Number(r.extraFull) || 0, Number(r.extraHalf) || 0, Number(r.rateFull) || 0, Number(r.rateHalf) || 0,
+        (r.parma || []).map(p => (p.family || '—') + ' ' + ((Number(p.full) || 0) + (Number(p.half) || 0) * 0.5)).join(', '), amt, r.note || '', by(r)]);
+    } else if (r.kind === 'fpay') {
+      if (workers[r.workerId]) workers[r.workerId].paid += Number(r.amount) || 0;
+      payRows.push([r.bs || '', r.date, wname(r.workerId), Number(r.amount) || 0, r.method || '', r.note || '', by(r)]);
+    } else if (r.kind === 'parmaout') {
+      if (r.family) famOf(r.family).went += (Number(r.full) || 0) + (Number(r.half) || 0) * 0.5;
+      parmaRows.push([r.bs || '', r.date, r.family || '', 'We worked for them', (Number(r.full) || 0) + (Number(r.half) || 0) * 0.5, r.note || '', by(r)]);
+    } else if (r.kind === 'machine') {
+      if (c) { c.hire += Number(r.hireAmount) || 0; c.hours += Number(r.hours) || 0; c.fuel += Number(r.fuelCost) || 0; c.litres += Number(r.litres) || 0; }
+      machRows.push([r.bs || '', r.date, title(r.khetiId), MACHINE_NAMES_[r.type] || r.type, Number(r.hours) || 0, Number(r.ratePerHour) || 0, Number(r.hireAmount) || 0, r.fuel || '', Number(r.litres) || 0, Number(r.fuelCost) || 0, r.note || '', by(r)]);
+    } else if (r.kind === 'finput') {
+      if (c) { if (r.type === 'seed') c.seed += Number(r.cost) || 0; else c.fert += Number(r.cost) || 0; }
+      inRows.push([r.bs || '', r.date, title(r.khetiId), r.type === 'seed' ? 'Seed' : 'Fertilizer', r.item || '', Number(r.qty) || 0, r.unit || '', Number(r.cost) || 0, r.note || '', by(r)]);
+    } else if (r.kind === 'harvest') {
+      if (c) c.harvest[r.crop] = (c.harvest[r.crop] || 0) + kgOf(r);
+      harvRows.push([r.bs || '', r.date, title(r.khetiId), crop(r.crop), Number(r.qty) || 0, r.unit || '', Math.round(kgOf(r) * 10) / 10, r.note || '', by(r)]);
+    }
+  });
+  // parma that came on work days is also listed in the Parma tab
+  recs.filter(r => r.kind === 'fwork').forEach(r => (r.parma || []).forEach(p => parmaRows.push([r.bs || '', r.date, p.family || '—', 'Came to help (' + work(r.workType) + ', ' + title(r.khetiId) + ')', (Number(p.full) || 0) + (Number(p.half) || 0) * 0.5, '', by(r)])));
+  const desc = rows => rows.sort((a, b) => String(b[1]).localeCompare(String(a[1])));
+  [workRows, payRows, machRows, inRows, harvRows, parmaRows].forEach(desc);
+  const ropani = m2 => Math.round(m2 / 508.72 * 1000) / 1000, kattha = m2 => Math.round(m2 / 338.6315 * 100) / 100;
+  const fieldRows = Object.keys(fields).map(id => {
+    const f = fields[id], ks = Object.keys(khetis).filter(k => khetis[k].k.fieldId === id);
+    const cur = ks.map(k => khetis[k].k).filter(k => k.status !== 'done')[0];
+    const life = ks.reduce((a, k) => { const c = khetis[k].c; return a + c.labour + c.hire + c.fuel + c.seed + c.fert; }, 0);
+    return [f.name, ropani(f.areaM2 || 0), kattha(f.areaM2 || 0), Math.round(f.areaM2 || 0), f.closed ? 'Not in use' : 'In use', cur ? crop(mainCrop(cur)) : 'Khali', ks.length, life, f.location || ''];
+  });
+  const khetiRows = Object.keys(khetis).map(id => {
+    const x = khetis[id], k = x.k, c = x.c, f = fields[k.fieldId] || {}, total = c.labour + c.hire + c.fuel + c.seed + c.fert, mk = c.harvest[mainCrop(k)] || 0;
+    return [f.name || '', crop(mainCrop(k)), (k.crops || []).filter(z => z.role === 'aali').map(z => crop(z.crop)).join(', '), k.variety || '', k.season || '', k.bs || '', k.plantDate || '',
+      k.status === 'done' ? 'Done' : 'Growing', c.labour, c.parma, c.hire, c.hours, c.fuel, c.litres, c.seed, c.fert, total,
+      Object.keys(c.harvest).map(z => crop(z) + ' ' + Math.round(c.harvest[z]) + ' kg').join(', '), Math.round(mk), mk ? Math.round(total / mk * 100) / 100 : ''];
+  }).sort((a, b) => String(b[6]).localeCompare(String(a[6])));
+  const workerRows = Object.keys(workers).map(id => { const w = workers[id]; return [w.w.name, w.w.family || '', w.w.phone || '', w.w.village || '', w.full, w.half, w.earned, w.paid, w.earned - w.paid]; });
+  Object.keys(fam).forEach(n => parmaRows.unshift(['', '', n, 'BALANCE (+ we owe them, − they owe us)', fam[n].came - fam[n].went, 'came ' + fam[n].came + ' · went ' + fam[n].went, '']));
+  if (!fieldRows.length && !khetiRows.length && !workerRows.length) return; // no Kheti yet: don't add empty tabs
+  write_(ss, 'Fields', ['Field', 'Ropani', 'Kattha', 'm²', 'Status', 'Current crop', 'Kheti count', 'Lifetime cost Rs', 'Place'], fieldRows);
+  write_(ss, 'Kheti', ['Field', 'Main crop', 'Aali crops', 'Variety', 'Season', 'Planted (BS)', 'Planted (AD)', 'Status', 'Labour Rs', 'Parma days', 'Machine hire Rs', 'Machine hours', 'Fuel Rs', 'Fuel litres', 'Seed Rs', 'Fertilizer Rs', 'Total cost Rs', 'Harvest', 'Main crop kg', 'Cost per kg'], khetiRows);
+  write_(ss, 'Kheti work', ['Date (BS)', 'Date (AD)', 'Kheti', 'Work', 'Khetala by name', 'Other full', 'Other half', 'Full rate', 'Half rate', 'Parma (family days)', 'Wages Rs', 'Note', 'Entered by'], workRows);
+  write_(ss, 'Workers', ['Name', 'Family', 'Phone', 'Village', 'Full days', 'Half days', 'Earned Rs', 'Paid Rs', 'Due Rs'], workerRows);
+  write_(ss, 'Payments', ['Date (BS)', 'Date (AD)', 'Worker', 'Amount', 'Method', 'Note', 'Entered by'], payRows);
+  write_(ss, 'Machines', ['Date (BS)', 'Date (AD)', 'Kheti', 'Machine', 'Hours', 'Rate/hour', 'Hire Rs', 'Fuel', 'Litres', 'Fuel Rs', 'Note', 'Entered by'], machRows);
+  write_(ss, 'Inputs', ['Date (BS)', 'Date (AD)', 'Kheti', 'Type', 'Item', 'Qty', 'Unit', 'Cost Rs', 'Note', 'Entered by'], inRows);
+  write_(ss, 'Harvest', ['Date (BS)', 'Date (AD)', 'Kheti', 'Crop', 'Qty', 'Unit', 'Kg', 'Note', 'Entered by'], harvRows);
+  write_(ss, 'Parma', ['Date (BS)', 'Date (AD)', 'Family', 'What', 'Days', 'Note', 'Entered by'], parmaRows);
 }
 
 function write_(ss, name, header, rows) {

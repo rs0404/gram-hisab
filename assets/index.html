@@ -20,9 +20,14 @@
     <button class="iconbtn" id="syncBtn" data-act="syncNow" aria-label="Sync"><span id="syncDot" class="dot off"></span></button>
     <button class="iconbtn" data-act="go" data-view="settings" aria-label="Settings">⚙️</button>
   </div>
+  <div id="secbar" class="secbar"></div>
 </header>
 
 <main id="main">
+  <section id="v-kheti" class="view"></section>
+  <section id="v-kwork" class="view"></section>
+  <section id="v-workers" class="view"></section>
+  <section id="v-kreports" class="view"></section>
   <section id="v-home" class="view"></section>
   <section id="v-sell" class="view"></section>
   <section id="v-buy" class="view"></section>
@@ -32,12 +37,7 @@
 </main>
 
 <nav id="nav">
-  <button data-act="go" data-view="home" class="navbtn"><span>🏠</span>Home</button>
-  <button data-act="go" data-view="sell" class="navbtn"><span>💰</span>Sell</button>
-  <button data-act="go" data-view="buy" class="navbtn"><span>🛒</span>Buy</button>
   <button id="micBtn" data-act="mic" class="mic" aria-label="Speak"><span class="micicon">🎤</span></button>
-  <button data-act="go" data-view="shop" class="navbtn"><span>🏪</span>Shop</button>
-  <button data-act="go" data-view="reports" class="navbtn"><span>📊</span>Reports</button>
 </nav>
 
 <div id="voice" class="voice hidden">
@@ -65,6 +65,10 @@
 <script src="shop.js"></script>
 <script src="updater.js"></script>
 <script src="migrate.js"></script>
+<script src="landunits.js"></script>
+<script src="kheti.js"></script>
+<script src="kheti-ui.js"></script>
+<script src="kheti-voice.js"></script>
 <script src="ui.js"></script>
 </body>
 </html>

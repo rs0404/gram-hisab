@@ -56,6 +56,10 @@ function handleInput(alts, origin) {
   // On the Shop page, amounts without farm words are shop entries ("cash 5000 qr 3000", "नगद ५०००")
   if (typeof view !== 'undefined' && view === 'shop')
     alts = alts.map(a => /\b(kg|kilo|lot|dead|died|feed|dana|chicken|kukhura|masu|live|sold|bought)\b|केजी|किलो|कुखुरा|मासु|मरे|दाना|बेच/i.test(a) ? a : 'shop ' + a);
+  // Kheti words (or the Kheti section): try the Kheti parser first
+  if (typeof parseKheti === 'function' && ((typeof section !== 'undefined' && section === 'kheti') || alts.some(khetiLikely))) {
+    for (const a of alts) { const kp = parseKheti(a); if (kp) { flowKheti(kp, voiceMode); return; } }
+  }
   let best = null;
   for (const a of alts) { const p = parseCommand(a); if (p.intent !== 'unknown') { best = p; break; } }
   if (!best) {
@@ -744,7 +748,16 @@ function flowUndo(v) {
 }
 
 function helpHtml(short) {
-  const rows = [
+  const krows = [
+    ['🌾 Work day', 'Purbe khet ropai 6 khetala 3 parma Thapa ghar', 'Ram Hari pura Sita aadha godmel', 'पूर्बे खेत रोपाइँ ६ खेताला'],
+    ['🚜 Machine', 'tractor 3 ghanta 1500', 'aafno tractor diesel 5 litre 750', 'pump 2 ghanta diesel 3 litre 450'],
+    ['🧪 Seed / मल', 'DAP 2 bora 9000', 'urea 1 bora 1800', 'biu 10 kg 1200'],
+    ['🌾 Harvest', 'dhaan 20 muri', 'gahun 5 quintal', 'धान २० मुरी'],
+    ['💵 Pay worker', 'Ram lai 2000 tirey', 'Ram settle'],
+    ['🤝 Parma', 'Thapa ghar parma tirne 2 din', 'parma kati baki'],
+    ['Ask', 'Ram ko hisab']
+  ];
+  const rows = (typeof section !== 'undefined' && section === 'kheti' ? krows : []).concat([
     ['Sell meat', 'chicken sold 1 kg', 'sold 2 kg meat lot 1'],
     ['Sell live', 'sold 3 live chickens 7 kg Ashar lot 1 at 320'],
     ['By type', 'sold 2 kg giriraj meat', 'sold 1 local chicken 2 kg live'],
@@ -773,7 +786,7 @@ function helpHtml(short) {
     ['Undo', 'undo'],
     ['नेपाली', '१ केजी मासु', 'डेढ केजी जिउँदो कुखुरा', 'आज दुई वटा कुखुरा मरे', 'बी२ दाना दुई बोरा किनेको सात हजार', 'कति कुखुरा बाँकी छ'],
     ['Nepali (roman)', '1kg masu', 'sadhe dui kg jiudo kukhura', 'hijo 1 wota kukhura maryo', 'yo mahina ko nafa kati']
-  ];
+  ]);
   return `<ul class="help">${(short ? rows.slice(0, 6) : rows).map(r => `<li><b>${r[0]}:</b> ${r.slice(1).map(x => `<code>${esc(x)}</code>`).join(' ')}</li>`).join('')}</ul>
     ${short ? '' : `<p class="small muted">Lots are named by Nepali date, e.g. <b>Ashar83_10_1_100</b> (Ashar 2083, day 10, 1st lot that month, 100 chicks). Say it as “Ashar lot 1”, or “lot 1” = the 1st lot on the Home screen, or by type (“the giriraj lot”). B0–B3 are feed grain sizes. Nepali works too: numbers (एक, डेढ, साढे दुई, आधा, सय, हजार), masu/मासु, jiudo/जिउँदो, mare/मरे, baki/बाँकी, dana/दाना, kineko/किनेको, gate/गते, hunchha/हजुर, hoina/पर्दैन. For Devanagari, set Voice language to नेपाली in Settings.</p>`}`;
 }

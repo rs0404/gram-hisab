@@ -215,3 +215,23 @@ a{color:var(--blue)}
 .today .hshop label span { color: rgba(255,255,255,.95); }
 .today .hshop input:focus { border-color: #7c2d12; }
 .hsale-hint { margin-top: 6px; color: #fff; font-weight: 700; }
+
+/* sections: 🌾 Kheti · 🐔 Poultry · 🏪 Shop */
+#top{flex-wrap:wrap;row-gap:8px}
+.secbar{flex-basis:100%;display:flex;gap:6px;background:rgba(0,0,0,.18);border-radius:14px;padding:4px}
+.secbar:empty{display:none}
+.secbar button{flex:1;padding:7px 4px;border-radius:10px;font-weight:900;font-size:15px;color:rgba(255,255,255,.9);white-space:nowrap}
+.secbar button.on{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.15)}
+body.sec-kheti #top{background:#166534}
+body.sec-shop #top{background:#1E40AF}
+body.sec-kheti .navbtn.on{color:#15803D}
+body.sec-shop .navbtn.on{color:#1E40AF}
+#nav .navbtn{order:0}
+/* land area inputs */
+.area-in{display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:6px}
+.area-in label span{display:block;font-size:13px;font-weight:900;color:var(--ink);text-align:center;line-height:1.1;margin-bottom:3px}
+.area-in label small{font-size:10px;font-weight:700;color:var(--muted)}
+.area-in input{width:100%;min-width:0;border:2px solid var(--line);border-radius:12px;padding:10px 6px;font-size:20px;font-weight:800;text-align:center;background:#fff}
+.area-in input:focus{outline:none;border-color:var(--green)}
+.kacts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:12px}
+.kacts .btn{min-width:0;padding:8px 2px;font-size:14px;line-height:1.2}

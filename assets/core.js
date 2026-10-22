@@ -2,7 +2,7 @@
 'use strict';
 
 const HAS_ANDROID = typeof window.Android !== 'undefined';
-const APP_VERSION = '2.0.0';
+const APP_VERSION = '2.1.0';
 
 // ---------- small utils ----------
 const $ = (sel, el) => (el || document).querySelector(sel);
@@ -105,12 +105,14 @@ function put(rec) {
 }
 
 // ---------- change log ----------
-const AUDIT_SKIP = ['id', 'kind', 'updatedAt', 'createdAt', 'device', 'bs', 'startBs', 'by', 'editedBy', 'editedAt', 'heard', 'kgEst', 'birdsEst', 'qtyEst', 'cutKg', 'seq'];
+const AUDIT_SKIP = ['id', 'kind', 'updatedAt', 'createdAt', 'device', 'bs', 'startBs', 'by', 'editedBy', 'editedAt', 'heard', 'kgEst', 'birdsEst', 'qtyEst', 'cutKg', 'seq', 'areaInput'];
 const FIELD_LABEL = { kg: 'kg', amount: 'amount', rate: 'rate', birds: 'birds', date: 'date', lotId: 'lot', type: 'type', breed: 'chicken type', count: 'birds', qty: 'quantity',
   unit: 'unit', grade: 'grain size', item: 'name', invoice: 'invoice', flag: 'flag', note: 'note', cash: 'cash', qr: 'QR', goods: 'goods', chicks: 'chicks', chickCost: 'chick cost',
-  name: 'name', startDate: 'start date', mix: 'chicks by type', supplier: 'supplier', category: 'category', closed: 'closed', value: 'value', customer: 'customer' };
+  name: 'name', startDate: 'start date', khetiId: 'kheti', fieldId: 'field', workerId: 'worker', workType: 'work', workers: 'khetala', extraFull: 'other full', extraHalf: 'other half', rateFull: 'full rate', rateHalf: 'half rate', parma: 'parma', hours: 'hours', ratePerHour: 'rate/hour', hireAmount: 'hire', fuel: 'fuel', litres: 'litres', fuelCost: 'fuel cost', cost: 'cost', crop: 'crop', crops: 'crops', areaM2: 'area', plantDate: 'planted', season: 'season', status: 'status', family: 'family', phone: 'phone', full: 'full days', half: 'half days', mix: 'chicks by type', supplier: 'supplier', category: 'category', closed: 'closed', value: 'value', customer: 'customer' };
 function recSummary(r) {
   try {
+    const ks = typeof khetiRecSummary === 'function' ? khetiRecSummary(r) : null;
+    if (ks) return ks;
     if (r.kind === 'sale') return `${kgs(r.kg)} ${SALE_LABEL[r.type] || r.type} · ${money(r.amount)} · ${lotName(r.lotId)}`;
     if (r.kind === 'event') return `${lotName(r.lotId)}: ${eventTitle(r)}`;
     if (r.kind === 'purchase') return `Bought ${purchaseTitle(r)} · ${money(r.amount)}`;
@@ -125,6 +127,14 @@ function fmtField(k, v) {
   if (v == null || v === '') return '—';
   if (k === 'date' || k === 'startDate') return fmtDate(v, true);
   if (k === 'lotId') return lotName(v);
+  if (k === 'khetiId' && typeof khetiById === 'function') return khetiTitle(khetiById(v)) || v;
+  if (k === 'fieldId' && typeof fieldById === 'function') return (fieldById(v) || {}).name || v;
+  if (k === 'workerId' && typeof workerById === 'function') return workerLabel(workerById(v));
+  if (k === 'workType' && typeof workById === 'function') return workById(v).ne;
+  if (k === 'crop' && typeof cropById === 'function') return cropById(v).ne;
+  if (k === 'areaM2' && typeof fmtArea === 'function') return fmtArea(v, landSystem(), 'ne');
+  if (k === 'workers' && Array.isArray(v) && typeof workerById === 'function') return v.map(w => (workerById(w.workerId) || {}).name + (w.shift === 'half' ? ' ½' : '')).join(', ') || '—';
+  if (k === 'crops' && Array.isArray(v) && typeof cropById === 'function') return v.map(c => cropById(c.crop).ne + (c.role === 'aali' ? ' (आली)' : '')).join(', ');
   if (k === 'breed') return breedName(v);
   if (k === 'mix' && Array.isArray(v)) return v.map(m => breedName(m.breed) + ' ' + m.chicks).join(' + ');
   if (typeof v === 'boolean') return v ? 'yes' : 'no';

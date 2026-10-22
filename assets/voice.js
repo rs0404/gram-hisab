@@ -32,6 +32,7 @@ function stopSpeaking() {
 // ======================= speech input =======================
 let listening = false, webRec = null;
 const HINTS = ['“sold 2 kg meat”', '“sold 3 live chickens 6 kg Ashar lot 1”', '“2 dead in lot 1”', '“how many left?”', '“lot 1 has 220 left”', '“cut 5 giriraj chickens”', '“feed B2 2 bags 3400 rupees”', '“today’s summary”', '“set broiler meat price 450”'];
+const K_HINTS = ['“Purbe khet ropai 6 khetala”', '“tractor 3 ghanta 1500”', '“DAP 2 bora 9000”', '“dhaan 20 muri”'];
 function listen() {
   if (listening) return;
   stopSpeaking();
@@ -40,7 +41,7 @@ function listen() {
   $('#micBtn').classList.add('on');
   $('#voiceState').textContent = 'Starting…';
   $('#voiceText').textContent = '';
-  $('#voiceHint').textContent = pendingAsk ? pendingAsk.hint : 'Say: ' + HINTS[Math.floor(Math.random() * HINTS.length)];
+  $('#voiceHint').textContent = pendingAsk ? pendingAsk.hint : 'Say: ' + ((h) => h[Math.floor(Math.random() * h.length)])(typeof section !== 'undefined' && section === 'kheti' ? K_HINTS : HINTS);
   const lang = db.meta.voiceLang || 'en-IN';
   if (HAS_ANDROID) { Android.listen(lang); setTimeout(() => { if (listening && $('#voiceState').textContent === 'Starting…') { stopVoiceUi(); toast('Voice did not start. Tap 🎤 again.'); } }, 8000); return; }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
