@@ -57,6 +57,7 @@ function renderHeader() {
   const t = today(), b = adToBs(t), d = new Date();
   $('#topDate').textContent = DAY[d.getDay()] + ', ' + BS_MONTHS[b.m - 1] + ' ' + b.d + ', ' + b.y + ' · 👤 ' + currentUser();
   $('#priceChip').innerHTML = '💰 Prices';
+  $('#calBtn').innerHTML = calTile(true);
   $('#priceChip').classList.toggle('hidden', section !== 'poultry');
   if (isOldApp()) $('.appname').textContent = 'ग्राम हिसाब (पुरानो)';
   updateSyncDot();
@@ -690,7 +691,7 @@ function openDay(date, lotId, fromCal) {
   const sh = shopSum(shop);
   const kh = lotId || !fromCal ? { line: '', list: '' } : dayKhetiHtml(date);
   const wd = WEEK_NE[weekday(date)] + 'बार', bb = adToBs(date);
-  openSheet(`${lot ? `<button class="btn sm ghost" data-act="openLot" data-id="${lot.id}">‹ Back to ${esc(lot.name)}</button>` : `<button class="btn sm ghost" data-act="openCalendar" data-d="${date}">‹ 📅 ${BS_MONTHS_NE[bb.m - 1]} ${neNum(bb.y)}</button>`}
+  openSheet(`${lot ? `<button class="btn sm ghost" data-act="openLot" data-id="${lot.id}">‹ Back to ${esc(lot.name)}</button>` : `<button class="btn sm ghost" data-act="openCalendar" data-d="${date}">‹ ${calTile()} ${BS_MONTHS_NE[bb.m - 1]} ${neNum(bb.y)}</button>`}
     <h2>${fmtDate(date, true)}${lot ? ' · ' + esc(lot.name) : ''}</h2>
     <div class="small muted" style="margin:-6px 0 10px">${BS_MONTHS_NE[bb.m - 1]} ${neNum(bb.d)}, ${neNum(bb.y)} · ${wd} · AD ${date}</div>
     <div class="summary">
@@ -1042,7 +1043,7 @@ function bsDateHtml(key, adIso) {
     <div class="row between" style="margin-top:6px">
       <div class="chips"><button class="chip sm ${adIso === today() ? 'on' : ''}" data-act="bsQuick" data-key="${key}" data-days="0">Today</button>
       <button class="chip sm ${adIso === addDays(today(), -1) ? 'on' : ''}" data-act="bsQuick" data-key="${key}" data-days="-1">Yesterday</button>
-      <button class="chip sm" data-act="bsCalToggle" data-key="${key}">📅 पात्रो</button></div>
+      <button class="chip sm" data-act="bsCalToggle" data-key="${key}">${calTile()} पात्रो</button></div>
       <span class="hint" data-bshint="${key}">AD ${adIso}</span>
     </div>
     <div data-bscalbox="${key}"></div>`;

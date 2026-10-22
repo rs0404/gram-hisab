@@ -12,6 +12,7 @@ const AD_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 const POULTRY_KINDS = ['sale', 'grainsale', 'purchase', 'event'];
 const weekday = ad => new Date(ad + 'T12:00:00').getDay();
 let calYM = null;
+function calTile(big) { const b = adToBs(today()); return `<span class="caltile${big ? ' big' : ''}"><i>${BS_MONTHS_NE[b.m - 1]}</i><b>${neNum(b.d)}</b></span>`; }
 
 // money spent on Kheti by one record (wages, machine + fuel, seed / fertilizer)
 function khetiCostOf(r) {
@@ -48,7 +49,7 @@ function calGridHtml(y, m, o) {
   for (let d = 1; d <= n; d++) {
     const ad = addDays(first, d - 1), mk = marks[ad] || {}, wd = weekday(ad);
     const cls = ['cal-d', ad === t ? 'today' : '', ad === o.selected ? 'sel' : '', wd === 6 ? 'sat' : '', o.maxDate && ad > o.maxDate ? 'off' : ''].filter(Boolean).join(' ');
-    cells += `<button class="${cls}" data-act="${o.act}" data-d="${ad}"${o.key ? ` data-key="${o.key}"` : ''}><b>${neNum(d)}</b><small>${Number(ad.slice(8))}</small>${o.marks ? `<i>${mk.kheti ? '<u class="dk"></u>' : ''}${mk.poultry ? '<u class="dp"></u>' : ''}${mk.shop ? '<u class="ds"></u>' : ''}</i>` : ''}</button>`;
+    cells += `<button class="${cls}" data-act="${o.act}" data-d="${ad}"${o.key ? ` data-key="${o.key}"` : ''}><b>${neNum(d)}</b><small>${ad === t ? 'आज' : Number(ad.slice(8))}</small>${o.marks ? `<i>${mk.kheti ? '<u class="dk"></u>' : ''}${mk.poultry ? '<u class="dp"></u>' : ''}${mk.shop ? '<u class="ds"></u>' : ''}</i>` : ''}</button>`;
   }
   return `<div class="cal-grid">${WEEK_NE.map((w, i) => `<span class="cal-h${i === 6 ? ' sat' : ''}">${w}</span>`).join('')}${cells}</div>`;
 }

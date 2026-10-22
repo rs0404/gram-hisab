@@ -261,3 +261,18 @@ u.dk{background:#16A34A}u.dp{background:#F59E0B}u.ds{background:#2563EB}
 #top .brand>div{min-width:0}
 #top .topright{flex:none}
 @media (max-width:400px){ #top .pricechip{padding:6px 8px;font-size:12px} #top .iconbtn{width:34px} }
+
+/* today's date on a little calendar page */
+.caltile{display:inline-flex;flex-direction:column;align-items:center;justify-content:flex-start;width:24px;height:24px;border-radius:5px;overflow:hidden;background:#fff;border:1.5px solid #d6cfc2;vertical-align:middle;line-height:1}
+.caltile i{display:block;width:100%;background:var(--red);color:#fff;font-style:normal;font-size:6px;font-weight:900;text-align:center;padding:1px 0;white-space:nowrap;overflow:hidden}
+.caltile b{font-size:12px;font-weight:900;color:var(--ink);margin-top:1px}
+.caltile.big{width:30px;height:32px;border-color:#fff}
+.caltile.big i{font-size:8px;padding:2px 0}
+.caltile.big b{font-size:16px;margin-top:1px}
+.cal-d.today{background:var(--green);border-color:var(--green);box-shadow:0 0 0 3px var(--green-l)}
+.cal-d.today b,.cal-d.today small,.cal-d.today.sat b{color:#fff}
+.cal-d.today small{font-weight:900}
+.cal-d.sel:not(.today){background:var(--amber);border-color:var(--amber)}
+.cal-d{padding-bottom:10px}
+.cal-d i{bottom:2px}
+.cal-d.today u{box-shadow:0 0 0 1.5px #fff}

@@ -75,7 +75,7 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
 - Reports by season, CSV export, and readable **Fields / Kheti / Kheti work / Workers / Payments / Machines / Inputs / Harvest / Parma** tabs in the Google Sheet.
 
 **📅 Nepali calendar (पात्रो)**
-- Tap 📅 at the top, or say "patro". The month view shows BS dates in Nepali digits with the English date in small text, Saturdays in red, and today ringed.
+- Tap the little calendar page at the top (it always shows today's Nepali date, e.g. कार्तिक ५), or say "patro". The month view shows BS dates in Nepali digits with the English date in small text, Saturdays in red, and today in green marked आज.
 - Coloured dots mark the days with Kheti, poultry or shop entries, and the month totals sit under the grid. Tap a day to see everything recorded on it, then go to the day before or after.
 - Every date field has a **📅 पात्रो** button that opens a calendar for picking the date.
 - An AD ⇄ BS date converter.
