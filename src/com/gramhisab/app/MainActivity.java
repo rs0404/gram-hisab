@@ -45,6 +45,7 @@ public class MainActivity extends Activity {
     private static final int REQ_SAVE_FILE = 102;
     private static final int REQ_OPEN_FILE = 103;
     private static final int REQ_MIC_PERMISSION = 104;
+    private static final int REQ_PICK_CONTACT = 105;
 
     private WebView web;
     private TextToSpeech tts;
@@ -275,6 +276,16 @@ public class MainActivity extends Activity {
             }
             pendingSaveContent = null;
             js("window.onFileSaved && onFileSaved(" + ok + ")");
+        } else if (requestCode == REQ_PICK_CONTACT) {
+            String name = null, phone = null;
+            if (resultCode == RESULT_OK && data != null && data.getData() != null) {
+                try (android.database.Cursor c = getContentResolver().query(data.getData(),
+                        new String[]{ android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                                      android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER }, null, null, null)) {
+                    if (c != null && c.moveToFirst()) { name = c.getString(0); phone = c.getString(1); }
+                } catch (Exception ignored) {}
+            }
+            js("window.onContactPicked && onContactPicked(" + (name == null ? "null" : JSONObject.quote(name)) + "," + (phone == null ? "null" : JSONObject.quote(phone)) + ")");
         } else if (requestCode == REQ_OPEN_FILE) {
             String text = null;
             if (resultCode == RESULT_OK && data != null && data.getData() != null) {
@@ -521,6 +532,34 @@ public class MainActivity extends Activity {
             if (i == null) return false;
             runOnUiThread(() -> startActivity(i));
             return true;
+        }
+
+        // ---------- contacts (system picker: no contacts permission needed) ----------
+        @JavascriptInterface
+        public void pickContact() {
+            runOnUiThread(() -> {
+                Intent i = new Intent(Intent.ACTION_PICK, android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_URI);
+                try { startActivityForResult(i, REQ_PICK_CONTACT); } catch (ActivityNotFoundException e) { js("window.onContactPicked && onContactPicked(null,null)"); }
+            });
+        }
+
+        // Opens the phone's Contacts app with the name and number filled in; the user taps Save.
+        @JavascriptInterface
+        public void saveContact(final String name, final String phone) {
+            runOnUiThread(() -> {
+                Intent i = new Intent(android.provider.ContactsContract.Intents.Insert.ACTION);
+                i.setType(android.provider.ContactsContract.RawContacts.CONTENT_TYPE);
+                i.putExtra(android.provider.ContactsContract.Intents.Insert.NAME, name);
+                i.putExtra(android.provider.ContactsContract.Intents.Insert.PHONE, phone);
+                try { startActivity(i); } catch (Exception ignored) {}
+            });
+        }
+
+        @JavascriptInterface
+        public void callNumber(final String phone) {
+            runOnUiThread(() -> {
+                try { startActivity(new Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + phone))); } catch (Exception ignored) {}
+            });
         }
 
         // ---------- updater ----------
