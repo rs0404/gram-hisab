@@ -56,6 +56,12 @@ function machineOwnValue(r) {
   if ((MACHINES[r.type] || {}).hired) return 0;
   return r.ownValue != null ? Number(r.ownValue) || 0 : (Number(r.hours) || 0) * (Number(r.ratePerHour) || 0);
 }
+// my own time running my machine (driving the tractor, watching the pump): hours × my rate, also behind the 🚜 switch
+function myTimeRate() { return Number(getSet('myTimeRate')) || 0; }
+function machineMyValue(r) {
+  if ((MACHINES[r.type] || {}).hired) return 0;
+  return r.myValue != null ? Number(r.myValue) || 0 : (Number(r.myHours) || 0) * (Number(r.myRate) || 0);
+}
 function pathiKg(crop) { const m = getSet('pathiKg') || {}; return Number(m[crop]) || PATHI_KG_DEFAULT[crop] || 4; }
 function boraKg(crop) { const m = getSet('boraKg') || {}; return Number(m[crop]) || 50; }
 function harvestKg(r) {
@@ -128,7 +134,7 @@ const shiftDays = s => s === 'half' ? 0.5 : 1;
 // ---------- all Kheti numbers in one pass ----------
 function computeKheti() {
   const K = {}, F = {}, W = {}, P = {};
-  const blank = () => ({ labour: 0, labourFull: 0, labourHalf: 0, ownMachine: 0, ownMachineHours: 0, family: 0, familyFull: 0, familyHalf: 0, parmaDays: 0, machineHire: 0, machineHours: 0, fuelCost: 0, petrol: 0, diesel: 0,
+  const blank = () => ({ labour: 0, labourFull: 0, labourHalf: 0, ownMachine: 0, ownMachineHours: 0, myTime: 0, myTimeHours: 0, family: 0, familyFull: 0, familyHalf: 0, parmaDays: 0, machineHire: 0, machineHours: 0, fuelCost: 0, petrol: 0, diesel: 0,
     seed: 0, fert: 0, total: 0, harvestKg: {}, harvestUnits: {}, entries: 0, lastDate: '' });
   khetis().forEach(k => { K[k.id] = Object.assign(blank(), { kheti: k }); });
   fields().forEach(f => { F[f.id] = { field: f, lifetime: 0, khetis: 0 }; });
@@ -160,7 +166,7 @@ function computeKheti() {
       if (r.family) fam(r.family).went += (Number(r.full) || 0) + (Number(r.half) || 0) * 0.5;
     } else if (r.kind === 'machine' && k) {
       k.machineHire += Number(r.hireAmount) || 0; k.machineHours += Number(r.hours) || 0; k.fuelCost += Number(r.fuelCost) || 0;
-      if (!(MACHINES[r.type] || {}).hired) { k.ownMachine += machineOwnValue(r); k.ownMachineHours += Number(r.hours) || 0; }
+      if (!(MACHINES[r.type] || {}).hired) { k.ownMachine += machineOwnValue(r); k.ownMachineHours += Number(r.hours) || 0; k.myTime += machineMyValue(r); k.myTimeHours += machineMyValue(r) ? Number(r.myHours) || 0 : 0; }
       if (r.fuel === 'petrol') k.petrol += Number(r.litres) || 0; else if (r.fuel === 'diesel') k.diesel += Number(r.litres) || 0;
       k.entries++; if (r.date > k.lastDate) k.lastDate = r.date;
     } else if (r.kind === 'finput' && k) {
@@ -178,7 +184,8 @@ function computeKheti() {
     k.cash = k.labour + k.machineHire + k.fuelCost + k.seed + k.fert;      // money actually spent
     k.includeFamily = !!k.kheti.includeFamily;                           // the per-kheti toggle
     k.includeOwnMachine = !!k.kheti.includeOwnMachine;                   // the 🚜 switch
-    k.total = k.cash + (k.includeFamily ? k.family : 0) + (k.includeOwnMachine ? k.ownMachine : 0);
+    k.ownAll = k.ownMachine + k.myTime;                                  // machine value + my time
+    k.total = k.cash + (k.includeFamily ? k.family : 0) + (k.includeOwnMachine ? k.ownAll : 0);
     const main = mainCrop(k.kheti);
     k.mainKg = k.harvestKg[main] || 0;
     k.costPerKg = k.mainKg ? k.total / k.mainKg : 0;

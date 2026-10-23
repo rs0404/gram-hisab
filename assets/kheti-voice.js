@@ -144,7 +144,7 @@ function parseKheti(text) {
     const fuelMoney = rest.length ? rest.shift() : null;
     Object.assign(p, { intent: 'kMachine', hours: hrs ? parseFloat(hrs[1]) : 0, fuel: lit || fuel ? (fuel || 'diesel') : '', litres: lit ? parseFloat(lit[1]) : 0 });
     if (MACHINES[p.type].hired) { p.hireAmount = money || 0; p.fuelCost = fuelMoney || 0; }
-    else { p.hireAmount = 0; p.fuelCost = money || 0; p.ratePerHour = ownMachineRate(p.type); }
+    else { p.hireAmount = 0; p.fuelCost = money || 0; p.ratePerHour = ownMachineRate(p.type); p.myRate = myTimeRate(); }
     return p;
   }
   // --- harvest: "dhaan 20 muri", "harvest 5 quintal gahun"
@@ -245,11 +245,12 @@ function flowKheti(p, v) {
     case 'kMachine': {
       const m = MACHINES[p.type];
       const rph = m.hired ? (p.hours && p.hireAmount ? round(p.hireAmount / p.hours, 2) : 0) : (p.ratePerHour || 0);
-      rec = Object.assign({ kind: 'machine', type: p.type, hours: p.hours || 0, ratePerHour: rph, hireAmount: p.hireAmount || 0, ownValue: m.hired ? 0 : round((p.hours || 0) * rph, 2), fuel: p.fuel, litres: p.litres || 0, fuelCost: p.fuelCost || 0, note: '' }, base);
+      rec = Object.assign({ kind: 'machine', type: p.type, hours: p.hours || 0, ratePerHour: rph, hireAmount: p.hireAmount || 0, ownValue: m.hired ? 0 : round((p.hours || 0) * rph, 2), myHours: m.hired ? 0 : p.hours || 0, myRate: m.hired ? 0 : p.myRate || 0, myValue: m.hired ? 0 : round((p.hours || 0) * (p.myRate || 0), 2), fuel: p.fuel, litres: p.litres || 0, fuelCost: p.fuelCost || 0, note: '' }, base);
       lines = [['🌾 Kheti', khetiTitle(k)], [m.icon + ' Machine', m.en], ['Hours', nfmt(rec.hours)]];
       if (m.hired) lines.push(['Hire', money(rec.hireAmount)]);
       if (rec.fuel) lines.push(['⛽ ' + rec.fuel, `${nfmt(rec.litres)} L · ${money(rec.fuelCost)}`]);
       if (!m.hired) lines.push(['🚜 Own machine value', rph ? `${money(rec.ownValue)} (${money(rph)}/hr)` : 'set the rate in the form (✎ Edit)']);
+      if (!m.hired && rec.myValue) lines.push(['🧑 My time', `${money(rec.myValue)} (${money(rec.myRate)}/hr)`]);
       speech = `${m.en}, ${nfmt(rec.hours)} hours, ${sayMoney(rec.hireAmount + rec.fuelCost)}. Save?`;
       editForm = () => openMachineForm(rec);
       break;

@@ -45,7 +45,7 @@ function kToggle(id) {
 }
 // 🏠 switch: count the household's own work (at normal rates) in this crop's cost, or not
 function famToggleHtml(k) {
-  const mach = k.ownMachine || k.ownMachineHours ? `<label class="switch kfam" style="padding:8px 0 2px"><span><b>🚜 Own machine in cost</b><br><span class="small muted">${nfmt(k.ownMachineHours)} hr · value ${money(k.ownMachine)} · ${k.includeOwnMachine ? 'counted in total' : 'not counted'}</span></span>
+  const mach = k.ownAll || k.ownMachineHours ? `<label class="switch kfam" style="padding:8px 0 2px"><span><b>🚜 Own machine in cost</b><br><span class="small muted">${nfmt(k.ownMachineHours)} hr · machine ${money(k.ownMachine)}${k.myTime ? ' + my time ' + money(k.myTime) : ''} · ${k.includeOwnMachine ? 'counted in total' : 'not counted'}</span></span>
     <input type="checkbox" data-act="kMachToggle" data-id="${k.kheti.id}" ${k.includeOwnMachine ? 'checked' : ''}></label>` : '';
   if (!workers().some(w => w.own) && !k.family) return mach;
   return mach + `<label class="switch kfam" style="padding:8px 0 2px"><span><b>🏠 Family work in cost</b><br><span class="small muted">${nfmt(k.familyFull + k.familyHalf * 0.5)} din · value ${money(k.family)} · ${k.includeFamily ? 'counted in total' : 'not counted'}</span></span>
@@ -70,7 +70,7 @@ function fieldCard(f, S) {
         ${st('input', shortMoney(k.seed + k.fert), '🌱 Seed + मल')}
         ${st('parma', nfmt(k.parmaDays), '🤝 Parma din')}
         ${st('fuel', nfmt(round(k.petrol + k.diesel, 1)) + ' L', '⛽ Fuel')}
-        ${st('all', shortMoney(k.total), '💰 Total' + (k.includeFamily && k.family ? ' + 🏠' : '') + (k.includeOwnMachine && k.ownMachine ? ' + 🚜' : '') + (k.total === k.cash ? ' Rs' : ''), 'var(--red-l)')}
+        ${st('all', shortMoney(k.total), '💰 Total' + (k.includeFamily && k.family ? ' + 🏠' : '') + (k.includeOwnMachine && k.ownAll ? ' + 🚜' : '') + (k.total === k.cash ? ' Rs' : ''), 'var(--red-l)')}
       </div>
       ${famToggleHtml(k)}
       ${harvestText(k) ? `<div class="small" style="margin-top:8px" data-act="kEntries" data-id="${cur.id}" data-v="harvest">🌾 <b>Harvest:</b> ${esc(harvestText(k))}${k.costPerKg ? ` · cost ${money(k.costPerKg)}/kg` : ''} ›</div>` : ''}
@@ -256,6 +256,7 @@ function saveWorkForm() {
 function openMachineForm(rec, khetiId) {
   kDraft = Object.assign({ kind: 'machine', khetiId: khetiId || (activeKhetis()[0] || {}).id || '', date: today(), type: 'hiredTractor', hours: '', ratePerHour: '', hireAmount: '', fuel: '', litres: '', fuelCost: '', note: '' }, rec || {});
   if (!(MACHINES[kDraft.type] || {}).hired && !kDraft.ratePerHour) kDraft.ratePerHour = ownMachineRate(kDraft.type) || '';
+  if (!(MACHINES[kDraft.type] || {}).hired && !kDraft.myRate) kDraft.myRate = myTimeRate() || '';
   renderMachineForm();
 }
 function renderMachineForm() {
@@ -266,7 +267,10 @@ function renderMachineForm() {
     <div class="field"><label>Machine</label><div class="chips">${Object.keys(MACHINES).map(k => kChip('kfMach', k, d.type === k, MACHINES[k].icon + ' ' + MACHINES[k].en)).join('')}</div></div>
     <div class="grid2">${kNum('hours', 'Hours', d.hours)}${kNum('ratePerHour', m.hired ? 'Rate per hour Rs' : 'Own machine rate / hour Rs', d.ratePerHour)}</div>
     ${m.hired ? kNum('hireAmount', 'Hire paid Rs (auto = hours × rate)', d.hireAmount, 'auto')
-      : `<div class="hint" id="kmOwnHint" style="margin:-6px 0 12px">${esc(ownMachineHint())}</div>`}
+      : `<div class="hint" id="kmOwnHint" style="margin:-6px 0 12px">${esc(ownMachineHint())}</div>
+      <div class="field"><label>🧑 My time (driving / running it)</label>
+        <div class="grid2">${kNum('myHours', 'My hours', d.myHours, nfmt(num(d.hours) || 0) + ' (same)')}${kNum('myRate', 'My rate / hour Rs', d.myRate)}</div>
+        <div class="hint" id="kmMyHint" style="margin-top:-6px">${esc(myTimeHint())}</div></div>`}
     <div class="field"><label>Fuel</label><div class="chips">${kChip('kfFuel', '', !d.fuel, 'None')}${kChip('kfFuel', 'petrol', d.fuel === 'petrol', '⛽ Petrol')}${kChip('kfFuel', 'diesel', d.fuel === 'diesel', '🛢️ Diesel')}</div></div>
     ${d.fuel ? `<div class="grid2">${kNum('litres', 'Litres', d.litres)}${kNum('fuelCost', 'Fuel cost Rs', d.fuelCost)}</div>` : ''}
     <div class="field"><label>Note <span class="muted">(optional)</span></label><input data-k="note" value="${esc(d.note || '')}" placeholder="—" autocomplete="off"></div>
@@ -279,6 +283,11 @@ function ownMachineHint() {
   const r = num(($('#kForm [data-k=ratePerHour]') || {}).value != null ? $('#kForm [data-k=ratePerHour]').value : kDraft.ratePerHour) || 0;
   return `Own machine value = hours × rate${h && r ? ' = ' + money(h * r) : ''}. It counts in the crop's cost only when the crop's 🚜 Own machine switch is on. Fuel is always counted.`;
 }
+function myTimeHint() {
+  const f = k => { const el = $(`#kForm [data-k=${k}]`); return num(el ? el.value : kDraft[k]); };
+  const h = f('myHours') != null ? f('myHours') : (f('hours') || 0), r = f('myRate') || 0;
+  return r ? `My time ${nfmt(h)} hr × ${money(r)} = ${money(h * r)} (with the 🚜 switch)` : 'Optional. Leave the rate empty to skip.';
+}
 function saveMachineForm() {
   kRead();
   const d = kDraft, k = khetiById(d.khetiId), m = MACHINES[d.type] || {};
@@ -286,12 +295,15 @@ function saveMachineForm() {
   const hours = num(d.hours) || 0, rate = num(d.ratePerHour) || 0;
   const hire = m.hired ? (num(d.hireAmount) != null ? num(d.hireAmount) : round(hours * rate, 2)) : 0;
   const rec = { kind: 'machine', khetiId: k.id, fieldId: k.fieldId, date: d.date || today(), type: d.type, hours, ratePerHour: rate, hireAmount: hire,
-    ownValue: m.hired ? 0 : round(hours * rate, 2), fuel: d.fuel || '', litres: d.fuel ? num(d.litres) || 0 : 0, fuelCost: d.fuel ? num(d.fuelCost) || 0 : 0, note: String(d.note || '').trim() };
+    ownValue: m.hired ? 0 : round(hours * rate, 2), fuel: d.fuel || '',
+    myHours: m.hired ? 0 : (num(d.myHours) != null ? num(d.myHours) : hours), myRate: m.hired ? 0 : num(d.myRate) || 0, litres: d.fuel ? num(d.litres) || 0 : 0, fuelCost: d.fuel ? num(d.fuelCost) || 0 : 0, note: String(d.note || '').trim() };
+  rec.myValue = round(rec.myHours * rec.myRate, 2);
   if (!m.hired && rate && rate !== ownMachineRate(d.type)) setOwnMachineRate(d.type, rate);   // remembered for next time
+  if (!m.hired && rec.myRate && rec.myRate !== myTimeRate()) setSet('myTimeRate', rec.myRate);
   if (!hours && !hire && !rec.litres && !rec.fuelCost) { toast('Type hours, hire or fuel'); return; }
   if (d.id) { rec.id = d.id; rec.createdAt = d.createdAt; }
   put(rec); closeSheet(); render();
-  toast(`Saved ✓ ${m.en} ${hours ? nfmt(hours) + ' hr' : ''} · ${money(hire + rec.fuelCost)}${rec.ownValue ? ' · own value ' + money(rec.ownValue) : ''}`, d.id ? null : rec.id);
+  toast(`Saved ✓ ${m.en} ${hours ? nfmt(hours) + ' hr' : ''} · ${money(hire + rec.fuelCost)}${rec.ownValue ? ' · own value ' + money(rec.ownValue) : ''}${rec.myValue ? ' · my time ' + money(rec.myValue) : ''}`, d.id ? null : rec.id);
 }
 
 function openInputForm(rec, khetiId) {
@@ -499,7 +511,7 @@ function kItemHtml(r) {
   let ic = '•', t = '', s = '', amt = '';
   const kt = r.khetiId && khetiById(r.khetiId) ? khetiTitle(khetiById(r.khetiId)) : '';
   if (r.kind === 'fwork') { ic = '👷'; t = `${workById(r.workType).ne} · ${(r.workers || []).length + (r.extraFull || 0) + (r.extraHalf || 0)} khetala${(r.parma || []).length ? ' + parma' : ''}`; s = kt; amt = money(fworkAmount(r)); }
-  else if (r.kind === 'machine') { const m = MACHINES[r.type] || {}; ic = m.icon || '🚜'; t = `${m.en || r.type}${r.hours ? ' · ' + nfmt(r.hours) + ' hr' : ''}${r.litres ? ' · ' + nfmt(r.litres) + ' L ' + r.fuel : ''}`; s = kt + (machineOwnValue(r) ? ' · own value ' + money(machineOwnValue(r)) : ''); amt = money((r.hireAmount || 0) + (r.fuelCost || 0)); }
+  else if (r.kind === 'machine') { const m = MACHINES[r.type] || {}; ic = m.icon || '🚜'; t = `${m.en || r.type}${r.hours ? ' · ' + nfmt(r.hours) + ' hr' : ''}${r.litres ? ' · ' + nfmt(r.litres) + ' L ' + r.fuel : ''}`; s = kt + (machineOwnValue(r) ? ' · own value ' + money(machineOwnValue(r)) : '') + (machineMyValue(r) ? ' · my time ' + money(machineMyValue(r)) : ''); amt = money((r.hireAmount || 0) + (r.fuelCost || 0)); }
   else if (r.kind === 'finput') { ic = r.type === 'seed' ? '🌱' : '🧪'; t = `${r.item}${r.qty ? ' · ' + nfmt(r.qty) + ' ' + r.unit : ''}`; s = kt; amt = money(r.cost); }
   else if (r.kind === 'harvest') { ic = '🌾'; t = `${cropById(r.crop).ne} ${nfmt(r.qty)} ${r.unit} (≈ ${nfmt(round(r.kg || harvestKg(r)))} kg)`; s = kt; }
   else if (r.kind === 'fpay') { ic = '💵'; t = `Paid ${workerLabel(workerById(r.workerId))}`; amt = money(r.amount); }
@@ -525,7 +537,8 @@ function openKhetiEntries(khetiId, key) {
       <div class="line"><span>🧪 Fertilizer</span><b>${money(S.fert)}</b></div>
       ${S.family || workers().some(w => w.own) ? `<div class="line"><span>🏠 Family work (${nfmt(S.familyFull)} full, ${nfmt(S.familyHalf)} half)${S.includeFamily ? '' : ' <span class="muted">— not counted</span>'}</span><b style="${S.includeFamily ? '' : 'color:var(--muted);text-decoration:line-through'}">${money(S.family)}</b></div>` : ''}
       ${S.ownMachine || S.ownMachineHours ? `<div class="line"><span>🚜 Own machine (${nfmt(S.ownMachineHours)} hr)${S.includeOwnMachine ? '' : ' <span class="muted">— not counted</span>'}</span><b style="${S.includeOwnMachine ? '' : 'color:var(--muted);text-decoration:line-through'}">${money(S.ownMachine)}</b></div>` : ''}
-      <div class="line"><span><b>Total investment</b>${S.total !== S.cash ? '<br><span class="muted">money spent ' + money(S.cash) + (S.includeFamily && S.family ? ' + family work ' + money(S.family) : '') + (S.includeOwnMachine && S.ownMachine ? ' + own machine ' + money(S.ownMachine) : '') + '</span>' : ''}</span><b style="font-size:20px;color:var(--red)">${money(S.total)}</b></div>
+      ${S.myTime ? `<div class="line"><span>🧑 My time (${nfmt(S.myTimeHours)} hr)${S.includeOwnMachine ? '' : ' <span class="muted">— not counted</span>'}</span><b style="${S.includeOwnMachine ? '' : 'color:var(--muted);text-decoration:line-through'}">${money(S.myTime)}</b></div>` : ''}
+      <div class="line"><span><b>Total investment</b>${S.total !== S.cash ? '<br><span class="muted">money spent ' + money(S.cash) + (S.includeFamily && S.family ? ' + family work ' + money(S.family) : '') + (S.includeOwnMachine && S.ownMachine ? ' + own machine ' + money(S.ownMachine) : '') + (S.includeOwnMachine && S.myTime ? ' + my time ' + money(S.myTime) : '') + '</span>' : ''}</span><b style="font-size:20px;color:var(--red)">${money(S.total)}</b></div>
       ${harvestText(S) ? `<div class="line"><span style="white-space:nowrap">🌾 Harvest</span><b style="text-align:right">${esc(harvestText(S))}</b></div>` : ''}
       ${S.costPerKg ? `<div class="line"><span>Cost per kg ${esc(cropById(mainCrop(k)).ne)}</span><b>${money(S.costPerKg)}</b></div>` : ''}</div>
     ${famToggleHtml(S)}
@@ -549,16 +562,17 @@ function renderKReports() {
     <div class="summary small">
       <div class="line"><span>Khetala days</span><b>${nfmt(sum('labourFull'))} full · ${nfmt(sum('labourHalf'))} half</b></div>
       ${sum('ownMachine') ? `<div class="line"><span>🚜 Own machine value</span><b>${nfmt(sum('ownMachineHours'))} hr · ${money(sum('ownMachine'))}</b></div>` : ''}
+      ${sum('myTime') ? `<div class="line"><span>🧑 My time on own machines</span><b>${nfmt(sum('myTimeHours'))} hr · ${money(sum('myTime'))}</b></div>` : ''}
       ${sum('family') ? `<div class="line"><span>🏠 Family work</span><b>${nfmt(sum('familyFull'))} full · ${nfmt(sum('familyHalf'))} half · ${money(sum('family'))}</b></div>
 ` : ''}
-      ${sum('family') || sum('ownMachine') ? `<div class="line"><span>Money actually spent</span><b>${money(sum('cash'))}</b></div>` : ''}
+      ${sum('family') || sum('ownMachine') || sum('myTime') ? `<div class="line"><span>Money actually spent</span><b>${money(sum('cash'))}</b></div>` : ''}
       <div class="line"><span>Parma days</span><b>${nfmt(sum('parmaDays'))}</b></div>
       <div class="line"><span>Machine hours</span><b>${nfmt(sum('machineHours'))} hr</b></div>
       <div class="line"><span>Fuel</span><b>Petrol ${nfmt(round(sum('petrol'), 1))} L · Diesel ${nfmt(round(sum('diesel'), 1))} L</b></div></div>
     <h3>By kheti</h3>
     ${ks.length ? ks.map(k => `<button class="item" data-act="kOpenKheti" data-id="${k.kheti.id}" style="align-items:flex-start">
       <div class="ic" style="background:var(--green-l)">${k.kheti.status === 'done' ? '✅' : '🌱'}</div>
-      <div class="mid"><div class="t">${esc(khetiTitle(k.kheti))}</div><div class="s">${esc(seasonLabel(k.kheti.season))} · labour ${money(k.labour)} · machine ${money(k.machineHire + k.fuelCost)} · seed+मल ${money(k.seed + k.fert)}${k.family ? ` · 🏠 ${money(k.family)}${k.includeFamily ? '' : ' (not counted)'}` : ''}${k.ownMachine ? ` · 🚜 own ${money(k.ownMachine)}${k.includeOwnMachine ? '' : ' (not counted)'}` : ''}<br>${esc(harvestText(k) || 'no harvest yet')}${k.costPerKg ? ' · ' + money(k.costPerKg) + '/kg' : ''}</div></div>
+      <div class="mid"><div class="t">${esc(khetiTitle(k.kheti))}</div><div class="s">${esc(seasonLabel(k.kheti.season))} · labour ${money(k.labour)} · machine ${money(k.machineHire + k.fuelCost)} · seed+मल ${money(k.seed + k.fert)}${k.family ? ` · 🏠 ${money(k.family)}${k.includeFamily ? '' : ' (not counted)'}` : ''}${k.ownAll ? ` · 🚜 own ${money(k.ownAll)}${k.includeOwnMachine ? '' : ' (not counted)'}` : ''}<br>${esc(harvestText(k) || 'no harvest yet')}${k.costPerKg ? ' · ' + money(k.costPerKg) + '/kg' : ''}</div></div>
       <div class="amt" style="color:var(--red)">${money(k.total)}</div></button>`).join('') : '<p class="muted">No kheti yet.</p>'}
     <div class="grid2" style="margin-top:10px"><button class="btn" data-act="exportCsv" data-v="kheti">📄 Kheti (CSV)</button><button class="btn" data-act="exportCsv" data-v="khetiwork">📄 Work log (CSV)</button></div>`;
 }
@@ -674,8 +688,8 @@ function khetiDeleteBlock(r) {
 function khetiCsv(which) {
   const S = computeKheti();
   if (which === 'kheti') {
-    const rows = [['Field', 'Area (m²)', 'Area', 'Main crop', 'Aali crops', 'Variety', 'Season', 'Planted (BS)', 'Status', 'Labour (paid)', 'Full days', 'Half days', 'Family work value', 'Family work counted', 'Parma days', 'Machine hire', 'Machine hours', 'Own machine value', 'Own machine counted', 'Fuel cost', 'Petrol L', 'Diesel L', 'Seed', 'Fertilizer', 'Total cost', 'Harvest', 'Main crop kg', 'Cost per kg']];
-    Object.values(S.K).forEach(k => { const x = k.kheti, f = fieldById(x.fieldId) || {}; rows.push([f.name || '', round(f.areaM2 || 0), fmtArea(f.areaM2 || 0, landSystem(), 'en'), cropById(mainCrop(x)).en, (x.crops || []).filter(c => c.role === 'aali').map(c => cropById(c.crop).en).join(' + '), x.variety || '', x.season || '', bsIso(x.plantDate), x.status || '', round(k.labour), k.labourFull, k.labourHalf, round(k.family), k.includeFamily ? 'yes' : 'no', k.parmaDays, round(k.machineHire), k.machineHours, round(k.ownMachine), k.includeOwnMachine ? 'yes' : 'no', round(k.fuelCost), k.petrol, k.diesel, round(k.seed), round(k.fert), round(k.total), harvestText(k), round(k.mainKg), round(k.costPerKg, 2)]); });
+    const rows = [['Field', 'Area (m²)', 'Area', 'Main crop', 'Aali crops', 'Variety', 'Season', 'Planted (BS)', 'Status', 'Labour (paid)', 'Full days', 'Half days', 'Family work value', 'Family work counted', 'Parma days', 'Machine hire', 'Machine hours', 'Own machine value', 'My time value', 'Own machine counted', 'Fuel cost', 'Petrol L', 'Diesel L', 'Seed', 'Fertilizer', 'Total cost', 'Harvest', 'Main crop kg', 'Cost per kg']];
+    Object.values(S.K).forEach(k => { const x = k.kheti, f = fieldById(x.fieldId) || {}; rows.push([f.name || '', round(f.areaM2 || 0), fmtArea(f.areaM2 || 0, landSystem(), 'en'), cropById(mainCrop(x)).en, (x.crops || []).filter(c => c.role === 'aali').map(c => cropById(c.crop).en).join(' + '), x.variety || '', x.season || '', bsIso(x.plantDate), x.status || '', round(k.labour), k.labourFull, k.labourHalf, round(k.family), k.includeFamily ? 'yes' : 'no', k.parmaDays, round(k.machineHire), k.machineHours, round(k.ownMachine), round(k.myTime), k.includeOwnMachine ? 'yes' : 'no', round(k.fuelCost), k.petrol, k.diesel, round(k.seed), round(k.fert), round(k.total), harvestText(k), round(k.mainKg), round(k.costPerKg, 2)]); });
     return { rows, name: 'kheti-' + bsIso(today()) + '.csv' };
   }
   const rows = [['Date (BS)', 'Date (AD)', 'Kheti', 'Entry', 'Details', 'Qty', 'Unit', 'Amount', 'Note', 'By', 'Phone']];
@@ -763,7 +777,7 @@ function khetiClick(act, b) {
       renderWorkForm(); }); break;
     case 'kfAddParma': rr(() => { (kDraft.parma = kDraft.parma || []).push({ family: '', full: '', half: '' }); renderWorkForm(); }); break;
     case 'kSaveWork': saveWorkForm(); break;
-    case 'kfMach': rr(() => { kDraft.type = v; kDraft.ratePerHour = MACHINES[v].hired ? '' : (ownMachineRate(v) || ''); renderMachineForm(); }); break;
+    case 'kfMach': rr(() => { kDraft.type = v; kDraft.ratePerHour = MACHINES[v].hired ? '' : (ownMachineRate(v) || ''); if (!MACHINES[v].hired && !kDraft.myRate) kDraft.myRate = myTimeRate() || ''; renderMachineForm(); }); break;
     case 'kfFuel': rr(() => { kDraft.fuel = v; renderMachineForm(); }); break;
     case 'kSaveMachine': saveMachineForm(); break;
     case 'kfInType': rr(() => { kDraft.type = v; kDraft.item = v === 'fert' ? 'Urea' : ''; kDraft.unit = INPUT_UNITS[v][0]; renderInputForm(); }); break;
@@ -818,6 +832,8 @@ function khetiClick(act, b) {
 }
 function khetiInput(el) {
   if ($('#kmOwnHint') && (el.dataset.k === 'hours' || el.dataset.k === 'ratePerHour')) $('#kmOwnHint').textContent = ownMachineHint();
+  if ($('#kmMyHint') && ['hours', 'myHours', 'myRate'].includes(el.dataset.k)) $('#kmMyHint').textContent = myTimeHint();
+  if (el.dataset.k === 'hours' && $('#kForm [data-k=myHours]')) $('#kForm [data-k=myHours]').placeholder = nfmt(num(el.value) || 0) + ' (same)';
   if ($('#kwTotal') && (el.dataset.k || el.dataset.kp)) updWorkTotal();
   if (el.dataset.kq) { const h = $('#kqHint'); if (h) h.textContent = quickHint(); }
   if (el.dataset.ka !== undefined && kDraft && kDraft.kind === 'field') {
