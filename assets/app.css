@@ -276,3 +276,14 @@ u.dk{background:#16A34A}u.dp{background:#F59E0B}u.ds{background:#2563EB}
 .cal-d{padding-bottom:10px}
 .cal-d i{bottom:2px}
 .cal-d.today u{box-shadow:0 0 0 1.5px #fff}
+
+/* panchang in the calendar */
+.cal-d.pan{min-height:62px;padding-bottom:12px}
+.cal-d em{font-style:normal;font-size:9px;font-weight:800;color:var(--muted);line-height:1.1;white-space:nowrap;overflow:hidden;max-width:100%}
+.cal-d.hol:not(.today){background:#FFF1F1;border-color:#FCA5A5}
+.cal-d.hol b{color:var(--red)}
+.cal-d.today em{color:#fff}
+.cal-d s{position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:var(--red);text-decoration:none}
+.cal-d.today s{box-shadow:0 0 0 1.5px #fff}
+.panday{border-left:8px solid var(--amber)}
+.panday.hol{border-left-color:var(--red);background:#FFF7F7}

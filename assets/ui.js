@@ -691,12 +691,14 @@ function openDay(date, lotId, fromCal) {
   const sh = shopSum(shop);
   const kh = lotId || !fromCal ? { line: '', list: '' } : dayKhetiHtml(date);
   const wd = WEEK_NE[weekday(date)] + 'बार', bb = adToBs(date);
-  openSheet(`${lot ? `<button class="btn sm ghost" data-act="openLot" data-id="${lot.id}">‹ Back to ${esc(lot.name)}</button>` : `<button class="btn sm ghost" data-act="openCalendar" data-d="${date}">‹ ${calTile()} ${BS_MONTHS_NE[bb.m - 1]} ${neNum(bb.y)}</button>`}
+  openSheet(`${lot ? `<button class="btn sm ghost" data-act="openLot" data-id="${lot.id}">‹ Back to ${esc(lot.name)}</button>` : `<button class="btn sm ghost" data-act="openCalendar" data-d="${date}">‹ पात्रो · ${BS_MONTHS_NE[bb.m - 1]} ${neNum(bb.y)}</button>`}
     <h2>${fmtDate(date, true)}${lot ? ' · ' + esc(lot.name) : ''}</h2>
     <div class="small muted" style="margin:-6px 0 10px">${BS_MONTHS_NE[bb.m - 1]} ${neNum(bb.d)}, ${neNum(bb.y)} · ${wd} · AD ${date}</div>
-    <div class="summary">
+    ${fromCal ? dayPanchangHtml(date) : ''}
+    ${fromCal && !kh.line && !sales.length && !buys.length && !proc.length && !shop.length ? '<p class="muted">Nothing recorded on this day.</p>' : ''}
+    <div class="summary" ${fromCal && !kh.line && !sales.length && !buys.length && !shop.length ? 'style="display:none"' : ''}>
       ${kh.line}
-      <div class="line"><span><b>Sales</b> (${sales.length})</span><b style="font-size:22px;color:var(--green)">${money(sum(sales, 'amount'))}</b></div>
+      ${sales.length || !fromCal ? `<div class="line"><span><b>Sales</b> (${sales.length})</span><b style="font-size:22px;color:var(--green)">${money(sum(sales, 'amount'))}</b></div>` : ''}
       ${by('live').length ? `<div class="line"><span>🐔 Live</span><b>${kgs(sum(by('live'), 'kg'))} · ${sum(by('live'), 'birds')} birds · ${money(sum(by('live'), 'amount'))}</b></div>` : ''}
       ${by('meat').length ? `<div class="line"><span>🔪 Meat</span><b>${kgs(sum(by('meat'), 'kg'))} · ${sum(by('meat'), 'birds')} cut · ${money(sum(by('meat'), 'amount'))}</b></div>` : ''}
       ${by('parts').length ? `<div class="line"><span>🍗 Khutta-tauko</span><b>${kgs(sum(by('parts'), 'kg'))} · ${money(sum(by('parts'), 'amount'))}</b></div>` : ''}
@@ -803,7 +805,7 @@ function deleteRec(id, after) {
   if (!r) return;
   const blocked = KHETI_KINDS.includes(r.kind) ? khetiDeleteBlock(r) : '';
   if (blocked) { info("Can't delete yet", `<p>${esc(blocked)}</p>`, '', false); return; }
-  ask({ title: 'Delete this entry?', sub: KHETI_KINDS.includes(r.kind) ? khetiRecSummary(r) : r.kind === 'sale' ? `${kgs(r.kg)} ${r.type} · ${money(r.amount)} · ${fmtDate(r.date)}` : r.kind === 'purchase' ? `Bought ${purchaseTitle(r)} · ${money(r.amount)}` : r.kind === 'grainsale' ? `Sold grain ${r.grade} · ${money(r.amount)}` : `${lotName(r.lotId)}: ${eventTitle(r)}`,
+  ask({ title: 'Delete this entry?', sub: r.kind === 'calnote' ? r.text : KHETI_KINDS.includes(r.kind) ? khetiRecSummary(r) : r.kind === 'sale' ? `${kgs(r.kg)} ${r.type} · ${money(r.amount)} · ${fmtDate(r.date)}` : r.kind === 'purchase' ? `Bought ${purchaseTitle(r)} · ${money(r.amount)}` : r.kind === 'grainsale' ? `Sold grain ${r.grade} · ${money(r.amount)}` : `${lotName(r.lotId)}: ${eventTitle(r)}`,
     buttons: [{ label: '🗑 Delete', value: 'yes', cls: 'red' }, { label: 'Keep', value: 'no' }],
     onAnswer: a => {
       if (a !== 'yes') return;

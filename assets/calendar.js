@@ -48,8 +48,10 @@ function calGridHtml(y, m, o) {
   for (let i = 0; i < weekday(first); i++) cells += '<span class="cal-e"></span>';
   for (let d = 1; d <= n; d++) {
     const ad = addDays(first, d - 1), mk = marks[ad] || {}, wd = weekday(ad);
-    const cls = ['cal-d', ad === t ? 'today' : '', ad === o.selected ? 'sel' : '', wd === 6 ? 'sat' : '', o.maxDate && ad > o.maxDate ? 'off' : ''].filter(Boolean).join(' ');
-    cells += `<button class="${cls}" data-act="${o.act}" data-d="${ad}"${o.key ? ` data-key="${o.key}"` : ''}><b>${neNum(d)}</b><small>${ad === t ? 'आज' : Number(ad.slice(8))}</small>${o.marks ? `<i>${mk.kheti ? '<u class="dk"></u>' : ''}${mk.poultry ? '<u class="dp"></u>' : ''}${mk.shop ? '<u class="ds"></u>' : ''}</i>` : ''}</button>`;
+    const p = o.marks ? panchang(ad) : null, notes = o.marks ? calNotes(ad) : [];
+    const hol = p && (p.holiday || notes.some(x => x.holiday)), fest = p && (p.fests.length || notes.length);
+    const cls = ['cal-d', o.marks ? 'pan' : '', ad === t ? 'today' : '', ad === o.selected ? 'sel' : '', wd === 6 ? 'sat' : '', hol ? 'hol' : '', o.maxDate && ad > o.maxDate ? 'off' : ''].filter(Boolean).join(' ');
+    cells += `<button class="${cls}" data-act="${o.act}" data-d="${ad}"${o.key ? ` data-key="${o.key}"` : ''}>${fest ? '<s></s>' : ''}<b>${neNum(d)}</b><small>${ad === t ? 'आज' : Number(ad.slice(8))}</small>${p ? `<em>${p.moon || p.short}</em>` : ''}${o.marks ? `<i>${mk.kheti ? '<u class="dk"></u>' : ''}${mk.poultry ? '<u class="dp"></u>' : ''}${mk.shop ? '<u class="ds"></u>' : ''}</i>` : ''}</button>`;
   }
   return `<div class="cal-grid">${WEEK_NE.map((w, i) => `<span class="cal-h${i === 6 ? ' sat' : ''}">${w}</span>`).join('')}${cells}</div>`;
 }
@@ -68,7 +70,8 @@ function renderCalendar() {
       <div style="text-align:center"><div style="font-size:24px;font-weight:900">${BS_MONTHS_NE[m - 1]} ${neNum(y)}</div><div class="small muted">${BS_MONTHS[m - 1]} ${y} · ${adRangeLabel(y, m)}</div></div>
       <button class="btn sm ghost" data-act="calNav" data-y="${ny}" data-m="${nm}">${BS_MONTHS_NE[nm - 1]} ›</button></div>
     ${calGridHtml(y, m, { act: 'calDay', marks })}
-    <div class="cal-legend small muted"><span><u class="dk"></u> Kheti</span><span><u class="dp"></u> Poultry</span><span><u class="ds"></u> Shop</span>${y !== tb.y || m !== tb.m ? `<button class="chip sm" data-act="calNav" data-y="${tb.y}" data-m="${tb.m}">Today</button>` : ''}</div>
+    <div class="cal-legend small muted"><span><u class="dk"></u> Kheti</span><span><u class="dp"></u> Poultry</span><span><u class="ds"></u> Shop</span><span><b style="color:var(--red)">रातो</b> = बिदा</span>${y !== tb.y || m !== tb.m ? `<button class="chip sm" data-act="calNav" data-y="${tb.y}" data-m="${tb.m}">Today</button>` : ''}</div>
+    ${monthFestHtml(y, m)}
     <div class="summary small">
       ${tot.kheti ? `<div class="line"><span>🌾 Kheti spent</span><b style="color:var(--red)">${money(tot.kheti)}</b></div>` : ''}
       ${tot.sales ? `<div class="line"><span>🐔 Poultry sales</span><b style="color:var(--green)">${money(tot.sales)}</b></div>` : ''}
@@ -76,7 +79,7 @@ function renderCalendar() {
       ${tot.shop ? `<div class="line"><span>🏪 Shop collected</span><b style="color:var(--green)">${money(tot.shop)}</b></div>` : ''}
       ${tot.kheti || tot.sales || tot.bought || tot.shop ? '' : '<div class="line"><span class="muted">Nothing recorded this month</span></div>'}
     </div>
-    <p class="small muted">Tap a day to see everything recorded on it.</p>
+    <p class="small muted">Tap a day for its tithi, festivals, sunrise and everything recorded on it. Tithi and festivals are calculated (sunrise in Kathmandu); the government's official holiday list can differ by a day — add your own note or holiday on any day.</p>
     <h3>🔁 Date converter</h3>
     <div class="grid2" id="calConv">
       <div class="field"><label>English date (AD)</label><input type="date" data-calconv="ad" value="${today()}" min="1943-04-14" max="${bsToAd(BS_LAST_YEAR, 12, bsDays(BS_LAST_YEAR, 12))}"></div>
@@ -134,6 +137,8 @@ function calendarClick(act, b) {
     case 'openCalendar': openCalendar(b.dataset.d); return true;
     case 'calNav': calYM = [Number(b.dataset.y), Number(b.dataset.m)]; renderCalendar(); return true;
     case 'calDay': openDay(b.dataset.d, null, true); return true;
+    case 'calAddNote': addCalNote(b.dataset.d); return true;
+    case 'calDelNote': deleteRec(b.dataset.id, () => openDay(b.dataset.d, null, true)); return true;
     case 'bsCalToggle': bsCalToggle(b.dataset.key); return true;
     case 'bsCalNav': {
       const box = document.querySelector(`[data-bscalbox="${b.dataset.key}"]`), wrap = document.querySelector(`[data-bsdate="${b.dataset.key}"]`);
@@ -152,3 +157,41 @@ function calendarClick(act, b) {
 document.addEventListener('input', e => {
   if (e.target.dataset.calconv) { const o = document.getElementById('calConvOut'); if (o) o.innerHTML = convText(e.target.value); }
 });
+
+// ---------- tithi, festivals, holidays and the user's own notes ----------
+function calNotes(ad) { return all('calnote').filter(r => r.date === ad).sort((a, b) => a.createdAt - b.createdAt); }
+const festBadge = f => f.holiday ? `<span class="pill red">सार्वजनिक बिदा${f.approx ? ' (अनुमानित)' : ''}</span>` : f.who ? `<span class="pill">बिदा: ${esc(f.who)}</span>` : '';
+function monthFestHtml(y, m) {
+  const first = bsToAd(y, m, 1), rows = [];
+  for (let d = 1; d <= bsDays(y, m); d++) {
+    const ad = addDays(first, d - 1), p = panchang(ad), notes = calNotes(ad);
+    if (!p.fests.length && !notes.length) continue;
+    const hol = p.holiday || notes.some(x => x.holiday);
+    rows.push(`<div class="line" data-act="calDay" data-d="${ad}" style="cursor:pointer;align-items:flex-start">
+      <span style="min-width:0"><b style="color:${hol ? 'var(--red)' : 'inherit'}">${neNum(d)} ${BS_MONTHS_NE[m - 1]}</b> <span class="muted">· ${WEEK_NE[weekday(ad)]}</span><br>
+      ${p.fests.map(f => `${esc(f.ne)}${f.approx ? ' <span class="muted">(अनुमानित)</span>' : ''}`).concat(notes.map(x => '📝 ' + esc(x.text))).join('<br>')}</span>
+      <span style="text-align:right;white-space:nowrap">${hol ? '<span class="pill red">बिदा</span>' : ''} ›</span></div>`);
+  }
+  return rows.length ? `<h3 style="margin-top:4px">🎉 पर्व र बिदा</h3><div class="summary small">${rows.join('')}</div>` : '';
+}
+// the top of a day's sheet: tithi, sunrise / sunset, festivals, holidays and notes
+function dayPanchangHtml(ad) {
+  const p = panchang(ad), notes = calNotes(ad);
+  return `<div class="card tight panday${p.holiday || notes.some(x => x.holiday) ? ' hol' : ''}">
+    <div style="font-size:20px;font-weight:900">${p.moon ? p.moon + ' ' : ''}${esc(p.name)}</div>
+    ${(() => { const end = tithiEnd(p.rise + 6e4), nx = p.tithi % 30 + 1, sameDay = end < p.rise + 864e5;
+      return `<div class="small">${tithiName(p.tithi)} ${sameDay ? fmtNpt(end) + ' सम्म, त्यसपछि ' + tithiName(nx) : 'भोलि सूर्योदयसम्म रहन्छ'}</div>`; })()}
+    <div class="small muted" style="margin-top:2px">🌅 सूर्योदय ${fmtNpt(p.rise)} · 🌇 सूर्यास्त ${fmtNpt(p.set)} <span style="font-size:11px">(काठमाडौं)</span></div>
+    ${p.fests.map(f => `<div style="margin-top:8px"><b style="font-size:17px">🎉 ${esc(f.ne)}</b> <span class="small muted">${esc(f.en)}</span><br>${festBadge(f)}${f.approx ? ' <span class="small muted">चन्द्र दर्शन अनुसार एक दिन फरक पर्न सक्छ</span>' : ''}</div>`).join('')}
+    ${notes.map(x => `<div class="row between" style="margin-top:8px;gap:8px"><span>📝 <b>${esc(x.text)}</b> ${x.holiday ? '<span class="pill red">बिदा</span>' : ''}<br><span class="small muted">${whoWhen(x)}</span></span>
+      <button class="btn sm redl" data-act="calDelNote" data-id="${x.id}" data-d="${ad}">🗑</button></div>`).join('')}
+    <button class="btn sm ghost" style="margin-top:10px" data-act="calAddNote" data-d="${ad}">+ Add note / holiday</button>
+  </div>`;
+}
+function addCalNote(ad) {
+  ask({ title: `📝 ${fmtDate(ad, true)}`, sub: 'Festival, holiday, puja, a reminder… (shared with all your phones)', input: { text: true, placeholder: 'e.g. Kul puja, school holiday' },
+    onAnswer: text => {
+      ask({ title: `Is “${text}” a holiday (बिदा)?`, buttons: [{ label: 'Yes, holiday', value: 'yes', cls: 'red' }, { label: 'No, just a note', value: 'no', cls: 'ghost' }],
+        onAnswer: a => { put({ kind: 'calnote', date: ad, text: String(text).trim(), holiday: a === 'yes' }); openDay(ad, null, true); toast('Saved ✓'); } });
+    }, onCancel: () => openDay(ad, null, true) });
+}

@@ -26,7 +26,7 @@ A voice-first Android app for my home farm: 🌾 **Kheti** (fields, crops, kheta
 </tr>
 <tr>
 <td align="center"><img src="docs/screenshots/24-calendar.png" width="230"><br><sub>📅 Nepali calendar: days with entries, month totals</sub></td>
-<td align="center"><img src="docs/screenshots/25-calendar-day.png" width="230"><br><sub>Tap a day: Kheti, sales, shop of that day</sub></td>
+<td align="center"><img src="docs/screenshots/25-calendar-day.png" width="230"><br><sub>Tap a day: tithi, sunrise, festivals, entries</sub></td>
 <td align="center"><img src="docs/screenshots/26-date-picker.png" width="230"><br><sub>📅 पात्रो date picker in every form</sub></td>
 </tr>
 <tr>
@@ -78,6 +78,10 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
 - Tap the little calendar page at the top (it always shows today's Nepali date, e.g. कार्तिक ५), or say "patro". The month view shows BS dates in Nepali digits with the English date in small text, Saturdays in red, and today in green marked आज.
 - Coloured dots mark the days with Kheti, poultry or shop entries, and the month totals sit under the grid. Tap a day to see everything recorded on it, then go to the day before or after.
 - Every date field has a **📅 पात्रो** button that opens a calendar for picking the date.
+- **Tithi** under every date (🌕 पूर्णिमा, 🌑 औंसी), and **festivals and public holidays** in red: नयाँ वर्ष, गणतन्त्र दिवस, संविधान दिवस, Dashain, Tihar, Chhath, Teej, Janai Purnima, Janmashtami, Shivaratri, Holi, Buddha Jayanti, Lhosar, Christmas, Eid (approximate) and more. Each month lists its पर्व र बिदा.
+- **Tap a day** for its full tithi (e.g. कार्तिक कृष्ण चतुर्दशी, and when it changes), sunrise and sunset in Kathmandu, festivals with the kind of holiday (public / women / Kathmandu valley), your own notes, and everything recorded that day.
+- **Your own notes and holidays** on any day (kul puja, school holiday…). They are shared with all your phones.
+- Tithi and festivals are **calculated on the phone** (sun and moon positions at Kathmandu sunrise, Meeus' algorithms, Nepali rules such as उदय तिथि and अपराह्न for Dashain tika), so the calendar works offline for every year. The official dates come from the Nepal Panchang Nirnayak Samiti and the government's holiday list and can occasionally differ by a day; add a note to correct one.
 - An AD ⇄ BS date converter.
 
 **Chickens and lots**
@@ -176,6 +180,6 @@ Needs the Android SDK command line tools (build-tools 35, platform 35) and a JDK
 | Path | What |
 |---|---|
 | `src/…/MainActivity.java` | Android shell: WebView, voice (SpeechRecognizer), text-to-speech, files, updater, APK installer |
-| `assets/` | The app: `core.js` (data, stats, sync), `parser.js` (voice → command), `flows.js` (conversations), `ui.js` (screens), `kheti.js` / `kheti-ui.js` / `kheti-voice.js` (🌾 Kheti data, screens, voice), `landunits.js` (Ropani/Bigha), `calendar.js` (Nepali calendar), `shop.js`, `updater.js`, `nepcal.js` (BS calendar from [yarsa/nepal-compliance](https://github.com/yarsa/nepal-compliance)) |
+| `assets/` | The app: `core.js` (data, stats, sync), `parser.js` (voice → command), `flows.js` (conversations), `ui.js` (screens), `kheti.js` / `kheti-ui.js` / `kheti-voice.js` (🌾 Kheti data, screens, voice), `landunits.js` (Ropani/Bigha), `calendar.js` (Nepali calendar), `panchang.js` (tithi, festivals, holidays), `shop.js`, `updater.js`, `nepcal.js` (BS calendar from [yarsa/nepal-compliance](https://github.com/yarsa/nepal-compliance)) |
 | `google-sheet-sync/` | Google Apps Script for multi-phone sync |
 | `docs/screenshots/` | README images (demo data) |

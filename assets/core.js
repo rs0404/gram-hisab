@@ -2,7 +2,7 @@
 'use strict';
 
 const HAS_ANDROID = typeof window.Android !== 'undefined';
-const APP_VERSION = '2.4.1';
+const APP_VERSION = '2.5.0';
 
 // ---------- small utils ----------
 const $ = (sel, el) => (el || document).querySelector(sel);
@@ -120,6 +120,7 @@ function recSummary(r) {
     if (r.kind === 'shop') return `Shop cash ${money(r.cash)} · QR ${money(r.qr)} · goods ${money(r.goods)}`;
     if (r.kind === 'lot') return `Lot ${r.name}`;
     if (r.kind === 'setting') return `Setting: ${r.key}`;
+    if (r.kind === 'calnote') return `Calendar ${r.holiday ? 'holiday' : 'note'}: ${r.text}`;
   } catch (e) {}
   return r.kind;
 }
