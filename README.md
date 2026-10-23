@@ -130,6 +130,11 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
 - Settings has tabs: **🌾 Kheti · 🐔 Chicken · 🏪 Shop · ⚙️ Others** (open-the-app-in, voice, phones & sync, updates, full change log). It opens on the tab of the section you are in.
 - The chicken section shows only chicken data. The shop has its own section, and the full change log is in ⚙️ Others.
 
+**🧮 Calculator in amount fields**
+- In any field where you type a total (fuel cost, hire, seed/मल cost, sale or purchase total, shop cash/QR/goods, payments) you can type a sum: **2*200**, 2x200, 2×200, 1500+300, 2000/2.
+- A bar under the field has **× + − ÷** (number keypads have no ×) and shows the result as you type, e.g. "= Rs 400 (2 × Rs 200)". Leaving the field puts in 400.
+- For "quantity × rate" the empty quantity and rate boxes are filled too: 2×200 in diesel cost fills **2 litres**; 3×1500 in tractor hire fills 3 hours at Rs 1,500.
+
 **Several phones and users**
 - Every entry stores **who** entered it and **when**. Edits and deletes are logged in a **change log**.
 - Sync works through a Google Sheet (automatic; the sheet also gets readable tabs) or a sync file (offline).

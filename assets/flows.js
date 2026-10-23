@@ -8,7 +8,7 @@ let pendingAsk = null;
 function ask(o) {
   pendingAsk = o;
   o.hint = o.hint || 'Say “yes” or “no”';
-  const inputHtml = o.input ? `<div class="field">${o.input.text ? `<input id="askInput" type="text" autocomplete="off" placeholder="${esc(o.input.placeholder || '')}">` : `<input id="askInput" type="number" inputmode="${o.input.decimal ? 'decimal' : 'numeric'}" step="any" placeholder="${esc(o.input.placeholder || '')}">`}</div>
+  const inputHtml = o.input ? `<div class="field">${o.input.text ? `<input id="askInput" type="text" autocomplete="off" placeholder="${esc(o.input.placeholder || '')}">` : `<input id="askInput" ${calcAttrs()} placeholder="${esc(o.input.placeholder || '')}">`}</div>
       <button class="btn big green" data-act="askInputOk">OK</button><div style="height:10px"></div>` : '';
   openSheet(`<div class="ask">${esc(o.title)}</div>${o.sub ? `<div class="heard">${esc(o.sub)}</div>` : ''}${o.html || ''}${inputHtml}
     <div class="choice">${(o.buttons || []).map((b, i) => `<button class="btn big ${b.cls || 'ghost'}" data-act="askBtn" data-i="${i}">${b.label}</button>`).join('')}</div>

@@ -287,3 +287,12 @@ u.dk{background:#16A34A}u.dp{background:#F59E0B}u.ds{background:#2563EB}
 .cal-d.today s{box-shadow:0 0 0 1.5px #fff}
 .panday{border-left:8px solid var(--amber)}
 .panday.hol{border-left-color:var(--red);background:#FFF7F7}
+
+/* calculator bar under amount fields */
+.calcbar{display:flex;align-items:center;gap:6px;margin:6px 0 2px;flex-wrap:nowrap}
+.calcbar button{min-width:44px;height:40px;border-radius:12px;background:#fff;border:2px solid var(--line);font-size:22px;font-weight:900;color:var(--ink)}
+.calcbar .calceq{background:var(--green);border-color:var(--green);color:#fff;margin-left:auto}
+.calcbar .calcres{flex:1;min-width:0;font-size:14px;font-weight:800;color:var(--green);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hshop .calcbar{grid-column:1/-1}
+.calcbar button{min-width:40px}
+.calcbar .calcres{white-space:normal;font-size:13px;line-height:1.15}

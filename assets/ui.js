@@ -270,7 +270,7 @@ function homeSaleHtml() {
     ${lot && lotBreeds(lot).length > 1 && h.type !== 'parts' ? `<div class="chips">${lotBreeds(lot).map(b => chip('hsBreed', b, h.breed === b, esc(breedName(b)))).join('')}</div>` : ''}
     <form class="hshop" data-form="homeSale">
       <label><span>⚖️ Kg</span><input data-hsale="kg" type="number" inputmode="decimal" step="any" placeholder="0"></label>
-      <label><span>💰 Rs total</span><input data-hsale="amount" type="number" inputmode="decimal" step="any" placeholder="auto"></label>
+      <label><span>💰 Rs total</span><input data-hsale="amount" ${calcAttrs('#v-home [data-hsale=kg]')} placeholder="auto"></label>
       <label><span>${h.type === 'meat' ? '🔪 Cut' : '🐔 Birds'}</span><input data-hsale="birds" type="number" inputmode="numeric" placeholder="${h.type === 'parts' ? '—' : 'auto'}" ${h.type === 'parts' ? 'disabled' : ''} enterkeyhint="done"></label>
     </form>
     <div class="small hsale-hint" id="hsaleHint">${esc(homeSaleHint())}</div>
@@ -427,7 +427,7 @@ function renderSell() {
       <div class="field"><label>Rate Rs/kg</label><input data-f="rate" type="number" inputmode="decimal" step="any" value="${esc(d.rate)}" placeholder="${c.def || 'price'}">
         <div class="hint">${d.type === 'parts' ? 'Khutta-tauko' : esc(breedName(c.breed)) + ' ' + d.type} default: ${c.def ? money(c.def) : 'not set'}${d.amountManual && !num(d.kg) ? ' · kg will be worked out from the amount' : ''}</div></div>
       <div class="totalbox"><span><b style="font-size:15px">TOTAL</b><br><span class="small" id="sellCalcTxt">${d.amountManual ? 'entered by you' : kgs(c.kg) + ' × ' + money(c.rate)}</span></span><b id="sellTotal">${money(c.amount)}</b></div>
-      <div class="field"><label>Total received (change only if different)</label><input data-f="amount" type="number" inputmode="decimal" step="any" value="${d.amountManual ? esc(d.amount) : ''}" placeholder="${round(c.amount)}"></div>
+      <div class="field"><label>Total received (change only if different)</label><input data-f="amount" ${calcAttrs(d.type === 'grain' ? '#sellForm [data-f=qty]' : '#sellForm [data-f=kg]', '#sellForm [data-f=rate]')} value="${d.amountManual ? esc(d.amount) : ''}" placeholder="${round(c.amount)}"></div>
       <div class="field"><label>Date (नेपाली)</label>${bsDateHtml('sell', d.date)}</div>`}
       <div class="field"><label>Invoice no. <span class="muted">(optional)</span></label><input data-f="invoice" value="${esc(d.invoice || '')}" placeholder="—" autocomplete="off"></div>
       <div class="field"><label>Note / customer <span class="muted">(optional)</span></label><input data-f="note" value="${esc(d.note || '')}" placeholder="—" autocomplete="off"></div>
@@ -495,7 +495,7 @@ function grainSellFields(d) {
     <div class="field"><label>Rate Rs per ${c.unit === 'kg' ? 'kg' : 'bora'}</label><input data-f="rate" type="number" inputmode="decimal" step="any" value="${esc(d.rate == null ? '' : d.rate)}" placeholder="${c.rate || 'rate'}">
       <div class="hint">${d.grade ? `Saved ${d.grade} selling rate: ${feedRates()[d.grade].sell ? money(feedRates()[d.grade].sell) + ' / bora (' + money(feedRates()[d.grade].sell / bagKg()) + '/kg)' : 'not set'}` : 'Pick the grain size'}</div></div>
     <div class="totalbox"><span><b style="font-size:15px">TOTAL</b><br><span class="small" id="sellCalcTxt">${nfmt(c.qty)} × ${money(c.rate)}</span></span><b id="sellTotal">${money(c.amount)}</b></div>
-    <div class="field"><label>Total received (change only if different)</label><input data-f="amount" type="number" inputmode="decimal" step="any" value="${d.amountManual ? esc(d.amount) : ''}" placeholder="${round(c.amount)}"></div>
+    <div class="field"><label>Total received (change only if different)</label><input data-f="amount" ${calcAttrs(d.type === 'grain' ? '#sellForm [data-f=qty]' : '#sellForm [data-f=kg]', '#sellForm [data-f=rate]')} value="${d.amountManual ? esc(d.amount) : ''}" placeholder="${round(c.amount)}"></div>
     <div class="field"><label>Date (नेपाली)</label>${bsDateHtml('sell', d.date)}</div>`;
 }
 function saveGrainSaleForm() {
@@ -558,7 +558,7 @@ function renderEventForm() {
       <datalist id="itemList">${knownItems(e.type).map(x => `<option value="${esc(x)}">`).join('')}</datalist></div>` : ''}
     ${t.qty ? `<div class="grid2"><div class="field"><label>${e.type === 'weight' ? 'Avg weight' : e.type === 'cut' ? 'Meat weight' : 'Quantity used'}</label><input data-ef="qty" type="number" inputmode="decimal" step="any" value="${esc(e.qty != null ? e.qty : '')}" placeholder="0"></div>
       <div class="field"><label>Unit</label>${PURCHASE_CATS[e.type] ? `<select data-ef="unit">${PURCHASE_CATS[e.type].units.map(u => `<option value="${u}" ${e.unit === u ? 'selected' : ''}>${u === 'bags' ? 'bora (bag)' : u}</option>`).join('')}</select>` : '<input value="kg" disabled>'}</div></div>` : ''}
-    ${t.amount ? `<div class="field"><label>Cost Rs <span class="muted">(${USAGE_TYPES.includes(e.type) ? 'leave empty if bought in the app' : 'optional'})</span></label><input data-ef="amount" type="number" inputmode="decimal" step="any" value="${esc(e.amount != null ? e.amount : '')}" placeholder="0"></div>` : ''}
+    ${t.amount ? `<div class="field"><label>Cost Rs <span class="muted">(${USAGE_TYPES.includes(e.type) ? 'leave empty if bought in the app' : 'optional'})</span></label><input data-ef="amount" ${calcAttrs('#evForm [data-ef=qty]')} value="${esc(e.amount != null ? e.amount : '')}" placeholder="0"></div>` : ''}
     <div class="field"><label>Date (नेपाली)</label>${bsDateHtml('ev', e.date)}</div>
     <div class="field"><label>Note <span class="muted">(optional)</span></label><textarea data-ef="note" placeholder="—">${esc(e.note || '')}</textarea></div>
     <button class="btn big green" data-act="saveEvent">✔ ${e.id ? 'Update' : 'Save'}</button>
@@ -736,7 +736,7 @@ function openLotForm(lot) {
     <div class="field"><label>Chicks arrived on (नेपाली)</label>${bsDateHtml('lot', d.startDate)}</div>
     <div class="field"><label>Lot name <span class="muted">(automatic)</span></label><input data-lf="name" value="${esc(d.name)}" autocomplete="off">
       <div class="hint">Month+year _ day _ lot no. in that month _ chicks, e.g. Ashar83_10_1_100</div></div>
-    <div class="field"><label>Chick cost total Rs <span class="muted">(optional)</span></label><input data-lf="chickCost" type="number" inputmode="decimal" value="${esc(d.chickCost == null ? '' : d.chickCost)}" placeholder="—"></div>
+    <div class="field"><label>Chick cost total Rs <span class="muted">(optional)</span></label><input data-lf="chickCost" ${calcAttrs()} value="${esc(d.chickCost == null ? '' : d.chickCost)}" placeholder="—"></div>
     <div class="field"><label>Note <span class="muted">(optional)</span></label><textarea data-lf="note">${esc(d.note || '')}</textarea></div>
     <button class="btn big green" data-act="saveLot">✔ ${d.id ? 'Update lot' : 'Add lot'}</button>
     ${d.id ? `<div style="height:10px"></div><button class="btn big redl" data-act="deleteLot" data-id="${d.id}">🗄 Archive (delete) lot</button>${historyHtml(d.id)}` : ''}
@@ -1191,7 +1191,7 @@ function renderBuy() {
       <div class="field"><label>Rate Rs per ${esc(d.unit === 'bags' ? 'bora' : d.unit || 'unit')}</label><input data-b="rate" type="number" inputmode="decimal" step="any" value="${esc(d.rate)}" placeholder="${d.category === 'feed' && d.grade && feedRateFor(d.grade, 'buy', d.unit) ? feedRateFor(d.grade, 'buy', d.unit) : '0'}">
         ${d.category === 'feed' && d.grade ? `<div class="hint">Saved ${esc(d.grade)} buying rate: ${feedRates()[d.grade].buy ? money(feedRates()[d.grade].buy) + ' / bora (' + money(feedRates()[d.grade].buy / bagKg()) + '/kg)' : 'not set'}</div>` : ''}</div>
       <div class="totalbox" style="background:var(--red-l);color:var(--red)"><span><b style="font-size:15px">TOTAL PAID</b><br><span class="small" id="buyCalcTxt">${d.amountManual ? 'entered by you' : nfmt(c.qty) + ' × ' + money(c.rate || 0)}</span></span><b id="buyTotal">${money(c.amount)}</b></div>
-      <div class="field"><label>Total (change only if different)</label><input data-b="amount" type="number" inputmode="decimal" step="any" value="${d.amountManual ? esc(d.amount) : ''}" placeholder="${round(c.amount)}"></div>
+      <div class="field"><label>Total (change only if different)</label><input data-b="amount" ${calcAttrs('#buyForm [data-b=qty]', '#buyForm [data-b=rate]')} value="${d.amountManual ? esc(d.amount) : ''}" placeholder="${round(c.amount)}"></div>
       <div class="field"><label>Date (नेपाली)</label>${bsDateHtml('buy', d.date)}</div>
       <div class="field"><label>Shop / supplier <span class="muted">(optional)</span></label><input data-b="supplier" list="buySup" value="${esc(d.supplier || '')}" placeholder="—" autocomplete="off">
         <datalist id="buySup">${knownSuppliers().map(x => `<option value="${esc(x)}">`).join('')}</datalist></div>

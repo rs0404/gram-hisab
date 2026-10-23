@@ -2,14 +2,14 @@
 'use strict';
 
 const HAS_ANDROID = typeof window.Android !== 'undefined';
-const APP_VERSION = '2.7.1';
+const APP_VERSION = '2.8.0';
 
 // ---------- small utils ----------
 const $ = (sel, el) => (el || document).querySelector(sel);
 const $$ = (sel, el) => Array.from((el || document).querySelectorAll(sel));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const round = (n, d = 2) => { const f = Math.pow(10, d); return Math.round((Number(n) || 0) * f) / f; };
-const num = v => { if (v === '' || v == null) return null; const n = parseFloat(String(v).replace(/,/g, '')); return isFinite(n) ? n : null; };
+const num = v => { if (v === '' || v == null) return null; if (typeof v === 'string' && typeof calcEval === 'function' && !/^\d{4}-\d\d-\d\d/.test(v) && /\d\s*[+\-*/x×÷−]\s*[\d(.]/.test(v)) { const c = calcEval(v); if (c != null) return c; } const n = parseFloat(String(v).replace(/,/g, '')); return isFinite(n) ? n : null; };
 
 function iso(d) { const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000); return z.toISOString().slice(0, 10); }
 function today() { return iso(new Date()); }

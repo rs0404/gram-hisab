@@ -5,6 +5,8 @@ let kDraft = null;          // the Kheti form being edited
 let kRepSeason = 'all';
 const kChip = (act, v, on, label, extra) => `<button class="chip sm ${on ? 'on' : ''}" data-act="${act}" data-v="${esc(v)}" ${extra || ''}>${label}</button>`;
 const kNum = (key, label, val, ph, step) => `<div class="field"><label>${label}</label><input data-k="${key}" type="number" inputmode="${step === 'int' ? 'numeric' : 'decimal'}" step="any" value="${val == null ? '' : esc(val)}" placeholder="${ph || '0'}"></div>`;
+// an amount field that also takes sums like 2*200 (qty / rate fields get filled from "qty × rate")
+const kAmt = (key, label, val, ph, qtyKey, rateKey) => `<div class="field"><label>${label}</label><input data-k="${key}" ${calcAttrs(qtyKey ? `#kForm [data-k=${qtyKey}]` : '', rateKey ? `#kForm [data-k=${rateKey}]` : '')} value="${val == null ? '' : esc(val)}" placeholder="${ph || '0'}"></div>`;
 function kRead() { $$('#kForm [data-k]').forEach(el => { kDraft[el.dataset.k] = el.type === 'checkbox' ? el.checked : el.value; }); }
 
 // ================= DASHBOARD =================
@@ -266,13 +268,13 @@ function renderMachineForm() {
     <div class="field"><label>Date (नेपाली)</label>${bsDateHtml('kmach', d.date)}</div>
     <div class="field"><label>Machine</label><div class="chips">${Object.keys(MACHINES).map(k => kChip('kfMach', k, d.type === k, MACHINES[k].icon + ' ' + MACHINES[k].en)).join('')}</div></div>
     <div class="grid2">${kNum('hours', 'Hours', d.hours)}${kNum('ratePerHour', m.hired ? 'Rate per hour Rs' : 'Own machine rate / hour Rs', d.ratePerHour)}</div>
-    ${m.hired ? kNum('hireAmount', 'Hire paid Rs (auto = hours × rate)', d.hireAmount, 'auto')
+    ${m.hired ? kAmt('hireAmount', 'Hire paid Rs (auto = hours × rate)', d.hireAmount, 'auto · or 3×1500', 'hours', 'ratePerHour')
       : `<div class="hint" id="kmOwnHint" style="margin:-6px 0 12px">${esc(ownMachineHint())}</div>
       <div class="field"><label>🧑 My time (driving / running it)</label>
         <div class="grid2">${kNum('myHours', 'My hours', d.myHours, nfmt(num(d.hours) || 0) + ' (same)')}${kNum('myRate', 'My rate / hour Rs', d.myRate)}</div>
         <div class="hint" id="kmMyHint" style="margin-top:-6px">${esc(myTimeHint())}</div></div>`}
     <div class="field"><label>Fuel</label><div class="chips">${kChip('kfFuel', '', !d.fuel, 'None')}${kChip('kfFuel', 'petrol', d.fuel === 'petrol', '⛽ Petrol')}${kChip('kfFuel', 'diesel', d.fuel === 'diesel', '🛢️ Diesel')}</div></div>
-    ${d.fuel ? `<div class="grid2">${kNum('litres', 'Litres', d.litres)}${kNum('fuelCost', 'Fuel cost Rs', d.fuelCost)}</div>` : ''}
+    ${d.fuel ? `<div class="grid2">${kNum('litres', 'Litres', d.litres)}${kAmt('fuelCost', 'Fuel cost Rs', d.fuelCost, 'e.g. 2×200', 'litres')}</div>` : ''}
     <div class="field"><label>Note <span class="muted">(optional)</span></label><input data-k="note" value="${esc(d.note || '')}" placeholder="—" autocomplete="off"></div>
     <button class="btn big green" data-act="kSaveMachine">✔ Save</button>
     ${d.id ? `<div style="height:10px"></div><button class="btn big redl" data-act="deleteRec" data-id="${d.id}">🗑 Delete</button>${historyHtml(d.id)}` : ''}
@@ -319,7 +321,7 @@ function renderInputForm() {
     ${d.type === 'fert' ? `<div class="field"><label>Which मल</label><div class="chips">${FERTILIZERS.map(x => kChip('kfInItem', x.en, (FERT_ALIAS[d.item] || d.item) === x.en, `${esc(x.ne)} <span style="opacity:.7">${esc(x.en.replace(/ mal.*$/, ''))}</span>`)).join('')}${kChip('kfInItem', 'Other', !FERTILIZERS.some(x => x.en === (FERT_ALIAS[d.item] || d.item)), 'अन्य Other')}</div>${FERTILIZERS.some(x => x.en === (FERT_ALIAS[d.item] || d.item)) ? '' : `<input data-k="item" value="${esc(d.item || '')}" placeholder="Name of the मल" autocomplete="off" style="margin-top:8px">`}</div>`
       : `<div class="field"><label>Seed (variety)</label><input data-k="item" value="${esc(d.item === 'Urea' ? '' : d.item || '')}" placeholder="e.g. Dhaan Radha-4" autocomplete="off"></div>`}
     <div class="grid2">${kNum('qty', 'Quantity', d.qty)}<div class="field"><label>Unit</label><div class="chips">${INPUT_UNITS[d.type === 'fert' ? 'fert' : 'seed'].concat(INPUT_UNITS[d.type === 'fert' ? 'fert' : 'seed'].includes(d.unit) ? [] : [d.unit]).map(u => kChip('kfInUnit', u, d.unit === u, UNIT_NE[u] || u)).join('')}</div></div></div>
-    ${kNum('cost', 'Cost Rs', d.cost)}
+    ${kAmt('cost', 'Cost Rs', d.cost, 'e.g. 2×4500', 'qty')}
     <div class="field"><label>Note <span class="muted">(optional)</span></label><input data-k="note" value="${esc(d.note || '')}" placeholder="—" autocomplete="off"></div>
     <button class="btn big green" data-act="kSaveInput">✔ Save</button>
     ${d.id ? `<div style="height:10px"></div><button class="btn big redl" data-act="deleteRec" data-id="${d.id}">🗑 Delete</button>${historyHtml(d.id)}` : ''}

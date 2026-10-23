@@ -24,7 +24,7 @@ const shopSplit = o => shopLess() ? `Collected ${money(o.total)} − 🐔 chicke
 function newShopDraft(date) { return { kind: 'shop', date: date || today(), cash: '', qr: '', goods: '', note: '' }; }
 function shopFormHtml(d) {
   const editing = !!d.id;
-  const inp = (f, label, color) => `<div class="field"><label>${label}</label><input data-s="${f}" type="number" inputmode="decimal" step="any" value="${esc(d[f] == null ? '' : d[f])}" placeholder="0" style="font-size:24px;${color ? 'border-color:' + color : ''}"></div>`;
+  const inp = (f, label, color) => `<div class="field"><label>${label}</label><input data-s="${f}" ${calcAttrs()} value="${esc(d[f] == null ? '' : d[f])}" placeholder="0" style="font-size:24px;${color ? 'border-color:' + color : ''}"></div>`;
   return `<div class="card" id="shopForm">
     <h3 style="margin-top:0">${editing ? '✎ Edit entry' : '➕ Add today\'s amounts'}</h3>
     <div class="field"><label>Date (नेपाली)</label>${bsDateHtml('shop', d.date)}</div>
