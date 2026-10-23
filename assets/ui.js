@@ -10,8 +10,11 @@ let buyDraft = null;
 let reportTab = 'profit', reportPeriod = 'month';
 
 // ---------- sheet + toast ----------
+let sheetBackFn = null;   // set by a sheet opened on top of another (day view over the calendar)
+function sheetBack() { const f = sheetBackFn; sheetBackFn = null; if (f) { f(); return true; } return false; }
 function openSheet(html, isAsk) {
   if (!isAsk && pendingAsk) cancelAsk();
+  if (!isAsk) sheetBackFn = null;
   $('#sheet').innerHTML = '<div class="grab"></div>' + html;
   $('#sheetWrap').classList.remove('hidden');
   $('#sheet').scrollTop = 0;
@@ -691,7 +694,7 @@ function openDay(date, lotId, fromCal) {
   const sh = shopSum(shop);
   const kh = lotId || !fromCal ? { line: '', list: '' } : dayKhetiHtml(date);
   const wd = WEEK_NE[weekday(date)] + 'बार', bb = adToBs(date);
-  openSheet(`${lot ? `<button class="btn sm ghost" data-act="openLot" data-id="${lot.id}">‹ Back to ${esc(lot.name)}</button>` : `<button class="btn sm ghost" data-act="openCalendar" data-d="${date}">‹ पात्रो · ${BS_MONTHS_NE[bb.m - 1]} ${neNum(bb.y)}</button>`}
+  openSheet(`${lot ? `<button class="btn sm ghost" data-act="openLot" data-id="${lot.id}">‹ Back to ${esc(lot.name)}</button>` : `<button class="btn sm ghost" data-act="${fromCal ? 'sheetBack' : 'openCalendar'}" data-d="${date}">‹ पात्रो · ${BS_MONTHS_NE[bb.m - 1]} ${neNum(bb.y)}</button>`}
     <h2>${fmtDate(date, true)}${lot ? ' · ' + esc(lot.name) : ''}</h2>
     <div class="small muted" style="margin:-6px 0 10px">${BS_MONTHS_NE[bb.m - 1]} ${neNum(bb.d)}, ${neNum(bb.y)} · ${wd} · AD ${date}</div>
     ${fromCal ? dayPanchangHtml(date) : ''}
@@ -715,7 +718,8 @@ function openDay(date, lotId, fromCal) {
     <div style="height:10px"></div>
     <div class="btnrow"><button class="btn ghost" data-act="${fromCal ? 'calDay' : 'dayShift'}" data-d="${addDays(date, -1)}" data-id="${lotId || ''}">‹ ${esc(fmtDate(addDays(date, -1)))}</button>
       ${date < today() || fromCal ? `<button class="btn ghost" data-act="${fromCal ? 'calDay' : 'dayShift'}" data-d="${addDays(date, 1)}" data-id="${lotId || ''}">${esc(fmtDate(addDays(date, 1)))} ›</button>` : ''}</div>
-    <div style="height:10px"></div><button class="btn big primary" data-act="closeSheet">Close</button>`);
+    <div style="height:10px"></div>${fromCal ? '<button class="btn big primary" data-act="sheetBack">‹ Back to पात्रो</button>' : '<button class="btn big primary" data-act="closeSheet">Close</button>'}`);
+  if (fromCal) sheetBackFn = () => { openCalendar(date); const sh = $('#sheet'); if (sh && calScroll && calYM.join('-') === calScrollYM) sh.scrollTop = calScroll; };
 }
 
 function openLotForm(lot) {
@@ -1349,7 +1353,8 @@ document.addEventListener('click', e => {
     case 'go': closeSheet(); go(b.dataset.view); break;
     case 'mic': if (listening) cancelListening(); else listen(); break;
     case 'cancelVoice': cancelListening(); break;
-    case 'closeSheet': closeSheet(); break;
+    case 'closeSheet': if (pendingAsk || !b.classList.contains('sheetbg') || !sheetBack()) closeSheet(); break;
+    case 'sheetBack': if (!sheetBack()) closeSheet(); break;
     case 'askBtn': if (pendingAsk) resolveAsk(pendingAsk.buttons[+b.dataset.i].value); break;
     case 'askInputOk': {
       const raw = $('#askInput').value.trim();
@@ -1534,7 +1539,7 @@ $('#sheet').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target
 // ---------- Android lifecycle ----------
 window.onBack = function () {
   if (listening) { cancelListening(); return true; }
-  if (sheetOpen()) { closeSheet(); return true; }
+  if (sheetOpen()) { if (pendingAsk || !sheetBack()) closeSheet(); return true; }
   if (view !== SECTIONS[section].home) { go(SECTIONS[section].home); return true; }
   return false;
 };

@@ -11,7 +11,7 @@ const WEEK_NE = ['आइत', 'सोम', 'मङ्गल', 'बुध', 'ब�
 const AD_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const POULTRY_KINDS = ['sale', 'grainsale', 'purchase', 'event'];
 const weekday = ad => new Date(ad + 'T12:00:00').getDay();
-let calYM = null;
+let calYM = null, calScroll = 0, calScrollYM = '';
 function calTile(big) { const b = adToBs(today()); return `<span class="caltile${big ? ' big' : ''}"><i>${BS_MONTHS_NE[b.m - 1]}</i><b>${neNum(b.d)}</b></span>`; }
 
 // money spent on Kheti by one record (wages, machine + fuel, seed / fertilizer)
@@ -136,7 +136,7 @@ function calendarClick(act, b) {
   switch (act) {
     case 'openCalendar': openCalendar(b.dataset.d); return true;
     case 'calNav': calYM = [Number(b.dataset.y), Number(b.dataset.m)]; renderCalendar(); return true;
-    case 'calDay': openDay(b.dataset.d, null, true); return true;
+    case 'calDay': if ($('#sheet .cal-grid') && !$('#sheet .panday')) { calScroll = $('#sheet').scrollTop; calScrollYM = calYM.join('-'); } openDay(b.dataset.d, null, true); return true;
     case 'calAddNote': addCalNote(b.dataset.d); return true;
     case 'calDelNote': deleteRec(b.dataset.id, () => openDay(b.dataset.d, null, true)); return true;
     case 'bsCalToggle': bsCalToggle(b.dataset.key); return true;
