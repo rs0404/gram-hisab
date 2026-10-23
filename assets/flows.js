@@ -527,6 +527,7 @@ function flowNewLot(p, v) {
   const date = p.date || today();
   const seq = nextLotSeq(date);
   if (p.free && p.mix.length) p.mix[0].free = p.free;
+  if (p.chickRate) p.mix.forEach(m => { m.rate = p.chickRate; });   // Rs per chick on each type
   const lot = { kind: 'lot', name: lotAutoName(date, seq, p.chicks), seq, breed: p.breed, mix: p.mix, startDate: date, chicks: p.chicks, ...(p.free ? { free: p.free } : {}),
     chickCost: p.cost != null ? p.cost : (p.chickRate ? round(p.chickRate * p.chicks) : null), closed: false, note: '' };
   ask({

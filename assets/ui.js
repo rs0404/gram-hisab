@@ -554,7 +554,8 @@ function renderEventForm() {
     ${BIRD_TYPES.includes(e.type) && lotById(e.lotId) && (e.type === 'restock' || lotBreeds(lotById(e.lotId)).length > 1) ? `<div class="field"><label>Chicken type</label><div class="chips">${(e.type === 'restock' ? breeds().map(x => x.id) : lotBreeds(lotById(e.lotId))).map(bb => `<button class="chip ${recBreed(e, lotById(e.lotId)) === bb ? 'on' : ''}" data-act="evBreed" data-v="${bb}">${esc(breedName(bb))}</button>`).join('')}</div></div>` : ''}
     ${t.grade ? `<div class="field"><label>Feed grain size</label><div class="chips">${FEED_GRADES.concat(['']).map(g => `<button class="chip ${(e.grade || '') === g ? 'on' : ''}" data-act="evGrade" data-v="${g}">${g || 'Other'}</button>`).join('')}</div></div>` : ''}
     ${t.count ? `<div class="field"><label>${e.type === 'restock' ? 'How many chicks added?' : e.type === 'dead' ? 'How many dead?' : e.type === 'cut' ? 'How many birds cut?' : e.type === 'adjust' ? 'Change (+/-)' : 'Birds'}</label><input data-ef="count" type="number" inputmode="numeric" value="${esc(e.count != null ? e.count : '')}" placeholder="0"></div>` : ''}
-    ${e.type === 'restock' ? `<div class="field"><label>🎁 Free chicks <span class="muted">(bonus, e.g. 1 per 50)</span></label><input data-ef="free" type="number" inputmode="numeric" value="${esc(e.free || '')}" placeholder="0"></div>` : ''}
+    ${e.type === 'restock' ? `<div class="grid2"><div class="field"><label>🎁 Free chicks</label><input data-ef="free" type="number" inputmode="numeric" value="${esc(e.free || '')}" placeholder="0"></div>
+      <div class="field"><label>Rs per chick</label><input data-ef="rate" type="number" inputmode="decimal" step="any" value="${esc(e.rate || '')}" placeholder="Rs"></div></div>` : ''}
     ${t.item ? `<div class="field"><label>${t.label} name</label><input data-ef="item" list="itemList" value="${esc(e.item || '')}" placeholder="e.g. Amprolium" autocomplete="off">
       <datalist id="itemList">${knownItems(e.type).map(x => `<option value="${esc(x)}">`).join('')}</datalist></div>` : ''}
     ${t.qty ? `<div class="grid2"><div class="field"><label>${e.type === 'weight' ? 'Avg weight' : e.type === 'cut' ? 'Meat weight' : 'Quantity used'}</label><input data-ef="qty" type="number" inputmode="decimal" step="any" value="${esc(e.qty != null ? e.qty : '')}" placeholder="0"></div>
@@ -582,7 +583,7 @@ function saveEventForm() {
   if (PURCHASE_CATS[e.type] && t.qty) rec.unit = e.unit || PURCHASE_CATS[e.type].units[0];
   if ((e.type === 'dead' || e.type === 'cut') && !rec.count) { toast('Enter how many birds'); return; }
   if (e.id) { rec.id = e.id; rec.createdAt = e.createdAt; }
-  if (rec.type === 'restock') { const f = Math.round(num(e.free) || 0); if (f) rec.free = f; if (!rec.count && !rec.free) { toast('Enter how many chicks'); return; } addRestock(rec); } else put(rec);
+  if (rec.type === 'restock') { const f = Math.round(num(e.free) || 0), rt = num(e.rate); if (f) rec.free = f; if (rt) { rec.rate = rt; if (rec.amount == null && rec.count) rec.amount = round(rec.count * rt, 2); } if (!rec.count && !rec.free) { toast('Enter how many chicks'); return; } addRestock(rec); } else put(rec);
   closeSheet(); render();
   const lot = lotById(rec.lotId);
   toast(`Saved ✓ ${lot.name}: ${eventTitle(rec)}${['dead', 'cut'].includes(rec.type) ? '. ' + lowNote(lot).text : ''}`, e.id ? null : rec.id);
@@ -732,16 +733,20 @@ function openLotForm(lot) {
   const d = lotDraft;
   openSheet(`<h2>${d.id ? 'Edit lot' : 'New lot'}</h2><div id="lotForm">
     <div class="field"><label>Chicks by type <span class="muted">(fill one or more)</span></label>
-      <div class="summary" style="padding:10px">${breeds().map(b => { const m = (d.mix || []).find(x => x.breed === b.id); return `<div class="row" style="gap:8px;margin-bottom:8px">
-        <b style="flex:1;min-width:0">🐔 ${esc(b.name)}</b><input data-mix="${b.id}" type="number" inputmode="numeric" value="${m && m.chicks ? m.chicks : ''}" placeholder="paid" style="width:88px;border:2px solid var(--line);border-radius:12px;padding:10px;font-size:20px;font-weight:800">
-        <span style="font-weight:900">+🎁</span><input data-mixfree="${b.id}" type="number" inputmode="numeric" value="${m && m.free ? m.free : ''}" placeholder="free" style="width:64px;border:2px solid var(--line);border-radius:12px;padding:10px 6px;font-size:18px;font-weight:800"></div>`; }).join('')}
+      <div class="summary" style="padding:10px">
+        <div class="lotgrid small muted" style="font-weight:800;margin-bottom:2px"><span>Paid chicks</span><span>🎁 Free</span><span>Rs / chick</span></div>
+        ${breeds().map(b => { const m = (d.mix || []).find(x => x.breed === b.id); return `<div style="margin-bottom:8px"><b>🐔 ${esc(b.name)}</b>
+        <div class="lotgrid"><input data-mix="${b.id}" type="number" inputmode="numeric" value="${m && m.chicks ? m.chicks : ''}" placeholder="0" class="lotin">
+        <input data-mixfree="${b.id}" type="number" inputmode="numeric" value="${m && m.free ? m.free : ''}" placeholder="0" class="lotin">
+        <input data-mixrate="${b.id}" type="number" inputmode="decimal" step="any" value="${m && m.rate ? m.rate : ''}" placeholder="Rs" class="lotin"></div></div>`; }).join('')}
         <div class="row between" style="gap:6px;flex-wrap:wrap"><span class="row" style="gap:6px"><button class="btn sm ghost" data-act="addBreed">+ New type</button><button class="btn sm ghost" data-act="lotFreePer50">🎁 1 free per 50</button></span>
           <b>Total: <span id="mixTotal">${lotTotalTxt(d)}</span></b></div>
         <div class="hint">🎁 Free (bonus) chicks count as birds but not in the cost or the lot name.</div></div></div>
     <div class="field"><label>Chicks arrived on (नेपाली)</label>${bsDateHtml('lot', d.startDate)}</div>
     <div class="field"><label>Lot name <span class="muted">(automatic)</span></label><input data-lf="name" value="${esc(d.name)}" autocomplete="off">
       <div class="hint">Month+year _ day _ lot no. in that month _ chicks, e.g. Ashar83_10_1_100</div></div>
-    <div class="field"><label>Chick cost total Rs <span class="muted">(optional)</span></label><input data-lf="chickCost" ${calcAttrs()} value="${esc(d.chickCost == null ? '' : d.chickCost)}" placeholder="—"></div>
+    <div class="field"><label>Chick cost total Rs <span class="muted">(auto = paid × rate, or type it)</span></label><input data-lf="chickCost" ${calcAttrs()} value="${esc(d.chickCost == null || (lotAutoCost(d) && round(num(d.chickCost)) === round(lotAutoCost(d))) ? '' : d.chickCost)}" placeholder="${lotAutoCost(d) ? round(lotAutoCost(d)) : '—'}" id="lotCostIn"></div>
+    <div class="hint" id="lotCostHint" style="margin-top:-8px;margin-bottom:12px">${esc(lotCostHint(d))}</div>
     <div class="field"><label>Note <span class="muted">(optional)</span></label><textarea data-lf="note">${esc(d.note || '')}</textarea></div>
     <button class="btn big green" data-act="saveLot">✔ ${d.id ? 'Update lot' : 'Add lot'}</button>
     ${d.id ? `<div style="height:10px"></div><button class="btn big redl" data-act="deleteLot" data-id="${d.id}">🗄 Archive (delete) lot</button>${historyHtml(d.id)}` : ''}
@@ -760,7 +765,8 @@ function saveLotForm() {
   if (!d.name) { toast('Enter a lot name'); return; }
   const dup = lotByName(d.name);
   if (dup && dup.id !== d.id) { toast(`Lot ${d.name} already exists`); return; }
-  const rec = Object.assign({}, d, { chicks: Math.round(chicks), free: Math.round(num(d.free) || 0), chickCost: num(d.chickCost), note: (d.note || '').trim() });
+  const auto = lotAutoCost(d), typed = num(d.chickCost);
+  const rec = Object.assign({}, d, { chicks: Math.round(chicks), free: Math.round(num(d.free) || 0), chickCost: typed != null ? typed : (auto ? round(auto, 2) : null), note: (d.note || '').trim() });
   if (!rec.free) delete rec.free;
   delete rec.nameManual;
   put(rec);
@@ -1116,13 +1122,24 @@ function readLotMix() {
   $$('#lotForm [data-mix]').forEach(el => {
     const n = Math.round(num(el.value) || 0), fe = $(`#lotForm [data-mixfree="${el.dataset.mix}"]`), f = Math.round(num(fe && fe.value) || 0);
     const old = (lotDraft.mix || []).find(x => x.breed === el.dataset.mix);
-    if (n > 0 || f > 0 || (old && old.added)) mix.push(Object.assign({ breed: el.dataset.mix, chicks: n }, f ? { free: f } : {}, old && old.added ? { added: true } : {}));
+    const re = $(`#lotForm [data-mixrate="${el.dataset.mix}"]`), rt = num(re && re.value);
+    if (n > 0 || f > 0 || (old && old.added)) mix.push(Object.assign({ breed: el.dataset.mix, chicks: n }, f ? { free: f } : {}, rt ? { rate: rt } : {}, old && old.added ? { added: true } : {}));
   });
   lotDraft.mix = mix;
   lotDraft.chicks = mix.reduce((a, m) => a + m.chicks, 0);          // paid chicks (lot name uses this)
   lotDraft.free = mix.reduce((a, m) => a + (m.free || 0), 0);
   lotDraft.breed = mix.length ? mix[0].breed : lotDraft.breed;
   const t = $('#mixTotal'); if (t) t.textContent = lotTotalTxt(lotDraft);
+  const ci = $('#lotCostIn'), ch = $('#lotCostHint'), ac = lotAutoCost(lotDraft);
+  if (ci) ci.placeholder = ac ? round(ac) : '—';
+  if (ch) ch.textContent = lotCostHint(lotDraft);
+}
+// chick cost from the rates: paid chicks × Rs per chick, added up over the types (free chicks cost nothing)
+function lotAutoCost(d) { return (d.mix || []).reduce((a, m) => a + (Number(m.chicks) || 0) * (Number(m.rate) || 0), 0); }
+function lotCostHint(d) {
+  const parts = (d.mix || []).filter(m => m.rate && m.chicks).map(m => `${m.chicks} × ${money(m.rate)}`);
+  const typed = num(($('#lotForm [data-lf=chickCost]') || {}).value != null ? $('#lotForm [data-lf=chickCost]').value : '');
+  return parts.length ? `${parts.join(' + ')} = ${money(lotAutoCost(d))}${typed != null && round(typed) !== round(lotAutoCost(d)) ? ' · you typed ' + money(typed) : ''}` : 'Type Rs per chick (@) to work out the cost, or type the total here.';
 }
 function lotTotalTxt(d) { const p = num(d.chicks) || 0, f = num(d.free) || 0; return f ? `${p} + 🎁${f} = ${p + f} chicks` : `${p} chicks`; }
 function updateLotAutoName(silent) {
@@ -1528,7 +1545,8 @@ document.addEventListener('input', e => {
     if (el.dataset.lf === 'name') lotDraft.nameManual = true;
     if (el.dataset.lf === 'chicks') updateLotAutoName();
   }
-  if ((el.dataset.mix || el.dataset.mixfree) && lotDraft) { readLotMix(); updateLotAutoName(); }
+  if ((el.dataset.mix || el.dataset.mixfree || el.dataset.mixrate) && lotDraft) { readLotMix(); updateLotAutoName(); }
+  if (el.dataset.lf === 'chickCost' && lotDraft) { const ch = $('#lotCostHint'); if (ch) ch.textContent = lotCostHint(lotDraft); }
 });
 document.addEventListener('change', e => {
   const el = e.target;

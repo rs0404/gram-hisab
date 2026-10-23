@@ -319,3 +319,5 @@ body.sec-mill .navbtn.on{color:#6D28D9}
 u.dm{background:#7C3AED}
 .millboxes{grid-template-columns:1.2fr 1fr}
 .millboxes label span{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.lotin{min-width:0;width:100%;border:2px solid var(--line);border-radius:12px;padding:10px 6px;font-size:18px;font-weight:800;text-align:center}
+.lotgrid{display:grid;grid-template-columns:1.3fr .9fr 1fr;gap:6px;margin-top:4px}
