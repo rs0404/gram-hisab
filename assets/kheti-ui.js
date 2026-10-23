@@ -589,9 +589,10 @@ function renderKReports() {
 const SECTIONS = {
   kheti: { label: '🌾 खेती', home: 'kheti', nav: [['kheti', '🌾', 'Kheti'], ['kwork', '📝', 'Work'], null, ['workers', '👷', 'Workers'], ['kreports', '📊', 'Report']] },
   poultry: { label: '🐔 कुखुरा', home: 'home', nav: [['home', '🏠', 'Home'], ['sell', '💰', 'Sell'], null, ['buy', '🛒', 'Buy'], ['reports', '📊', 'Reports']] },
-  shop: { label: '🏪 पसल', home: 'shop', nav: [['shop', '🏪', 'Shop'], null, ['settings', '⚙️', 'Settings']] }
+  shop: { label: '🏪 पसल', home: 'shop', nav: [['shop', '🏪', 'Shop'], null, ['settings', '⚙️', 'Settings']] },
+  mill: { label: '⚙️ मिल', home: 'mill', nav: [['mill', '⚙️', 'Mill'], null, ['millreport', '📊', 'Report']] }
 };
-const VIEW_SECTION = { kheti: 'kheti', kwork: 'kheti', kmachines: 'kheti', workers: 'kheti', kreports: 'kheti', home: 'poultry', sell: 'poultry', buy: 'poultry', reports: 'poultry', shop: 'shop' };
+const VIEW_SECTION = { mill: 'mill', millreport: 'mill', kheti: 'kheti', kwork: 'kheti', kmachines: 'kheti', workers: 'kheti', kreports: 'kheti', home: 'poultry', sell: 'poultry', buy: 'poultry', reports: 'poultry', shop: 'shop' };
 let section = null;
 function openSectionPref() { const s = db.meta.openSection; return SECTIONS[s] ? s : 'kheti'; }
 function setSection(s) {

@@ -56,6 +56,11 @@ function handleInput(alts, origin) {
   // On the Shop page, amounts without farm words are shop entries ("cash 5000 qr 3000", "नगद ५०००")
   if (typeof view !== 'undefined' && view === 'shop')
     alts = alts.map(a => /\b(kg|kilo|lot|dead|died|feed|dana|chicken|kukhura|masu|live|sold|bought)\b|केजी|किलो|कुखुरा|मासु|मरे|दाना|बेच/i.test(a) ? a : 'shop ' + a);
+  // mill: "dhan 5 pathi kutani", "makai 3 pathi pisani qr"
+  if (typeof parseMill === 'function') {
+    const inMill = typeof section !== 'undefined' && section === 'mill';
+    for (const a of alts) { const mp = parseMill(a); if (mp && (inMill || /kutani|pisani|कुटानी|पिसानी/i.test(a))) { flowMill(mp, voiceMode); return; } }
+  }
   // "patro", "calendar", "पात्रो" → the Nepali calendar
   if (alts.some(a => /^\s*(?:(?:aaja|aja|today|आज)\s*(?:ko)?\s*)?(?:patro|patra|calendar|calender|पात्रो|पत्रो|miti|मिति)(?:\s+(?:kholnu(?:s|hos)?|khola|open|show|dekhau))?\s*$/i.test(a))) { openCalendar(); if (voiceMode) { const b = adToBs(today()); speak(`Today is ${BS_MONTHS[b.m - 1]} ${b.d}, ${b.y}.`); } return; }
   // Kheti words (or the Kheti section): try the Kheti parser first
@@ -796,8 +801,13 @@ function helpHtml(short) {
     ['Another day', 'yesterday cash 4000', 'हिजो नगद ४०००'],
     ['Ask', 'shop today', 'पसल आज कति']
   ];
-  const all = [['🌾 Kheti', krows], ['🐔 Chicken', prows], ['🏪 Shop', srows]];
-  const sec = typeof section !== 'undefined' ? ({ kheti: 0, poultry: 1, shop: 2 })[section] || 0 : 1;
+  const mrows = [
+    ['⚙️ Mill', 'dhan 5 pathi kutani', 'makai 3 pathi pisani', 'गहुँ २ पाथी पिसानी', 'kodo 8 mana pisani qr'],
+    ['Own grain (free)', 'aafno dhan 10 pathi kutani'],
+    ['Other amount', 'makai 4 pathi pisani 250']
+  ];
+  const all = [['🌾 Kheti', krows], ['🐔 Chicken', prows], ['🏪 Shop', srows], ['⚙️ Mill', mrows]];
+  const sec = typeof section !== 'undefined' ? ({ kheti: 0, poultry: 1, shop: 2, mill: 3 })[section] || 0 : 1;
   const rows = all[sec][1];
   const others = all.filter((x, i) => i !== sec);
   const list = rs => `<ul class="help">${rs.map(r => `<li><b>${r[0]}:</b> ${r.slice(1).map(x => `<code>${esc(x)}</code>`).join(' ')}</li>`).join('')}</ul>`;

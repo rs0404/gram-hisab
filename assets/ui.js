@@ -54,7 +54,7 @@ function render() {
   renderView(view);
 }
 function renderView(v) {
-  ({ kheti: renderKheti, kwork: renderKWork, kmachines: renderKMachines, workers: renderWorkers, kreports: renderKReports, home: renderHome, sell: renderSell, buy: renderBuy, shop: renderShop, reports: renderReports, settings: renderSettings })[v]();
+  ({ mill: renderMill, millreport: renderMillReport, kheti: renderKheti, kwork: renderKWork, kmachines: renderKMachines, workers: renderWorkers, kreports: renderKReports, home: renderHome, sell: renderSell, buy: renderBuy, shop: renderShop, reports: renderReports, settings: renderSettings })[v]();
 }
 function renderHeader() {
   const t = today(), b = adToBs(t), d = new Date();
@@ -699,7 +699,7 @@ function openDay(date, lotId, fromCal) {
     <h2>${fmtDate(date, true)}${lot ? ' · ' + esc(lot.name) : ''}</h2>
     <div class="small muted" style="margin:-6px 0 10px">${BS_MONTHS_NE[bb.m - 1]} ${neNum(bb.d)}, ${neNum(bb.y)} · ${wd} · AD ${date}</div>
     ${fromCal ? dayPanchangHtml(date) : ''}
-    ${fromCal && !kh.line && !sales.length && !buys.length && !proc.length && !shop.length ? '<p class="muted">Nothing recorded on this day.</p>' : ''}
+    ${fromCal && !kh.line && !sales.length && !buys.length && !proc.length && !shop.length && !all('mill').some(r => r.date === date) ? '<p class="muted">Nothing recorded on this day.</p>' : ''}
     <div class="summary" ${fromCal && !kh.line && !sales.length && !buys.length && !shop.length ? 'style="display:none"' : ''}>
       ${kh.line}
       ${sales.length || !fromCal ? `<div class="line"><span><b>Sales</b> (${sales.length})</span><b style="font-size:22px;color:var(--green)">${money(sum(sales, 'amount'))}</b></div>` : ''}
@@ -712,6 +712,7 @@ function openDay(date, lotId, fromCal) {
       ${shop.length ? `<div class="line"><span>🏪 Shop collected</span><b>${money(sh.total)} <span class="small muted">(goods ${money(sh.goods)})</span></b></div>` : ''}
     </div>
     ${kh.list}
+    ${fromCal && all('mill').some(r => r.date === date) ? `<h3>⚙️ Mill · ${money(millRange(date, date).total)}</h3>${all('mill').filter(r => r.date === date).map(millItemHtml).join('')}` : ''}
     ${sales.length ? `<h3>💰 Sales</h3>${sales.sort((a, b) => a.createdAt - b.createdAt).map(itemHtml).join('')}` : lotId ? '<p class="muted">No sales this day.</p>' : ''}
     ${buys.length ? `<h3>🛒 Purchases</h3>${buys.map(itemHtml).join('')}` : ''}
     ${proc.length ? `<h3>📝 Process</h3>${proc.map(itemHtml).join('')}` : ''}
@@ -803,6 +804,8 @@ function renderRecords() {
 function editRec(id) {
   const r = db.records[id];
   if (!r) return;
+  if (r.kind === 'mill') { millClick('millEdit', { dataset: { id: r.id } }); return; }
+  if (r.kind === 'millcost') { openMillBill(Object.assign({}, r)); return; }
   if (KHETI_KINDS.includes(r.kind)) { khetiEditRec(r); return; }
   if (r.kind === 'sale') goSell(r);
   else if (r.kind === 'grainsale') { sellDraft = Object.assign({}, r, { type: 'grain', amountManual: true }); closeSheet(); go('sell'); }
@@ -814,11 +817,12 @@ function deleteRec(id, after) {
   if (!r) return;
   const blocked = KHETI_KINDS.includes(r.kind) ? khetiDeleteBlock(r) : '';
   if (blocked) { info("Can't delete yet", `<p>${esc(blocked)}</p>`, '', false); return; }
-  ask({ title: 'Delete this entry?', sub: r.kind === 'calnote' ? r.text : KHETI_KINDS.includes(r.kind) ? khetiRecSummary(r) : r.kind === 'sale' ? `${kgs(r.kg)} ${r.type} · ${money(r.amount)} · ${fmtDate(r.date)}` : r.kind === 'purchase' ? `Bought ${purchaseTitle(r)} · ${money(r.amount)}` : r.kind === 'grainsale' ? `Sold grain ${r.grade} · ${money(r.amount)}` : `${lotName(r.lotId)}: ${eventTitle(r)}`,
+  ask({ title: 'Delete this entry?', sub: r.kind === 'mill' || r.kind === 'millcost' ? recSummary(r) : r.kind === 'calnote' ? r.text : KHETI_KINDS.includes(r.kind) ? khetiRecSummary(r) : r.kind === 'sale' ? `${kgs(r.kg)} ${r.type} · ${money(r.amount)} · ${fmtDate(r.date)}` : r.kind === 'purchase' ? `Bought ${purchaseTitle(r)} · ${money(r.amount)}` : r.kind === 'grainsale' ? `Sold grain ${r.grade} · ${money(r.amount)}` : `${lotName(r.lotId)}: ${eventTitle(r)}`,
     buttons: [{ label: '🗑 Delete', value: 'yes', cls: 'red' }, { label: 'Keep', value: 'no' }],
     onAnswer: a => {
       if (a !== 'yes') return;
       removeRec(id);
+      if (typeof millDraft !== 'undefined' && millDraft && millDraft.id === id) millDraft = null;
       if (sellDraft && sellDraft.id === id) { sellDraft = newSellDraft(sellDraft); if (view === 'sell') go('records'); }
       if (buyDraft && buyDraft.id === id) { buyDraft = null; if (view === 'buy') go('records'); }
       render(); toast('Deleted', id, true);
@@ -856,7 +860,7 @@ function openArchive() {
 
 // ---------- SETTINGS ----------
 let settingsTab = 'kheti';
-const SETTINGS_TABS = [['kheti', '🌾 Kheti'], ['poultry', '🐔 Chicken'], ['shop', '🏪 Shop'], ['other', '⚙️ Others']];
+const SETTINGS_TABS = [['kheti', '🌾 Kheti'], ['poultry', '🐔 Chicken'], ['shop', '🏪 Shop'], ['mill', '⚙️ Mill'], ['other', '⚙️ Others']];
 function renderSettings() {
   const m = db.meta, pend = Object.keys(m.pending).length;
   const counts = { sale: all('sale').length, event: all('event').length, lot: all('lot').length };
@@ -899,6 +903,10 @@ function renderSettings() {
       <div style="height:8px"></div>
       <div class="btnrow"><button class="btn" data-act="shareShop">💬 Share shop report</button><button class="btn ghost" data-act="section" data-v="shop">🏪 Open shop</button></div>
     </div>`,
+    mill: () => `<h2>⚙️ Mill rates <span class="small muted">per पाथी</span></h2>
+    <div class="card"><div class="summary">${millItems().map(x => `<div class="line"><span>${esc(x.ne)} <span class="small muted">${esc(x.en)}</span></span><b>${x.rate ? money(x.rate) : '—'}</b></div>`).join('')}</div>
+      <div class="btnrow" style="margin-top:8px"><button class="btn primary" data-act="millRates">✎ Change rates</button><button class="btn ghost" data-act="exportCsv" data-v="mill">📄 Mill (CSV)</button></div>
+      <p class="small muted">The mill's servicing is kept in 🚜 My machines (type “Mill”); electricity bills in ⚙️ Mill → ⚡ Bill.</p></div>`,
     other: () => `<h2>Open the app in</h2>
     <div class="card"><div class="chips">${Object.keys(SECTIONS).map(k => `<button class="chip ${openSectionPref() === k ? 'on' : ''}" data-act="setOpenSection" data-v="${k}">${SECTIONS[k].label}</button>`).join('')}</div>
       <div class="hint">Only for this phone. Each phone can open in its own section.</div></div>
@@ -984,6 +992,7 @@ const csv = rows => '﻿' + rows.map(r => r.map(csvCell).join(',')).join('\r\n')
 function exportCsv(which) {
   let rows, name;
   if (which === 'kheti' || which === 'khetiwork') ({ rows, name } = khetiCsv(which));
+  else if (which === 'mill') ({ rows, name } = millCsv());
   else if (which === 'sales') {
     rows = [['Date (BS)', 'Date (AD)', 'Lot', 'Chicken type', 'Sale type', 'Kg', 'Birds', 'Rate', 'Amount', 'Invoice', 'Flag', 'Note', 'Phone']];
     all('sale').sort((a, b) => a.date.localeCompare(b.date)).forEach(r => rows.push([bsIso(r.date), r.date, lotName(r.lotId), breedName(r.breed || lotBreed(lotById(r.lotId))), r.type, r.kg, r.birds || '', r.rate, r.amount, r.invoice || '', r.flag ? 'FLAG' : '', r.note || '', r.device || '']));
@@ -1070,6 +1079,8 @@ function setBsDraftDate(key, ad) {
   else if (key === 'ev' && eventDraft) eventDraft.date = ad;
   else if (key === 'lot' && lotDraft) { lotDraft.startDate = ad; updateLotAutoName(); }
   else if (key === 'buy' && buyDraft) buyDraft.date = ad;
+  else if (key === 'mill' && millDraft) { $$('#millForm [data-ml]').forEach(el => { millDraft[el.dataset.ml] = el.value; }); millDraft.date = ad; renderMill(); }
+  else if (key === 'millbill') millBillDate = ad;
   else if (key === 'ksvc' && svcDraft) { readServiceForm(); const nd = svcDraft.nextDate && svcDraft.date ? daysBetween(svcDraft.date, svcDraft.nextDate) : 0; svcDraft.date = ad; if (nd) svcDraft.nextDate = addDays(ad, nd); }
   else if (/^k/.test(key)) khetiDate(key, ad);
   else if (key === 'shop' && shopDraft) { $$('#shopForm [data-s]').forEach(el => { shopDraft[el.dataset.s] = el.value; }); shopDraft.date = ad; renderShop(); }
@@ -1360,7 +1371,7 @@ document.addEventListener('click', e => {
   if (!b) return;
   const act = b.dataset.act, id = b.dataset.id, v = b.dataset.v;
   if (b.tagName === 'A') e.preventDefault();
-  if (khetiClick(act, b) || calendarClick(act, b) || machinesClick(act, b)) return;
+  if (khetiClick(act, b) || calendarClick(act, b) || machinesClick(act, b) || millClick(act, b)) return;
   switch (act) {
     case 'go': closeSheet(); go(b.dataset.view); break;
     case 'mic': if (listening) cancelListening(); else listen(); break;

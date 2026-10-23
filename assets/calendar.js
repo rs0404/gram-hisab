@@ -32,6 +32,7 @@ function monthMarks(y, m) {
     if (typeof KHETI_KINDS !== 'undefined' && KHETI_KINDS.includes(r.kind)) { k.kheti = 1; tot.kheti += khetiCostOf(r); }
     else if (POULTRY_KINDS.includes(r.kind)) { k.poultry = 1; if (r.kind === 'sale' || r.kind === 'grainsale') tot.sales += Number(r.amount) || 0; if (r.kind === 'purchase') tot.bought += Number(r.amount) || 0; }
     else if (r.kind === 'shop') { k.shop = 1; tot.shop += (Number(r.cash) || 0) + (Number(r.qr) || 0); }
+    else if (r.kind === 'mill') { k.mill = 1; tot.mill = (tot.mill || 0) + (r.own ? 0 : Number(r.amount) || 0); }
   }
   return { marks, tot };
 }
@@ -51,7 +52,7 @@ function calGridHtml(y, m, o) {
     const p = o.marks ? panchang(ad) : null, notes = o.marks ? calNotes(ad) : [];
     const hol = p && (p.holiday || notes.some(x => x.holiday)), fest = p && (p.fests.length || notes.length);
     const cls = ['cal-d', o.marks ? 'pan' : '', ad === t ? 'today' : '', ad === o.selected ? 'sel' : '', wd === 6 ? 'sat' : '', hol ? 'hol' : '', o.maxDate && ad > o.maxDate ? 'off' : ''].filter(Boolean).join(' ');
-    cells += `<button class="${cls}" data-act="${o.act}" data-d="${ad}"${o.key ? ` data-key="${o.key}"` : ''}>${fest ? '<s></s>' : ''}<b>${neNum(d)}</b><small>${ad === t ? 'आज' : Number(ad.slice(8))}</small>${p ? `<em>${p.moon || p.short}</em>` : ''}${o.marks ? `<i>${mk.kheti ? '<u class="dk"></u>' : ''}${mk.poultry ? '<u class="dp"></u>' : ''}${mk.shop ? '<u class="ds"></u>' : ''}</i>` : ''}</button>`;
+    cells += `<button class="${cls}" data-act="${o.act}" data-d="${ad}"${o.key ? ` data-key="${o.key}"` : ''}>${fest ? '<s></s>' : ''}<b>${neNum(d)}</b><small>${ad === t ? 'आज' : Number(ad.slice(8))}</small>${p ? `<em>${p.moon || p.short}</em>` : ''}${o.marks ? `<i>${mk.kheti ? '<u class="dk"></u>' : ''}${mk.poultry ? '<u class="dp"></u>' : ''}${mk.shop ? '<u class="ds"></u>' : ''}${mk.mill ? '<u class="dm"></u>' : ''}</i>` : ''}</button>`;
   }
   return `<div class="cal-grid">${WEEK_NE.map((w, i) => `<span class="cal-h${i === 6 ? ' sat' : ''}">${w}</span>`).join('')}${cells}</div>`;
 }
@@ -70,14 +71,15 @@ function renderCalendar() {
       <div style="text-align:center"><div style="font-size:24px;font-weight:900">${BS_MONTHS_NE[m - 1]} ${neNum(y)}</div><div class="small muted">${BS_MONTHS[m - 1]} ${y} · ${adRangeLabel(y, m)}</div></div>
       <button class="btn sm ghost" data-act="calNav" data-y="${ny}" data-m="${nm}">${BS_MONTHS_NE[nm - 1]} ›</button></div>
     ${calGridHtml(y, m, { act: 'calDay', marks })}
-    <div class="cal-legend small muted"><span><u class="dk"></u> Kheti</span><span><u class="dp"></u> Poultry</span><span><u class="ds"></u> Shop</span><span><b style="color:var(--red)">रातो</b> = बिदा</span>${y !== tb.y || m !== tb.m ? `<button class="chip sm" data-act="calNav" data-y="${tb.y}" data-m="${tb.m}">Today</button>` : ''}</div>
+    <div class="cal-legend small muted"><span><u class="dk"></u> Kheti</span><span><u class="dp"></u> Poultry</span><span><u class="ds"></u> Shop</span><span><u class="dm"></u> Mill</span><span><b style="color:var(--red)">रातो</b> = बिदा</span>${y !== tb.y || m !== tb.m ? `<button class="chip sm" data-act="calNav" data-y="${tb.y}" data-m="${tb.m}">Today</button>` : ''}</div>
     ${monthFestHtml(y, m)}
     <div class="summary small">
       ${tot.kheti ? `<div class="line"><span>🌾 Kheti spent</span><b style="color:var(--red)">${money(tot.kheti)}</b></div>` : ''}
       ${tot.sales ? `<div class="line"><span>🐔 Poultry sales</span><b style="color:var(--green)">${money(tot.sales)}</b></div>` : ''}
       ${tot.bought ? `<div class="line"><span>🛒 Poultry bought</span><b style="color:var(--red)">${money(tot.bought)}</b></div>` : ''}
       ${tot.shop ? `<div class="line"><span>🏪 Shop collected</span><b style="color:var(--green)">${money(tot.shop)}</b></div>` : ''}
-      ${tot.kheti || tot.sales || tot.bought || tot.shop ? '' : '<div class="line"><span class="muted">Nothing recorded this month</span></div>'}
+      ${tot.mill ? `<div class="line"><span>⚙️ Mill income</span><b style="color:var(--green)">${money(tot.mill)}</b></div>` : ''}
+      ${tot.kheti || tot.sales || tot.bought || tot.shop || tot.mill ? '' : '<div class="line"><span class="muted">Nothing recorded this month</span></div>'}
     </div>
     <p class="small muted">Tap a day for its tithi, festivals, sunrise and everything recorded on it. Tithi and festivals are calculated (sunrise in Kathmandu); the government's official holiday list can differ by a day — add your own note or holiday on any day.</p>
     <h3>🔁 Date converter</h3>

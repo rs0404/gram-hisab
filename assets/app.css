@@ -312,3 +312,10 @@ u.dk{background:#16A34A}u.dp{background:#F59E0B}u.ds{background:#2563EB}
 .svcrow select,.svcrow input{width:100%;min-width:0;border:2px solid var(--line);border-radius:12px;padding:10px 6px;font-size:15px;font-weight:700;background:#fff}
 .svcrow input[data-svi=cost]{font-size:18px}
 .svcrow .btn{padding:8px 10px}
+
+/* mill */
+body.sec-mill #top{background:#5B21B6}
+body.sec-mill .navbtn.on{color:#6D28D9}
+u.dm{background:#7C3AED}
+.millboxes{grid-template-columns:1.2fr 1fr}
+.millboxes label span{display:flex;align-items:center;gap:4px;flex-wrap:wrap}

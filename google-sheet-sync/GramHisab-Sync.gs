@@ -146,6 +146,19 @@ function rebuildReadable_(ss, data) {
   write_(ss, 'Process', ['Date (BS)', 'Date (AD)', 'Lot', 'Type', 'Grain size', 'Item', 'Birds', 'Qty', 'Unit', 'Cost', 'Note', 'Phone'], process);
   write_(ss, 'Lots', ['Lot', 'Chicken type', 'Start (BS)', 'Start (AD)', 'Status', 'Chicks', 'Dead', 'Sold live', 'Cut', 'Left', 'Live kg', 'Meat kg', 'Sales Rs', 'Costs Rs', 'Profit Rs'], lotRows);
   rebuildKheti_(ss, recs);
+  rebuildMill_(ss, recs);
+}
+
+// ---------- ⚙️ Mill tab ----------
+function rebuildMill_(ss, recs) {
+  const itemsRec = recs.filter(r => r.id === 'set:millItems')[0], names = { dhan_kutani: 'धान कुटानी', makai_pisani: 'मकै पिसानी', gahun_pisani: 'गहुँ पिसानी', kodo_pisani: 'कोदो पिसानी' };
+  ((itemsRec && itemsRec.value) || []).forEach(x => { names[x.id] = x.ne; });
+  const rows = recs.filter(r => r.kind === 'mill' || r.kind === 'millcost').map(r => r.kind === 'mill'
+    ? [r.bs || '', r.date, r.own ? 'Own (free)' : 'Customer', names[r.item] || r.item, Number(r.qty) || 0, r.unit || 'pathi', Number(r.pathi) || 0, Number(r.rate) || 0, r.own ? 0 : Number(r.amount) || 0, r.pay || '', r.customer || '', r.note || '', r.by || '']
+    : [r.bs || '', r.date, 'Electricity bill', '', r.units || '', 'kWh', '', '', -(Number(r.amount) || 0), '', '', r.note || '', r.by || '']);
+  if (!rows.length) return;
+  rows.sort((a, b) => String(b[1]).localeCompare(String(a[1])));
+  write_(ss, 'Mill', ['Date (BS)', 'Date (AD)', 'Kind', 'Work', 'Qty', 'Unit', 'Pathi', 'Rate', 'Amount Rs', 'Pay', 'Customer', 'Note', 'Entered by'], rows);
 }
 
 // ---------- 🌾 Kheti tabs ----------

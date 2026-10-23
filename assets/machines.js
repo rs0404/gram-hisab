@@ -12,9 +12,9 @@ const SERVICE_ITEMS = [
   ['coolant', 'Coolant / water', 'कुलेन्ट'], ['mechanic', 'Mechanic charge', 'मिस्त्री ज्याला'], ['other', 'Other', 'अन्य']
 ];
 const serviceItemName = id => { const x = SERVICE_ITEMS.find(s => s[0] === id); return x ? `${x[2]}` : id; };
-const OWN_MACHINE_TYPES = Object.keys(MACHINES).filter(k => !MACHINES[k].hired).concat(['thresherOwn', 'otherMachine']);
-const MACHINE_TYPE_NAME = t => (MACHINES[t] && MACHINES[t].en) || ({ thresherOwn: 'Own thresher', otherMachine: 'Other machine' })[t] || t;
-const MACHINE_TYPE_ICON = t => (MACHINES[t] && MACHINES[t].icon) || (t === 'thresherOwn' ? '🌾' : '🔧');
+const OWN_MACHINE_TYPES = Object.keys(MACHINES).filter(k => !MACHINES[k].hired).concat(['thresherOwn', 'mill', 'otherMachine']);
+const MACHINE_TYPE_NAME = t => (MACHINES[t] && MACHINES[t].en) || ({ thresherOwn: 'Own thresher', mill: 'Mill (मिल)', otherMachine: 'Other machine' })[t] || t;
+const MACHINE_TYPE_ICON = t => (MACHINES[t] && MACHINES[t].icon) || (t === 'thresherOwn' ? '🌾' : t === 'mill' ? '⚙️' : '🔧');
 
 function myMachines() { return all('mymachine').sort((a, b) => (a.active === false) - (b.active === false) || String(a.name).localeCompare(String(b.name))); }
 function myMachineById(id) { const r = db.records[id]; return r && !r.deleted && r.kind === 'mymachine' ? r : null; }

@@ -4,7 +4,7 @@
 
 *ग्राम (gram) is Sanskrit for "village", so the name means "village accounts".*
 
-A voice-first Android app for my home farm: 🌾 **Kheti** (fields, crops, khetala, parma, tractor and harvest), 🐔 **poultry** and 🏪 the **shop**. It records chicken sales (live, cut meat, khutta-tauko), grain and medicine purchases, deaths and feeding lot by lot, plus the shop's daily cash and QR collection. It also shows profit. It runs on several phones, uses the Nepali (BS) calendar, and understands English and Nepali voice.
+A voice-first Android app for my home farm: 🌾 **Kheti** (fields, crops, khetala, parma, tractor and harvest), 🐔 **poultry**, 🏪 the **shop** and ⚙️ the **mill**. It records chicken sales (live, cut meat, khutta-tauko), grain and medicine purchases, deaths and feeding lot by lot, plus the shop's daily cash and QR collection. It also shows profit. It runs on several phones, uses the Nepali (BS) calendar, and understands English and Nepali voice.
 
 > Screenshots use **demo data**.
 
@@ -30,6 +30,11 @@ A voice-first Android app for my home farm: 🌾 **Kheti** (fields, crops, kheta
 <td align="center"><img src="docs/screenshots/26-date-picker.png" width="230"><br><sub>📅 पात्रो date picker in every form</sub></td>
 </tr>
 <tr>
+<td align="center"><img src="docs/screenshots/27-mill.png" width="230"><br><sub>⚙️ Mill: कुटानी / पिसानी per पाथी</sub></td>
+<td align="center"><img src="docs/screenshots/28-mill-report.png" width="230"><br><sub>Mill income, costs, profit</sub></td>
+<td align="center"><img src="docs/screenshots/29-my-machines.png" width="230"><br><sub>🚜 My machines & servicing</sub></td>
+</tr>
+<tr>
 <td align="center"><img src="docs/screenshots/01-home.png" width="230"><br><sub>🐔 Chicken home: today's sales, quick sale</sub></td>
 <td align="center"><img src="docs/screenshots/02-lots.png" width="230"><br><sub>Lot card: birds left, spent, grain in bora</sub></td>
 <td align="center"><img src="docs/screenshots/05-voice-confirm.png" width="230"><br><sub>Voice: "sold 2.5 kg live" → confirm</sub></td>
@@ -53,7 +58,7 @@ A voice-first Android app for my home farm: 🌾 **Kheti** (fields, crops, kheta
 
 ## Features
 
-The top bar switches between **🌾 खेती Kheti · 🐔 कुखुरा Poultry · 🏪 पसल Shop**. Each phone chooses which one the app opens in (Settings; Kheti by default).
+The top bar switches between **🌾 खेती Kheti · 🐔 कुखुरा Poultry · 🏪 पसल Shop · ⚙️ मिल Mill**. Each phone chooses which one the app opens in (Settings; Kheti by default).
 
 **🌾 Kheti (खेती)**
 - **Fields (खेत)** with their own names and areas in **Ropani-Aana-Paisa-Daam** (Pahad) or **Bigha-Kattha-Dhur** (Tarai). Each phone picks its system and sees the other in small text. A built-in converter also shows m² and sq ft.
@@ -79,6 +84,12 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
   - Each field card shows its current crop and investment, and every number opens its entries to edit or delete.
   - Past khetis and the lifetime cost of each field are kept.
 - Reports by season, CSV export, and readable **Fields / Kheti / Kheti work / Workers / Payments / Machines / Inputs / Harvest / Parma** tabs in the Google Sheet.
+
+**⚙️ मिल (Mill)**
+- Its own section in the top bar. **कुटानी** (धान → चामल) and **पिसानी** (मकै, गहुँ, कोदो → पिठो) for customers, each with its **rate per पाथी** (add more kinds in ⚙️ Rates).
+- Entry in one screen: work, quantity in पाथी / माना / मुरी, amount (auto = pathi × rate, or type it), 💵 Cash / 📱 QR, or 🏠 own grain (free), optional customer.
+- ⚡ Electricity bills and 🔧 servicing (the mill is a machine in 🚜 My machines) are its costs. The report shows income, pathi milled per kind, costs and **profit** by month; Yesterday / week / month cards open every day.
+- Voice: "dhan 5 pathi kutani", "makai 3 pathi pisani qr", "गहुँ २ पाथी पिसानी".
 
 **📅 Nepali calendar (पात्रो)**
 - Tap the little calendar page at the top (it always shows today's Nepali date, e.g. कार्तिक ५), or say "patro". The month view shows BS dates in Nepali digits with the English date in small text, Saturdays in red, and today in green marked आज.
@@ -195,6 +206,6 @@ Needs the Android SDK command line tools (build-tools 35, platform 35) and a JDK
 | Path | What |
 |---|---|
 | `src/…/MainActivity.java` | Android shell: WebView, voice (SpeechRecognizer), text-to-speech, files, updater, APK installer |
-| `assets/` | The app: `core.js` (data, stats, sync), `parser.js` (voice → command), `flows.js` (conversations), `ui.js` (screens), `kheti.js` / `kheti-ui.js` / `kheti-voice.js` (🌾 Kheti data, screens, voice), `landunits.js` (Ropani/Bigha), `calendar.js` (Nepali calendar), `panchang.js` (tithi, festivals, holidays), `shop.js`, `updater.js`, `nepcal.js` (BS calendar from [yarsa/nepal-compliance](https://github.com/yarsa/nepal-compliance)) |
+| `assets/` | The app: `core.js` (data, stats, sync), `parser.js` (voice → command), `flows.js` (conversations), `ui.js` (screens), `kheti.js` / `kheti-ui.js` / `kheti-voice.js` (🌾 Kheti data, screens, voice), `landunits.js` (Ropani/Bigha), `calendar.js` (Nepali calendar), `machines.js` (my machines, servicing), `mill.js` (mill), `panchang.js` (tithi, festivals, holidays), `shop.js`, `updater.js`, `nepcal.js` (BS calendar from [yarsa/nepal-compliance](https://github.com/yarsa/nepal-compliance)) |
 | `google-sheet-sync/` | Google Apps Script for multi-phone sync |
 | `docs/screenshots/` | README images (demo data) |
