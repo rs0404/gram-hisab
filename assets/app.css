@@ -306,3 +306,9 @@ u.dk{background:#16A34A}u.dp{background:#F59E0B}u.ds{background:#2563EB}
 .shopmini{text-align:left;margin:0;padding:10px}
 .shopmini .v{font-size:17px;font-weight:900;white-space:nowrap}
 .shopmini .label{font-size:11px}
+
+/* servicing items */
+.svcrow{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1fr) minmax(0,1.3fr) auto;gap:6px;margin-bottom:6px;align-items:center}
+.svcrow select,.svcrow input{width:100%;min-width:0;border:2px solid var(--line);border-radius:12px;padding:10px 6px;font-size:15px;font-weight:700;background:#fff}
+.svcrow input[data-svi=cost]{font-size:18px}
+.svcrow .btn{padding:8px 10px}

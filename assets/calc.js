@@ -41,7 +41,7 @@ function calcBarEl() {
 function calcShow(el) {
   const bar = calcBarEl();
   calcInput = el;
-  (el.closest('.grid2, .hshop') || el).insertAdjacentElement('afterend', bar);   // in rows of small boxes: full width under the row
+  (el.closest('.grid2, .hshop, .svcrow') || el).insertAdjacentElement('afterend', bar);   // in rows of small boxes: full width under the row
   bar.classList.remove('hidden');
   calcUpdate(el);
 }

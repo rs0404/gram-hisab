@@ -54,7 +54,7 @@ function render() {
   renderView(view);
 }
 function renderView(v) {
-  ({ kheti: renderKheti, kwork: renderKWork, workers: renderWorkers, kreports: renderKReports, home: renderHome, sell: renderSell, buy: renderBuy, shop: renderShop, reports: renderReports, settings: renderSettings })[v]();
+  ({ kheti: renderKheti, kwork: renderKWork, kmachines: renderKMachines, workers: renderWorkers, kreports: renderKReports, home: renderHome, sell: renderSell, buy: renderBuy, shop: renderShop, reports: renderReports, settings: renderSettings })[v]();
 }
 function renderHeader() {
   const t = today(), b = adToBs(t), d = new Date();
@@ -1070,6 +1070,7 @@ function setBsDraftDate(key, ad) {
   else if (key === 'ev' && eventDraft) eventDraft.date = ad;
   else if (key === 'lot' && lotDraft) { lotDraft.startDate = ad; updateLotAutoName(); }
   else if (key === 'buy' && buyDraft) buyDraft.date = ad;
+  else if (key === 'ksvc' && svcDraft) { readServiceForm(); const nd = svcDraft.nextDate && svcDraft.date ? daysBetween(svcDraft.date, svcDraft.nextDate) : 0; svcDraft.date = ad; if (nd) svcDraft.nextDate = addDays(ad, nd); }
   else if (/^k/.test(key)) khetiDate(key, ad);
   else if (key === 'shop' && shopDraft) { $$('#shopForm [data-s]').forEach(el => { shopDraft[el.dataset.s] = el.value; }); shopDraft.date = ad; renderShop(); }
 }
@@ -1359,7 +1360,7 @@ document.addEventListener('click', e => {
   if (!b) return;
   const act = b.dataset.act, id = b.dataset.id, v = b.dataset.v;
   if (b.tagName === 'A') e.preventDefault();
-  if (khetiClick(act, b) || calendarClick(act, b)) return;
+  if (khetiClick(act, b) || calendarClick(act, b) || machinesClick(act, b)) return;
   switch (act) {
     case 'go': closeSheet(); go(b.dataset.view); break;
     case 'mic': if (listening) cancelListening(); else listen(); break;

@@ -18,6 +18,8 @@ const K_NE = [
   [/पूरा|पुरा|दिनभरि|दिनभर/g, ' pura '], [/दिन/g, ' din '], [/घर/g, ' ghar '],
   [/तिरें|तिरेँ|तिरे|तिर्यो|तिरेको|दिएँ|दिए|दियो|भुक्तानी/g, ' paid '], [/तिर्ने|तिर्न/g, ' tirne '], [/गएको|गयो|गए|गाको/g, ' gaye '], [/आएको|आयो|आए/g, ' aaye '],
   [/लाई(?=\s|$)/g, ' lai '], [/को(?=\s|$)/g, ' ko '], [/जना/g, ' '], [/हिसाब/g, ' hisab '], [/बाँकी|बाकी|बांकी/g, ' baki '], [/कति/g, ' kati '], [/चुक्ता/g, ' settle '],
+  [/सर्भिसिङ|सर्भिसिंग|सर्भिस|सर्विस/g, ' service '], [/मोबिल/g, ' mobil '], [/गियर/g, ' gear '], [/हाइड्रोलिक/g, ' hydraulic '], [/ग्रिज/g, ' grease '],
+  [/फिल्टर/g, ' filter '], [/पार्टस्|पार्टस|पार्ट्स/g, ' parts '], [/मिस्त्री/g, ' mechanic '], [/टायर/g, ' tyre '], [/ब्याट्री/g, ' battery '],
   [/आज/g, ' today '], [/हिजो/g, ' yesterday '], [/अस्ति/g, ' day before yesterday '], [/रुपैयाँ|रुपैयां|रुपैया|रु\.?/g, ' rs '], [/आफ्नो|आफ्नै/g, ' own '],
   [/धान/g, ' dhaan '], [/गहुँ|गहु/g, ' gahun '], [/मकै/g, ' makai '], [/कोदो/g, ' kodo '], [/मास/g, ' maas '], [/मसुरो/g, ' masuro '], [/आलु/g, ' aalu '], [/तोरी/g, ' tori '],
   [/केराउ/g, ' kerau '], [/भटमास/g, ' bhatmas '], [/खेत|बारी/g, ' khet ']
@@ -39,13 +41,14 @@ const K_ROMAN = [
   [/\b(pura|puraa|full|fullday|dinbhari)\b/g, ' pura '], [/\b(half|halfday)\b/g, ' halfshift '], [/\b(days?|din)\b/g, ' din '],
   [/\b(tirey|tire|tiren|tiryo|tireko|diye|diyen|diyo|paid|pay|payment|bhuktani)\b/g, ' paid '], [/\b(tirne|tirna)\b/g, ' tirne '], [/\b(gaye|gayo|gako|gaeko|went)\b/g, ' gaye '],
   [/\b(laai|lai)\b/g, ' lai '], [/\b(jana|janaa|people|persons?)\b/g, ' '], [/\b(hisaab|hisab|account|statement)\b/g, ' hisab '], [/\b(baaki|banki|baki|due)\b/g, ' baki '], [/\b(chukta|settle(?:d)?)\b/g, ' settle '],
+  [/\b(servicing|service|sarvis|sarbhis)\b/g, ' service '], [/\b(mobil|mobile|engine oil)\b/g, ' mobil '], [/\b(gear oil|gear)\b/g, ' gear '], [/\b(mistri|mechanic)\b/g, ' mechanic '],
   [/\b(aaja|aja|aaj)\b/g, ' today '], [/\bhijo\b/g, ' yesterday '], [/\basti\b/g, ' day before yesterday '], [/\b(aafno|afno|aphno|own)\b/g, ' own '],
   [/\b(rupees?|rupaiya|rupiya|rs|npr)\b/g, ' rs '], [/\b(rice|paddy|dhan|dhaan)\b/g, ' dhaan '], [/\b(wheat|gahu|gahun|gau)\b/g, ' gahun '], [/\b(maize|corn|makai)\b/g, ' makai '],
   [/\b(millet|kodo)\b/g, ' kodo '], [/\b(potato|alu|aalu)\b/g, ' aalu '], [/\b(mustard|tori)\b/g, ' tori '], [/\b(lentil|masuro|musuro)\b/g, ' masuro '], [/\b(pea|peas|kerau)\b/g, ' kerau '],
   [/\b(khetma|khet|field|bari)\b/g, ' khet ']
 ];
 // strong Kheti words: used to send a sentence to the Kheti parser from any section
-const KHETI_WORD_RE = /\b(khetala|parma|ropai|godmel|jotne|goru|bause|lathe|tractor|tiller|pump|thresher|ghanta|muri|pathi|mana|quintal|biu|urea|dap|gede|potash|compost|mal|thunse|harvest|khet|dhaan|gahun|makai)\b/;
+const KHETI_WORD_RE = /\b(khetala|parma|ropai|godmel|jotne|goru|bause|lathe|tractor|tiller|pump|thresher|ghanta|muri|pathi|mana|quintal|biu|urea|dap|gede|potash|compost|mal|thunse|service|mobil|harvest|khet|dhaan|gahun|makai)\b/;
 
 function kNorm(text) {
   let t = ' ' + String(text || '').toLowerCase() + ' ';
@@ -128,6 +131,16 @@ function parseKheti(text) {
     let fam = famHits[0] || '';
     if (!fam) { const m = /\b([a-z]{3,})\s+ghar\b/.exec(s()); if (m) fam = m[1].charAt(0).toUpperCase() + m[1].slice(1) + ' ghar'; }
     return Object.assign(p, { intent: 'kParmaOut', family: fam, full: half ? 0 : parseFloat(n || 1), half: half ? parseFloat(n || 1) : 0 });
+  }
+  // --- servicing: "tractor service mobil 1500 gear oil 900 mechanic 500"
+  if (/\bservice\b/.test(s()) && typeof myMachines === 'function') {
+    const items = [], words = { mobil: 'mobil', gear: 'gear', hydraulic: 'hydraulic', grease: 'grease', filter: 'oilfilter', parts: 'parts', mechanic: 'mechanic', tyre: 'tyre', battery: 'battery' };
+    let m2; const re = /\b(mobil|gear|hydraulic|grease|filter|parts|mechanic|tyre|battery)\b(?:\s+oil)?\s*(?:rs\s*)?(\d+(?:\.\d+)?)/g;
+    while ((m2 = re.exec(s()))) items.push({ item: words[m2[1]], qty: '', cost: parseFloat(m2[2]) });
+    const t = /\btiller\b/.test(s()) ? 'powerTiller' : /\bpump\b/.test(s()) ? 'pump' : /\btractor\b/.test(s()) ? 'ownTractor' : '';
+    const own = myMachines().filter(x => x.active !== false), named = own.find(x => s().includes(' ' + String(x.name).toLowerCase() + ' '));
+    const mach = named || (t ? own.filter(x => x.type === t)[0] : own.length === 1 ? own[0] : null);
+    return Object.assign(p, { intent: 'kService', machineId: mach ? mach.id : '', items });
   }
   // --- machine
   const mm = /\b(tractor|tiller|pump|thresher)\b/.exec(s());
@@ -220,6 +233,10 @@ function flowKheti(p, v) {
   const base = k ? { khetiId: k.id, fieldId: k.fieldId, date: p.date || today() } : { date: p.date || today() };
   let rec, lines = [], speech = '', editForm = null;
   switch (p.intent) {
+    case 'kService':
+      openServiceForm({ machineId: p.machineId, date: p.date || today(), items: p.items.length ? p.items : [{ item: 'mobil', qty: '', cost: '' }] }, p.machineId);
+      if (v) speak(p.items.length ? `Servicing, ${sayMoney(p.items.reduce((a, i) => a + i.cost, 0))}. Check and save.` : 'Servicing. Add the items and save.');
+      return;
     case 'kAccount': openWorkerAccount(p.workerId); if (v) { const x = computeKheti().W[p.workerId]; speak(`${x.worker.name}: earned ${sayMoney(x.earned)}, paid ${sayMoney(x.paid)}, due ${sayMoney(x.due)}.`); } return;
     case 'kParmaQuery': case 'kWorkersQuery': {
       closeSheet(); go('workers');

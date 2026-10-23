@@ -69,6 +69,9 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
 - **Parma balance per family:** days they came to help, minus days we went to theirs.
 - **Machines:** hired tractor (hours × rate), own tractor, power tiller, water pump, thresher/harvester, with **petrol/diesel litres and cost**.
 - **Own machines** (own tractor, power tiller, pump) get a **rate per hour**, remembered for next time. Each use is valued at hours × rate, and each crop's **🚜 Own machine in cost** switch decides whether that value is added to the crop's cost. You can also add **🧑 my time** (your hours driving or running it × your rate, remembered); it sits behind the same switch. Fuel for your own machine is real money spent, so it always counts.
+- **🚜 My machines** (📝 Work → My machines): your own tractor, tiller, pump, thresher… with number. Each shows hours used, fuel, servicing, running cost per hour, last and next service.
+  - **🔧 Servicing:** date, items (Mobil, gear oil, hydraulic oil, grease, filters, parts, tyre, battery, mechanic…) each with qty and cost, hour meter, and a next-service reminder that shows on the Kheti dashboard. Voice: "tractor service mobil 1300 gear oil 900 mistri 500".
+  - Machine use on a crop picks which machine. Servicing is the machine's own cost (not added to a crop); it shows per machine and in the Kheti report.
 - **Seed** by kg, **mana, pathi**, bora or packet.
 - **मल (manure/fertilizer):** कुखुरा, भैंसी, बाख्रा, गाई, युरिया, गेडे (DAP), पोटास or other, counted in **bora or थुन्से (thunse)**.
 - **Harvest** in kg, quintal, **muri/pathi/mana** or bora, converted to kg. 1 pathi of each crop is set in Settings.

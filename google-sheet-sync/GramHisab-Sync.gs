@@ -239,6 +239,25 @@ function rebuildKheti_(ss, recs) {
   }).sort((a, b) => String(b[6]).localeCompare(String(a[6])));
   const workerRows = Object.keys(workers).map(id => { const w = workers[id]; return [w.w.name, w.w.own ? 'Household (not paid)' : 'Hired', w.w.family || '', w.w.phone || '', w.w.village || '', w.full, w.half, w.earned, w.paid, w.w.own ? 0 : w.earned - w.paid]; });
   Object.keys(fam).forEach(n => parmaRows.unshift(['', '', n, 'BALANCE (+ we owe them, − they owe us)', fam[n].came - fam[n].went, 'came ' + fam[n].came + ' · went ' + fam[n].went, '']));
+  // my machines and their servicing
+  const ITEM_ = { mobil: 'Mobil', gear: 'Gear oil', hydraulic: 'Hydraulic oil', grease: 'Grease', oilfilter: 'Oil filter', airfilter: 'Air filter', dieselfilter: 'Diesel filter',
+    parts: 'Parts', tyre: 'Tyre/tube', battery: 'Battery', coolant: 'Coolant', mechanic: 'Mechanic', other: 'Other' };
+  const mm = {};
+  of('mymachine').forEach(m => { mm[m.id] = { m: m, hours: 0, litres: 0, fuel: 0, svc: 0, n: 0, last: '', next: '' }; });
+  const oneOfType = t => { const l = of('mymachine').filter(m => m.type === t && m.active !== false); return l.length === 1 ? l[0].id : ''; };
+  of('machine').forEach(r => { if (r.type === 'hiredTractor' || r.type === 'thresher') return; const x = mm[r.machineId || oneOfType(r.type)]; if (x) { x.hours += Number(r.hours) || 0; x.litres += Number(r.litres) || 0; x.fuel += Number(r.fuelCost) || 0; } });
+  const svcRows = [];
+  of('mservice').forEach(r => {
+    const tot = (r.items || []).reduce((a, i) => a + (Number(i.cost) || 0), 0), x = mm[r.machineId];
+    if (x) { x.svc += tot; x.n++; if (r.date >= x.last) { x.last = r.date; x.next = r.nextDate || ''; } }
+    svcRows.push([r.bs || '', r.date, x ? x.m.name : '', (r.items || []).map(i => (ITEM_[i.item] || i.item) + (i.qty ? ' ' + i.qty : '') + ' ' + (Number(i.cost) || 0)).join(', '), tot, r.meter == null ? '' : r.meter, r.nextDate || '', r.note || '', by(r)]);
+  });
+  svcRows.sort((a, b) => String(b[1]).localeCompare(String(a[1])));
+  const mmRows = Object.keys(mm).map(id => { const x = mm[id]; return [x.m.name, x.m.type, x.m.number || '', x.m.active === false ? 'Not in use' : 'In use', x.hours, x.litres, x.fuel, x.n, x.svc, x.fuel + x.svc, x.last, x.next]; });
+  if (mmRows.length) {
+    write_(ss, 'My machines', ['Machine', 'Type', 'Number', 'Status', 'Hours used', 'Fuel L', 'Fuel Rs', 'Services', 'Servicing Rs', 'Running cost Rs', 'Last service', 'Next service'], mmRows);
+    write_(ss, 'Servicing', ['Date (BS)', 'Date (AD)', 'Machine', 'Items (Rs)', 'Total Rs', 'Hour meter', 'Next service', 'Note', 'Entered by'], svcRows);
+  }
   if (!fieldRows.length && !khetiRows.length && !workerRows.length) return; // no Kheti yet: don't add empty tabs
   write_(ss, 'Fields', ['Field', 'Ropani', 'Kattha', 'm²', 'Status', 'Current crop', 'Kheti count', 'Lifetime cost Rs', 'Place'], fieldRows);
   write_(ss, 'Kheti', ['Field', 'Main crop', 'Aali crops', 'Variety', 'Season', 'Planted (BS)', 'Planted (AD)', 'Status', 'Labour Rs (paid)', 'Family work Rs', 'Family work counted', 'Parma days', 'Machine hire Rs', 'Machine hours', 'Own machine value Rs', 'My time Rs', 'Own machine counted', 'Fuel Rs', 'Fuel litres', 'Seed Rs', 'Fertilizer Rs', 'Total cost Rs', 'Harvest', 'Main crop kg', 'Cost per kg'], khetiRows);

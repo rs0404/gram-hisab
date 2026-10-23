@@ -27,6 +27,7 @@ function renderKheti() {
         <div class="stat"><b>${shortMoney(allInv)}</b><span>All time Rs</span></div>
         <div class="stat" data-act="go" data-view="workers"><b>${shortMoney(dueTotal)}</b><span>Wages due ›</span></div>
       </div>
+      ${servicesDue().map(x => `<div class="small" style="margin-top:8px;color:#fff;cursor:pointer" data-act="mmOpen" data-id="${x.m.id}">🔧 <b>${esc(x.m.name)}</b> service ${x.nextDate < today() ? 'overdue since' : 'due'} ${fmtDate(x.nextDate)} ›</div>`).join('')}
       ${due.length ? `<div class="small" style="margin-top:8px;color:#fff">Due: ${due.slice(0, 3).map(w => esc(w.worker.name) + ' ' + money(w.due)).join(' · ')}${due.length > 3 ? ' …' : ''}</div>` : ''}
       ${parma.length ? `<div class="small" style="margin-top:4px;color:#fff">🤝 Parma: ${parma.slice(0, 3).map(p => p.balance > 0 ? `we owe ${esc(p.family)} ${nfmt(p.balance)} din` : `${esc(p.family)} owes us ${nfmt(-p.balance)} din`).join(' · ')}</div>` : ''}
     </div>
@@ -267,6 +268,8 @@ function renderMachineForm() {
     ${khetiChips(d.khetiId)}
     <div class="field"><label>Date (नेपाली)</label>${bsDateHtml('kmach', d.date)}</div>
     <div class="field"><label>Machine</label><div class="chips">${Object.keys(MACHINES).map(k => kChip('kfMach', k, d.type === k, MACHINES[k].icon + ' ' + MACHINES[k].en)).join('')}</div></div>
+    ${m.hired ? '' : (() => { const mine = myMachinesOfType(d.type); if (mine.length === 1 && !d.machineId) d.machineId = mine[0].id;
+      return `<div class="field"><label>Which machine</label><div class="chips">${mine.map(x => `<button class="chip sm ${d.machineId === x.id ? 'on' : ''}" data-act="kmPick" data-id="${x.id}">${esc(x.name)}</button>`).join('')}<button class="chip sm" data-act="kmNewFromUse">+ Add my ${esc(MACHINE_TYPE_NAME(d.type).replace(/^Own /, '').toLowerCase())}</button></div></div>`; })()}
     <div class="grid2">${kNum('hours', 'Hours', d.hours)}${kNum('ratePerHour', m.hired ? 'Rate per hour Rs' : 'Own machine rate / hour Rs', d.ratePerHour)}</div>
     ${m.hired ? kAmt('hireAmount', 'Hire paid Rs (auto = hours × rate)', d.hireAmount, 'auto · or 3×1500', 'hours', 'ratePerHour')
       : `<div class="hint" id="kmOwnHint" style="margin:-6px 0 12px">${esc(ownMachineHint())}</div>
@@ -297,7 +300,7 @@ function saveMachineForm() {
   const hours = num(d.hours) || 0, rate = num(d.ratePerHour) || 0;
   const hire = m.hired ? (num(d.hireAmount) != null ? num(d.hireAmount) : round(hours * rate, 2)) : 0;
   const rec = { kind: 'machine', khetiId: k.id, fieldId: k.fieldId, date: d.date || today(), type: d.type, hours, ratePerHour: rate, hireAmount: hire,
-    ownValue: m.hired ? 0 : round(hours * rate, 2), fuel: d.fuel || '',
+    ownValue: m.hired ? 0 : round(hours * rate, 2), fuel: d.fuel || '', ...(m.hired || !d.machineId ? {} : { machineId: d.machineId }),
     myHours: m.hired ? 0 : (num(d.myHours) != null ? num(d.myHours) : hours), myRate: m.hired ? 0 : num(d.myRate) || 0, litres: d.fuel ? num(d.litres) || 0 : 0, fuelCost: d.fuel ? num(d.fuelCost) || 0 : 0, note: String(d.note || '').trim() };
   rec.myValue = round(rec.myHours * rec.myRate, 2);
   if (!m.hired && rate && rate !== ownMachineRate(d.type)) setOwnMachineRate(d.type, rate);   // remembered for next time
@@ -497,7 +500,7 @@ function saveParmaOutForm() {
 
 // ================= WORK PAGE (all entry buttons + recent) =================
 function renderKWork() {
-  const recent = Object.values(db.records).filter(r => !hidden(r) && ['fwork', 'machine', 'finput', 'harvest', 'fpay', 'parmaout', 'kheti'].includes(r.kind))
+  const recent = Object.values(db.records).filter(r => !hidden(r) && ['fwork', 'machine', 'finput', 'harvest', 'fpay', 'parmaout', 'kheti', 'mservice'].includes(r.kind))
     .sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.createdAt - a.createdAt).slice(0, 60);
   let last = '', html = '';
   recent.forEach(r => { if (r.date !== last) { last = r.date; html += `<div class="dayhead"><span>${fmtDate(r.date, true)}</span></div>`; } html += kItemHtml(r); });
@@ -505,6 +508,7 @@ function renderKWork() {
     <div class="grid2">
       <button class="btn big green" data-act="kWork">👷 Work day</button><button class="btn big" data-act="kMachine">🚜 Machine & fuel</button>
       <button class="btn big" data-act="kInput">🌱 Seed / मल</button><button class="btn big" data-act="kHarvest">🌾 Harvest</button>
+      <button class="btn big" data-act="goMachines">🚜 My machines</button><button class="btn big" data-act="mmService">🔧 Servicing</button>
       <button class="btn big ghost" data-act="kNewKheti">🌱 New kheti</button><button class="btn big ghost" data-act="kParmaOut">🤝 Parma tirne</button></div>
     <p class="small muted" style="text-align:center">Or tap 🎤: “Purbe khet ropai 6 khetala 3 parma”, “tractor 3 ghanta 1500”, “DAP 2 bora 9000”, “dhaan 20 muri”</p>
     <h2>Recent</h2>${html || '<p class="muted">Nothing yet.</p>'}`;
@@ -513,12 +517,13 @@ function kItemHtml(r) {
   let ic = '•', t = '', s = '', amt = '';
   const kt = r.khetiId && khetiById(r.khetiId) ? khetiTitle(khetiById(r.khetiId)) : '';
   if (r.kind === 'fwork') { ic = '👷'; t = `${workById(r.workType).ne} · ${(r.workers || []).length + (r.extraFull || 0) + (r.extraHalf || 0)} khetala${(r.parma || []).length ? ' + parma' : ''}`; s = kt; amt = money(fworkAmount(r)); }
-  else if (r.kind === 'machine') { const m = MACHINES[r.type] || {}; ic = m.icon || '🚜'; t = `${m.en || r.type}${r.hours ? ' · ' + nfmt(r.hours) + ' hr' : ''}${r.litres ? ' · ' + nfmt(r.litres) + ' L ' + r.fuel : ''}`; s = kt + (machineOwnValue(r) ? ' · own value ' + money(machineOwnValue(r)) : '') + (machineMyValue(r) ? ' · my time ' + money(machineMyValue(r)) : ''); amt = money((r.hireAmount || 0) + (r.fuelCost || 0)); }
+  else if (r.kind === 'machine') { const m = MACHINES[r.type] || {}; ic = m.icon || '🚜'; t = `${r.machineId && myMachineById(r.machineId) ? myMachineById(r.machineId).name : m.en || r.type}${r.hours ? ' · ' + nfmt(r.hours) + ' hr' : ''}${r.litres ? ' · ' + nfmt(r.litres) + ' L ' + r.fuel : ''}`; s = kt + (machineOwnValue(r) ? ' · own value ' + money(machineOwnValue(r)) : '') + (machineMyValue(r) ? ' · my time ' + money(machineMyValue(r)) : ''); amt = money((r.hireAmount || 0) + (r.fuelCost || 0)); }
   else if (r.kind === 'finput') { ic = r.type === 'seed' ? '🌱' : '🧪'; t = `${r.item}${r.qty ? ' · ' + nfmt(r.qty) + ' ' + r.unit : ''}`; s = kt; amt = money(r.cost); }
   else if (r.kind === 'harvest') { ic = '🌾'; t = `${cropById(r.crop).ne} ${nfmt(r.qty)} ${r.unit} (≈ ${nfmt(round(r.kg || harvestKg(r)))} kg)`; s = kt; }
   else if (r.kind === 'fpay') { ic = '💵'; t = `Paid ${workerLabel(workerById(r.workerId))}`; amt = money(r.amount); }
   else if (r.kind === 'parmaout') { ic = '🤝'; t = `Parma for ${r.family} · ${nfmt((r.full || 0) + (r.half || 0) * 0.5)} din`; }
   else if (r.kind === 'kheti') { ic = '🌱'; t = `New kheti: ${khetiTitle(r)}`; s = seasonLabel(r.season); }
+  else if (r.kind === 'mservice') { const m = myMachineById(r.machineId); ic = '🔧'; t = `Servicing ${m ? m.name : ''}`; s = (r.items || []).map(i => serviceItemName(i.item)).join(', '); amt = money(serviceTotal(r)); }
   return `<button class="item" data-act="editRec" data-id="${r.id}"><div class="ic" style="background:var(--green-l)">${ic}</div>
     <div class="mid"><div class="t">${esc(t)}</div><div class="s">${s ? esc(s) + ' · ' : ''}${whoWhen(r)}</div></div><div class="amt">${amt}</div></button>`;
 }
@@ -571,6 +576,7 @@ function renderKReports() {
       <div class="line"><span>Parma days</span><b>${nfmt(sum('parmaDays'))}</b></div>
       <div class="line"><span>Machine hours</span><b>${nfmt(sum('machineHours'))} hr</b></div>
       <div class="line"><span>Fuel</span><b>Petrol ${nfmt(round(sum('petrol'), 1))} L · Diesel ${nfmt(round(sum('diesel'), 1))} L</b></div></div>
+    ${myMachines().length ? (() => { const MM = computeMachines(), tot = Object.values(MM).reduce((a, x) => a + x.serviceCost, 0); return `<div class="summary small" data-act="goMachines" style="cursor:pointer"><div class="line"><span>🔧 Machine servicing (all time, not in crop costs)</span><b>${money(tot)} ›</b></div></div>`; })() : ''}
     <h3>By kheti</h3>
     ${ks.length ? ks.map(k => `<button class="item" data-act="kOpenKheti" data-id="${k.kheti.id}" style="align-items:flex-start">
       <div class="ic" style="background:var(--green-l)">${k.kheti.status === 'done' ? '✅' : '🌱'}</div>
@@ -585,7 +591,7 @@ const SECTIONS = {
   poultry: { label: '🐔 कुखुरा', home: 'home', nav: [['home', '🏠', 'Home'], ['sell', '💰', 'Sell'], null, ['buy', '🛒', 'Buy'], ['reports', '📊', 'Reports']] },
   shop: { label: '🏪 पसल', home: 'shop', nav: [['shop', '🏪', 'Shop'], null, ['settings', '⚙️', 'Settings']] }
 };
-const VIEW_SECTION = { kheti: 'kheti', kwork: 'kheti', workers: 'kheti', kreports: 'kheti', home: 'poultry', sell: 'poultry', buy: 'poultry', reports: 'poultry', shop: 'shop' };
+const VIEW_SECTION = { kheti: 'kheti', kwork: 'kheti', kmachines: 'kheti', workers: 'kheti', kreports: 'kheti', home: 'poultry', sell: 'poultry', buy: 'poultry', reports: 'poultry', shop: 'shop' };
 let section = null;
 function openSectionPref() { const s = db.meta.openSection; return SECTIONS[s] ? s : 'kheti'; }
 function setSection(s) {
@@ -635,6 +641,8 @@ function khetiSettingsHtml() {
 
 // ================= change log text, edit, delete =================
 function khetiRecSummary(r) {
+  if (r.kind === 'mymachine') return `Machine ${r.name}${r.number ? ' (' + r.number + ')' : ''}`;
+  if (r.kind === 'mservice') { const m = myMachineById(r.machineId); return `Servicing ${m ? m.name : '?'}: ${(r.items || []).map(i => serviceItemName(i.item)).join(', ')} · ${money(serviceTotal(r))}`; }
   const kt = r.khetiId && khetiById(r.khetiId) ? khetiTitle(khetiById(r.khetiId)) : '';
   switch (r.kind) {
     case 'field': return `Field ${r.name} · ${fmtArea(r.areaM2 || 0, landSystem(), 'ne')}`;
@@ -649,9 +657,11 @@ function khetiRecSummary(r) {
   }
   return null;
 }
-const KHETI_KINDS = ['field', 'kheti', 'worker', 'fwork', 'fpay', 'parmaout', 'machine', 'finput', 'harvest'];
+const KHETI_KINDS = ['field', 'kheti', 'worker', 'fwork', 'fpay', 'parmaout', 'machine', 'finput', 'harvest', 'mymachine', 'mservice'];
 function khetiEditRec(r) {
   switch (r.kind) {
+    case 'mymachine': openMyMachineForm(Object.assign({}, r)); return true;
+    case 'mservice': openServiceForm(r); return true;
     case 'field': openFieldForm(r); return true;
     case 'kheti': openKhetiForm(r); return true;
     case 'worker': openWorkerForm(r); return true;
@@ -677,6 +687,7 @@ function khetiEditRec(r) {
 // a field, kheti or worker with entries can't be deleted (that would leave orphans)
 function khetiDeleteBlock(r) {
   let n = 0;
+  if (r.kind === 'mymachine') { const n2 = all('mservice').filter(x => x.machineId === r.id).length + all('machine').filter(x => x.machineId === r.id).length; return n2 ? `${r.name} has ${n2} servicing / use entries. Mark it “Sold / not in use” instead, or delete those entries first.` : ''; }
   if (r.kind === 'field') n = khetiOfField(r.id).length;
   else if (r.kind === 'kheti') n = Object.values(db.records).filter(x => !hidden(x) && x.khetiId === r.id).length;
   else if (r.kind === 'worker') n = all('fwork').filter(x => (x.workers || []).some(y => y.workerId === r.id)).length + all('fpay').filter(x => x.workerId === r.id).length;
@@ -779,7 +790,7 @@ function khetiClick(act, b) {
       renderWorkForm(); }); break;
     case 'kfAddParma': rr(() => { (kDraft.parma = kDraft.parma || []).push({ family: '', full: '', half: '' }); renderWorkForm(); }); break;
     case 'kSaveWork': saveWorkForm(); break;
-    case 'kfMach': rr(() => { kDraft.type = v; kDraft.ratePerHour = MACHINES[v].hired ? '' : (ownMachineRate(v) || ''); if (!MACHINES[v].hired && !kDraft.myRate) kDraft.myRate = myTimeRate() || ''; renderMachineForm(); }); break;
+    case 'kfMach': rr(() => { kDraft.type = v; kDraft.machineId = ''; kDraft.ratePerHour = MACHINES[v].hired ? '' : (ownMachineRate(v) || ''); if (!MACHINES[v].hired && !kDraft.myRate) kDraft.myRate = myTimeRate() || ''; renderMachineForm(); }); break;
     case 'kfFuel': rr(() => { kDraft.fuel = v; renderMachineForm(); }); break;
     case 'kSaveMachine': saveMachineForm(); break;
     case 'kfInType': rr(() => { kDraft.type = v; kDraft.item = v === 'fert' ? 'Urea' : ''; kDraft.unit = INPUT_UNITS[v][0]; renderInputForm(); }); break;
