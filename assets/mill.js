@@ -42,7 +42,7 @@ const millMachines = () => (typeof myMachines === 'function' ? myMachines().filt
 let millDraft = null, millDateOpen = false;
 function newMillDraft(keep) {
   const k = keep || {};
-  return { kind: 'mill', date: k.date || today(), item: k.item || (db.meta.millLast || millItems()[0].id), qty: '', unit: 'pathi', amount: '', pay: k.pay || 'cash', customer: '', own: false, note: '' };
+  return { kind: 'mill', date: k.date || today(), item: k.item || (db.meta.millLast && !millItem(db.meta.millLast).hidden ? db.meta.millLast : shown(millItems())[0].id), qty: '', unit: 'pathi', amount: '', pay: k.pay || 'cash', customer: '', own: false, note: '' };
 }
 function millCalc(d) {
   const pathi = (num(d.qty) || 0) * MILL_UNITS[d.unit || 'pathi'].toPathi, rate = millRate(d.item);
@@ -73,7 +73,7 @@ function renderMill() {
           <button class="chip sm ${d.date === y ? 'on' : ''}" data-act="bsQuick" data-key="mill" data-days="-1">Yesterday</button>
           <button class="chip sm ${d.date !== t && d.date !== y ? 'on' : ''}" data-act="millDatePick" aria-label="Other date">${calTile()}</button></span></div>
       <div id="millDateBox" class="${millDateOpen ? '' : 'hidden'}" style="margin-top:6px">${bsDateHtml('mill', d.date)}</div>
-      <div class="chips" style="margin:8px 0">${millItems().map(x => `<button class="chip ${d.item === x.id ? 'on' : ''}" data-act="millItem" data-v="${x.id}">${esc(x.ne)}${x.rate ? ` <span style="opacity:.75;font-size:12px">${nfmt(x.rate)}</span>` : ''}</button>`).join('')}</div>
+      <div class="chips" style="margin:8px 0">${millItems().filter(x => !x.hidden || x.id === d.item).map(x => `<button class="chip ${d.item === x.id ? 'on' : ''}" data-act="millItem" data-v="${x.id}">${esc(x.ne)}${x.rate ? ` <span style="opacity:.75;font-size:12px">${nfmt(x.rate)}</span>` : ''}</button>`).join('')}</div>
       <div class="row" style="gap:4px;align-items:center"><span class="small muted">Unit</span>${Object.keys(MILL_UNITS).map(u => `<button class="chip sm ${d.unit === u ? 'on' : ''}" data-act="millUnit" data-v="${u}" style="padding:3px 10px">${MILL_UNITS[u].ne}</button>`).join('')}</div>
       <div class="hshop millboxes">
         <label><span>Quantity (${MILL_UNITS[d.unit].ne})</span>
@@ -124,7 +124,7 @@ function saveMill() {
 // ---------- rates, bill, period sheets ----------
 function openMillRates() {
   openSheet(`<h2>⚙️ Mill rates <span class="small muted">per पाथी</span></h2><div id="millRateForm">
-    <div class="summary">${millItems().map(x => `<div class="line" style="gap:8px"><span style="flex:1">${esc(x.ne)}<br><span class="small muted">${esc(x.en)}</span></span>
+    <div class="summary">${millItems().filter(x => !x.hidden).map(x => `<div class="line" style="gap:8px"><span style="flex:1">${esc(x.ne)}<br><span class="small muted">${esc(x.en)}</span></span>
       <input data-mr="${x.id}" type="number" inputmode="decimal" value="${x.rate || ''}" placeholder="Rs" style="width:96px;border:2px solid var(--line);border-radius:10px;padding:8px;font-size:18px;font-weight:800"></div>`).join('')}</div>
     <button class="btn ghost" data-act="millAddItem">+ Add kind (e.g. जौ पिसानी)</button>
     <div style="height:10px"></div><button class="btn big green" data-act="millRatesSave">✔ Save rates</button></div>

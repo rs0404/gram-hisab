@@ -739,7 +739,7 @@ function openLotForm(lot) {
     <div class="field"><label>Chicks by type <span class="muted">(fill one or more)</span></label>
       <div class="summary" style="padding:10px">
         <div class="lotgrid small muted" style="font-weight:800;margin-bottom:2px"><span>Paid chicks</span><span>🎁 Free</span><span>Rs / chick</span></div>
-        ${breeds().map(b => { const m = (d.mix || []).find(x => x.breed === b.id); return `<div style="margin-bottom:8px"><b>🐔 ${esc(b.name)}</b>
+        ${breeds().filter(b => !b.hidden || (d.mix || []).some(x => x.breed === b.id)).map(b => { const m = (d.mix || []).find(x => x.breed === b.id); return `<div style="margin-bottom:8px"><b>🐔 ${esc(b.name)}</b>
         <div class="lotgrid"><input data-mix="${b.id}" type="number" inputmode="numeric" value="${m && m.chicks ? m.chicks : ''}" placeholder="0" class="lotin">
         <input data-mixfree="${b.id}" type="number" inputmode="numeric" value="${m && m.free ? m.free : ''}" placeholder="0" class="lotin">
         <input data-mixrate="${b.id}" type="number" inputmode="decimal" step="any" value="${m && m.rate ? m.rate : ''}" placeholder="Rs" class="lotin"></div></div>`; }).join('')}
@@ -871,7 +871,7 @@ function openArchive() {
 
 // ---------- SETTINGS ----------
 let settingsTab = 'kheti';
-const SETTINGS_TABS = [['kheti', '🌾 Kheti'], ['poultry', '🐔 Chicken'], ['shop', '🏪 Shop'], ['mill', '⚙️ Mill'], ['other', '⚙️ Others']];
+const SETTINGS_TABS = [['kheti', '🌾 Kheti'], ['poultry', '🐔 Chicken'], ['shop', '🏪 Shop'], ['mill', '⚙️ Mill'], ['other', '⋯ Others']];
 function renderSettings() {
   const m = db.meta, pend = Object.keys(m.pending).length;
   const counts = { sale: all('sale').length, event: all('event').length, lot: all('lot').length };
@@ -915,8 +915,8 @@ function renderSettings() {
       <div class="btnrow"><button class="btn" data-act="shareShop">💬 Share shop report</button><button class="btn ghost" data-act="section" data-v="shop">🏪 Open shop</button></div>
     </div>`,
     mill: () => `<h2>⚙️ Mill rates <span class="small muted">per पाथी</span></h2>
-    <div class="card"><div class="summary">${millItems().map(x => `<div class="line"><span>${esc(x.ne)} <span class="small muted">${esc(x.en)}</span></span><b>${x.rate ? money(x.rate) : '—'}</b></div>`).join('')}</div>
-      <div class="btnrow" style="margin-top:8px"><button class="btn primary" data-act="millRates">✎ Change rates</button><button class="btn ghost" data-act="exportCsv" data-v="mill">📄 Mill (CSV)</button></div>
+    <div class="card"><div class="summary">${millItems().filter(x => !x.hidden).map(x => `<div class="line"><span>${esc(x.ne)} <span class="small muted">${esc(x.en)}</span></span><b>${x.rate ? money(x.rate) : '—'}</b></div>`).join('')}</div>
+      <div class="btnrow" style="margin-top:8px"><button class="btn primary" data-act="millRates">✎ Change rates</button><button class="btn ghost" data-act="listOpen" data-k="mill">✎ Edit / delete kinds</button><button class="btn ghost" data-act="exportCsv" data-v="mill">📄 Mill (CSV)</button></div>
       <p class="small muted">The mill's servicing is kept in 🚜 My machines (type “Mill”); electricity bills in ⚙️ Mill → ⚡ Bill.</p></div>`,
     other: () => `<h2>Open the app in</h2>
     <div class="card"><div class="chips">${Object.keys(SECTIONS).map(k => `<button class="chip ${openSectionPref() === k ? 'on' : ''}" data-act="setOpenSection" data-v="${k}">${SECTIONS[k].label}</button>`).join('')}</div>
@@ -1161,12 +1161,12 @@ function updateLotAutoName(silent) {
 function breedPriceTable(prefix) {
   return `<div class="summary" style="padding:10px">
     <div class="row" style="font-size:13px;font-weight:800;color:var(--muted);padding:0 2px 6px"><span style="flex:1.3">Type</span><span style="flex:1">🐔 Live /kg</span><span style="flex:1">🔪 Meat /kg</span></div>
-    ${breeds().map(b => `<div class="row" style="gap:6px;margin-bottom:8px">
+    ${breeds().filter(b => !b.hidden).map(b => `<div class="row" style="gap:6px;margin-bottom:8px">
       <b style="flex:1.3;min-width:0;overflow:hidden;text-overflow:ellipsis">${esc(b.name)}</b>
       <input style="flex:1;min-width:0;border:2px solid var(--line);border-radius:12px;padding:10px;font-size:18px;font-weight:700" data-${prefix}="${b.id}" data-ptype="live" type="number" inputmode="decimal" value="${b.live || ''}" placeholder="—">
       <input style="flex:1;min-width:0;border:2px solid var(--line);border-radius:12px;padding:10px;font-size:18px;font-weight:700" data-${prefix}="${b.id}" data-ptype="meat" type="number" inputmode="decimal" value="${b.meat || ''}" placeholder="—">
     </div>`).join('')}
-    <button class="btn sm ghost" data-act="addBreed">+ Add chicken type</button>
+    <div class="row" style="gap:6px"><button class="btn sm ghost" data-act="addBreed">+ Add chicken type</button><button class="btn sm ghost" data-act="listOpen" data-k="breeds">✎ Edit / delete types</button></div>
   </div>`;
 }
 
@@ -1394,7 +1394,7 @@ document.addEventListener('click', e => {
   if (!b) return;
   const act = b.dataset.act, id = b.dataset.id, v = b.dataset.v;
   if (b.tagName === 'A') e.preventDefault();
-  if (khetiClick(act, b) || calendarClick(act, b) || machinesClick(act, b) || millClick(act, b) || cutClick(act, b)) return;
+  if (khetiClick(act, b) || calendarClick(act, b) || machinesClick(act, b) || millClick(act, b) || cutClick(act, b) || listClick(act, b)) return;
   switch (act) {
     case 'go': closeSheet(); go(b.dataset.view); break;
     case 'mic': if (listening) cancelListening(); else listen(); break;

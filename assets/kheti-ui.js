@@ -100,7 +100,7 @@ function quickWorkHtml(act) {
   return `<div class="card">
     <div class="label">👷 Quick work entry · today</div>
     <div class="chips" style="margin:8px 0">${act.map(k => kChip('kqKheti', k.id, q.khetiId === k.id, esc(fieldById(k.fieldId) ? fieldById(k.fieldId).name : '?') + ' · ' + esc(cropById(mainCrop(k)).ne))).join('')}</div>
-    <div class="chips" style="margin-bottom:8px;max-height:84px;overflow:auto">${workTypes().slice().sort((a, b) => (b.id === q.work) - (a.id === q.work)).map(w => kChip('kqWork', w.id, q.work === w.id, esc(w.ne))).join('')}</div>
+    <div class="chips" style="margin-bottom:8px;max-height:84px;overflow:auto">${workTypes().filter(w => !w.hidden || w.id === q.work).sort((a, b) => (b.id === q.work) - (a.id === q.work)).map(w => kChip('kqWork', w.id, q.work === w.id, esc(w.ne))).join('')}</div>
     <form class="hshop" data-form="kQuick">
       <label><span>Khetala full</span><input data-kq="full" type="number" inputmode="numeric" placeholder="0"></label>
       <label><span>Khetala half</span><input data-kq="half" type="number" inputmode="numeric" placeholder="0"></label>
@@ -163,11 +163,11 @@ function openKhetiForm(k, fieldId) {
 function renderKhetiForm() {
   const d = kDraft, main = mainCrop(d), side = (d.crops || []).filter(c => c.role === 'aali').map(c => c.crop);
   const groups = {};
-  cropList().forEach(c => { (groups[c.group] = groups[c.group] || []).push(c); });
+  cropList().filter(c => !c.hidden || (d.crops || []).some(x => x.crop === c.id)).forEach(c => { (groups[c.group] = groups[c.group] || []).push(c); });
   openSheet(`<h2>${d.id ? '✎ Kheti' : '🌱 New kheti'}</h2><div id="kForm">
     <div class="field"><label>Field</label><div class="chips">${activeFields().map(f => kChip('kkField', f.id, d.fieldId === f.id, esc(f.name))).join('')}</div></div>
     <div class="field"><label>Main crop</label>${Object.keys(groups).map(g => `<div class="small muted" style="margin:6px 0 4px">${CROP_GROUPS[g] || g}</div><div class="chips">${groups[g].map(c => kChip('kkMain', c.id, main === c.id, `${esc(c.ne)} <span style="opacity:.7">${esc(c.en.split(' /')[0])}</span>`)).join('')}</div>`).join('')}</div>
-    <div class="field"><label>Side crops on the aali (आली) <span class="muted">(optional, tap to add)</span></label><div class="chips">${cropList().filter(c => c.group === 'pulse' || c.group === 'veg').map(c => kChip('kkSide', c.id, side.includes(c.id), esc(c.ne))).join('')}</div></div>
+    <div class="field"><label>Side crops on the aali (आली) <span class="muted">(optional, tap to add)</span></label><div class="chips">${cropList().filter(c => (c.group === 'pulse' || c.group === 'veg') && (!c.hidden || side.includes(c.id))).map(c => kChip('kkSide', c.id, side.includes(c.id), esc(c.ne))).join('')}</div></div>
     <div class="field"><label>Variety <span class="muted">(optional)</span></label><input data-k="variety" value="${esc(d.variety || '')}" placeholder="e.g. Radha-4, Sabitri" autocomplete="off"></div>
     <div class="field"><label>Planted on (नेपाली)</label>${bsDateHtml('kplant', d.plantDate)}</div>
     <div class="field"><label>Season</label><input data-k="season" value="${esc(d.season || seasonOf(d.plantDate))}" placeholder="auto"><div class="hint">Auto from the planting date: Barkhe (Asar–Bhadra), Hiude (Ashoj–Poush), Chaite (Magh–Jestha)</div></div>
@@ -206,7 +206,7 @@ function renderWorkForm() {
   openSheet(`<h2>👷 ${d.id ? 'Edit work day' : 'Work day (khetala / parma)'}</h2><div id="kForm">
     ${khetiChips(d.khetiId)}
     <div class="field"><label>Date (नेपाली)</label>${bsDateHtml('kwork', d.date)}</div>
-    <div class="field"><label>Work</label><div class="chips">${workTypes().map(w => kChip('kfWork', w.id, d.workType === w.id, esc(w.ne))).join('')}</div></div>
+    <div class="field"><label>Work</label><div class="chips">${workTypes().filter(w => !w.hidden || w.id === d.workType).map(w => kChip('kfWork', w.id, d.workType === w.id, esc(w.ne))).join('')}</div></div>
     <div class="grid2">${kNum('rateFull', 'Rate full day Rs', d.rateFull)}${kNum('rateHalf', 'Rate half day Rs', d.rateHalf)}</div>
     <div class="field"><label>Khetala who worked <span class="muted">(tap: — → full → half)</span></label>
       <div class="chips">${ws.filter(w => w.active !== false).map(w => { const s = shiftOf(w.id); return `<button class="chip sm ${s ? 'on' : ''}" data-act="kfWorker" data-id="${w.id}">${w.own ? '🏠 ' : ''}${esc(w.name)}${s ? ' · ' + (s === 'half' ? '½' : 'पूरा') : ''}</button>`; }).join('') || '<span class="muted small">No workers yet — add them in 👷 Workers, or use the counts below.</span>'}
@@ -321,7 +321,7 @@ function renderInputForm() {
     ${khetiChips(d.khetiId)}
     <div class="field"><label>Date (नेपाली)</label>${bsDateHtml('kinput', d.date)}</div>
     <div class="field"><label>What</label><div class="chips">${kChip('kfInType', 'seed', d.type === 'seed', '🌱 Seed / बीउ')}${kChip('kfInType', 'fert', d.type === 'fert', '🧪 Fertilizer / मल')}</div></div>
-    ${d.type === 'fert' ? `<div class="field"><label>Which मल</label><div class="chips">${FERTILIZERS.map(x => kChip('kfInItem', x.en, (FERT_ALIAS[d.item] || d.item) === x.en, `${esc(x.ne)} <span style="opacity:.7">${esc(x.en.replace(/ mal.*$/, ''))}</span>`)).join('')}${kChip('kfInItem', 'Other', !FERTILIZERS.some(x => x.en === (FERT_ALIAS[d.item] || d.item)), 'अन्य Other')}</div>${FERTILIZERS.some(x => x.en === (FERT_ALIAS[d.item] || d.item)) ? '' : `<input data-k="item" value="${esc(d.item || '')}" placeholder="Name of the मल" autocomplete="off" style="margin-top:8px">`}</div>`
+    ${d.type === 'fert' ? `<div class="field"><label>Which मल</label><div class="chips">${fertList().filter(x => !x.hidden || x.en === d.item).map(x => kChip('kfInItem', x.en, (FERT_ALIAS[d.item] || d.item) === x.en, `${esc(x.ne)} <span style="opacity:.7">${esc(x.en.replace(/ mal.*$/, ''))}</span>`)).join('')}${kChip('kfInItem', 'Other', !fertList().some(x => x.en === (FERT_ALIAS[d.item] || d.item)), 'अन्य Other')}</div>${fertList().some(x => x.en === (FERT_ALIAS[d.item] || d.item)) ? '' : `<input data-k="item" value="${esc(d.item || '')}" placeholder="Name of the मल" autocomplete="off" style="margin-top:8px">`}</div>`
       : `<div class="field"><label>Seed (variety)</label><input data-k="item" value="${esc(d.item === 'Urea' ? '' : d.item || '')}" placeholder="e.g. Dhaan Radha-4" autocomplete="off"></div>`}
     <div class="grid2">${kNum('qty', 'Quantity', d.qty)}<div class="field"><label>Unit</label><div class="chips">${INPUT_UNITS[d.type === 'fert' ? 'fert' : 'seed'].concat(INPUT_UNITS[d.type === 'fert' ? 'fert' : 'seed'].includes(d.unit) ? [] : [d.unit]).map(u => kChip('kfInUnit', u, d.unit === u, UNIT_NE[u] || u)).join('')}</div></div></div>
     ${kAmt('cost', 'Cost Rs', d.cost, 'e.g. 2×4500', 'qty')}
@@ -628,10 +628,10 @@ function khetiSettingsHtml() {
       <div class="field"><label>Land units (this phone)</label><div class="chips">${kChip('setLandSys', 'pahad', sys === 'pahad', '⛰️ Ropani-Aana-Paisa-Daam')}${kChip('setLandSys', 'tarai', sys === 'tarai', '🌾 Bigha-Kattha-Dhur')}</div>
         <div class="hint">The other system is shown in small text. <a href="#" data-act="openConverter">📐 Converter</a></div></div>
       <h3>👷 Khetala rates (Rs per person)</h3>
-      <div class="summary small" id="wageTable">${workTypes().map(w => `<div class="line" style="gap:6px"><span style="flex:1">${esc(w.ne)}<br><span class="muted">${esc(w.en)}</span></span>
+      <div class="summary small" id="wageTable">${workTypes().filter(w => !w.hidden).map(w => `<div class="line" style="gap:6px"><span style="flex:1">${esc(w.ne)}<br><span class="muted">${esc(w.en)}</span></span>
         <input data-wage="${w.id}" data-shift="full" type="number" inputmode="numeric" value="${wageRate(w.id, 'full') || ''}" placeholder="full" style="width:84px;border:2px solid var(--line);border-radius:10px;padding:8px">
         <input data-wage="${w.id}" data-shift="half" type="number" inputmode="numeric" value="${wageRate(w.id, 'half') || ''}" placeholder="half" style="width:84px;border:2px solid var(--line);border-radius:10px;padding:8px"></div>`).join('')}</div>
-      <div class="btnrow"><button class="btn sm ghost" data-act="kAddWorkType">+ Work type</button><button class="btn sm ghost" data-act="kAddCrop">+ Crop</button></div>
+      <div class="row wrap" style="gap:6px"><button class="btn sm ghost" data-act="listOpen" data-k="work">✎ Work types</button><button class="btn sm ghost" data-act="listOpen" data-k="crops">✎ Crops</button><button class="btn sm ghost" data-act="listOpen" data-k="fert">✎ मल types</button></div>
       <h3>🌾 Harvest measures</h3>
       <div class="summary small">${['dhaan', 'gahun', 'makai', 'kodo', 'maas', 'masuro', 'kerau'].map(c => `<div class="line" style="gap:6px"><span style="flex:1">1 pathi ${esc(cropById(c).ne)} =</span>
         <input data-pathi="${c}" type="number" inputmode="decimal" step="any" value="${pathiKg(c)}" style="width:72px;border:2px solid var(--line);border-radius:10px;padding:8px"> kg</div>`).join('')}

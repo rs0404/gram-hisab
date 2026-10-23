@@ -512,8 +512,8 @@ function flowGrainSale(p, v) {
 
 // ---------- lots ----------
 function askBreed(title, v, cb) {
-  ask({ title, speech: title + ' ' + breeds().map(b => b.name).join(', or '), hint: 'Say ' + breeds().map(b => '“' + b.name + '”').join(', '),
-    buttons: breeds().map(b => ({ label: '🐔 ' + esc(b.name), value: b.id, cls: 'ghost' })), voice: breedAnswer, voiceMode: v, onAnswer: cb });
+  ask({ title, speech: title + ' ' + shown(breeds()).map(b => b.name).join(', or '), hint: 'Say ' + shown(breeds()).map(b => '“' + b.name + '”').join(', '),
+    buttons: shown(breeds()).map(b => ({ label: '🐔 ' + esc(b.name), value: b.id, cls: 'ghost' })), voice: breedAnswer, voiceMode: v, onAnswer: cb });
 }
 function flowNewLot(p, v) {
   const counts = p.breedCounts || {};
@@ -606,7 +606,7 @@ function flowSetPrice(p, v) {
       voice: t => saleType(normalize(t).s) || undefined, voiceMode: v, onAnswer: t => go(breed, t) });
   };
   if (p.breed) return pickType(p.breed);
-  if (breeds().length === 1) return pickType(breeds()[0].id);
+  if (shown(breeds()).length === 1) return pickType(shown(breeds())[0].id);
   askBreed('Price for which chicken type?', v, pickType);
 }
 
@@ -738,7 +738,7 @@ function sayStock(p, v) {
     list.map(i => `${i.label.replace(/^Feed B/, 'Feed B ')}, ${i.cat === 'feed' ? round(i.left / bagKg(), 1) + ' bags' : nfmt(i.left) + ' ' + i.unit}`).join('. '), v);
 }
 function sayPrice(v) {
-  const list = breeds();
+  const list = shown(breeds());
   info('Default prices (Rs per kg)', `<div class="summary"><div class="line"><span></span><b>🐔 Live · 🔪 Meat</b></div>${list.map(b =>
     `<div class="line"><span>${esc(b.name)}</span><b>${b.live ? nfmt(b.live) : '—'} · ${b.meat ? nfmt(b.meat) : '—'}</b></div>`).join('')}</div>
     <button class="btn big ghost" data-act="editPrice">Change prices</button><div style="height:10px"></div>`,

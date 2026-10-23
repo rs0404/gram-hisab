@@ -324,3 +324,4 @@ u.dm{background:#7C3AED}
 .grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .grid4 .btn{padding:8px 2px;font-size:13px}
 .cutbirds{grid-template-columns:repeat(auto-fit,minmax(90px,1fr))}
+.settabs button{font-size:13px;padding:9px 4px;flex:1 1 0;min-width:0}

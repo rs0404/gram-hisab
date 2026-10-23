@@ -2,7 +2,7 @@
 'use strict';
 
 const HAS_ANDROID = typeof window.Android !== 'undefined';
-const APP_VERSION = '2.12.1';
+const APP_VERSION = '2.13.0';
 
 // ---------- small utils ----------
 const $ = (sel, el) => (el || document).querySelector(sel);
@@ -227,7 +227,7 @@ function priceFor(type, breedId) {
   const b = breedById(breedId || 'broiler'); return Number(type === 'live' ? b.live : b.meat) || 0;
 }
 const SALE_LABEL = { live: 'live', meat: 'meat', parts: 'khutta-tauko' };
-function saveBreeds(list) { setSet('breeds', list.map(b => ({ id: b.id, name: b.name, live: Number(b.live) || 0, meat: Number(b.meat) || 0 }))); }
+function saveBreeds(list) { setSet('breeds', list.map(b => Object.assign({ id: b.id, name: b.name, live: Number(b.live) || 0, meat: Number(b.meat) || 0 }, b.hidden ? { hidden: true } : {}))); }
 function setBreedPrice(breedId, type, value) {
   const list = breeds().map(b => Object.assign({}, b));
   const b = list.find(x => x.id === breedId) || list[0];
@@ -238,7 +238,8 @@ function addBreed(name) {
   name = String(name || '').trim();
   if (!name) return null;
   const list = breeds().map(b => Object.assign({}, b));
-  if (list.some(b => b.name.toLowerCase() === name.toLowerCase())) return null;
+  const ex = list.find(b => b.name.toLowerCase() === name.toLowerCase());
+  if (ex) { if (!ex.hidden) return null; delete ex.hidden; saveBreeds(list); return ex; }   // a hidden type comes back
   const b = { id: normName(name) || rid(), name: name.charAt(0).toUpperCase() + name.slice(1), live: 0, meat: 0 };
   list.push(b); saveBreeds(list);
   return b;

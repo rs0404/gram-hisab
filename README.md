@@ -162,6 +162,9 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
 - A bar under the field has **× + − ÷** (number keypads have no ×) and shows the result as you type, e.g. "= Rs 400 (2 × Rs 200)". Leaving the field puts in 400.
 - For "quantity × rate" the empty quantity and rate boxes are filled too: 2×200 in diesel cost fills **2 litres**; 3×1500 in tractor hire fills 3 hours at Rs 1,500.
 
+**✎ Edit your lists**
+- Chicken types (Settings → Chicken), crops, work types and मल types (Settings → Kheti) and mill kinds (Settings → Mill): ✎ rename (old records follow the new name), 🗑 delete a name never used, 🙈 hide a used one (not offered for new entries, old records keep it) and ↺ restore.
+
 **Several phones and users**
 - Every entry stores **who** entered it and **when**. Edits and deletes are logged in a **change log**.
 - Sync works through a Google Sheet (automatic; the sheet also gets readable tabs) or a sync file (offline).
