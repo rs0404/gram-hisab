@@ -53,6 +53,11 @@ function handleInput(alts, origin) {
     if (voiceMode && o.retries <= 2) speak('Sorry. ' + o.hint.replace(/[“”]/g, ''), () => { if (pendingAsk === o && db.meta.autoListen) listen(); });
     return;
   }
+  // udharo (shop credit): "Ram udharo 500", "Ram le 300 tiryo" — in the shop section, or anywhere when उधारो / udharo is said
+  if (typeof parseCredit === 'function') {
+    const inShop = typeof section !== 'undefined' && section === 'shop';
+    for (const a of alts) { if (!inShop && !/udha|उधार/i.test(a)) continue; const cp = parseCredit(a); if (cp) { flowCredit(cp, voiceMode); return; } }
+  }
   // On the Shop page, amounts without farm words are shop entries ("cash 5000 qr 3000", "नगद ५०००")
   if (typeof view !== 'undefined' && view === 'shop')
     alts = alts.map(a => /\b(kg|kilo|lot|dead|died|feed|dana|chicken|kukhura|masu|live|sold|bought)\b|केजी|किलो|कुखुरा|मासु|मरे|दाना|बेच/i.test(a) ? a : 'shop ' + a);
@@ -801,7 +806,9 @@ function helpHtml(short) {
     ['🏪 Shop amounts', 'cash 5000 QR 3000 goods 2000', 'nagad 4000 qr 2500', 'नगद पाँच हजार क्यूआर तीन हजार सामान दुई हजार'],
     ['Only one', 'QR 2500', 'goods 3000', '5000 (then it asks: cash, QR or goods?)'],
     ['Another day', 'yesterday cash 4000', 'हिजो नगद ४०००'],
-    ['Ask', 'shop today', 'पसल आज कति']
+    ['Ask', 'shop today', 'पसल आज कति'],
+    ['📕 Udharo given', 'Ram udharo 500', 'उधारो राम ५००', 'Sita credit 1200'],
+    ['📗 Paid back', 'Ram le 300 tiryo', 'Sita paid 500 qr']
   ];
   const mrows = [
     ['⚙️ Mill', 'dhan 5 pathi kutani', 'makai 3 pathi pisani', 'गहुँ २ पाथी पिसानी', 'kodo 8 mana pisani qr'],

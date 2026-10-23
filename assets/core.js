@@ -2,7 +2,7 @@
 'use strict';
 
 const HAS_ANDROID = typeof window.Android !== 'undefined';
-const APP_VERSION = '2.13.0';
+const APP_VERSION = '2.14.0';
 
 // ---------- small utils ----------
 const $ = (sel, el) => (el || document).querySelector(sel);
@@ -121,6 +121,7 @@ function recSummary(r) {
     if (r.kind === 'lot') return `Lot ${r.name}`;
     if (r.kind === 'setting') return `Setting: ${r.key}`;
     if (r.kind === 'mill') return `Mill ${typeof millItem === 'function' ? millItem(r.item).ne : r.item} ${r.qty} ${r.unit || 'pathi'}${r.own ? ' (own)' : ' · ' + money(r.amount)}${r.customer ? ' · ' + r.customer : ''}`;
+    if (r.kind === 'credit') return `Udharo ${r.type === 'paid' ? 'paid back by' : 'to'} ${r.person} ${money(r.amount)}${r.note ? ' · ' + r.note : ''}`;
     if (r.kind === 'millcost') return `Mill electricity bill ${money(r.amount)}`;
     if (r.kind === 'calnote') return `Calendar ${r.holiday ? 'holiday' : 'note'}: ${r.text}`;
   } catch (e) {}

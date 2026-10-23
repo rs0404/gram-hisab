@@ -35,6 +35,9 @@ A voice-first Android app for my home farm: 🌾 **Kheti** (fields, crops, kheta
 <td align="center"><img src="docs/screenshots/29-my-machines.png" width="230"><br><sub>🚜 My machines & servicing</sub></td>
 </tr>
 <tr>
+<td align="center"><img src="docs/screenshots/30-udharo.png" width="230"><br><sub>📒 Shop udharo: who owes, how old</sub></td>
+</tr>
+<tr>
 <td align="center"><img src="docs/screenshots/01-home.png" width="230"><br><sub>🐔 Chicken home: today's sales, quick sale</sub></td>
 <td align="center"><img src="docs/screenshots/02-lots.png" width="230"><br><sub>Lot card: birds left, spent, grain in bora</sub></td>
 <td align="center"><img src="docs/screenshots/05-voice-confirm.png" width="230"><br><sub>Voice: "sold 2.5 kg live" → confirm</sub></td>
@@ -84,6 +87,11 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
   - Each field card shows its current crop and investment, and every number opens its entries to edit or delete.
   - Past khetis and the lifetime cost of each field are kept.
 - Reports by season, CSV export, and readable **Fields / Kheti / Kheti work / Workers / Payments / Machines / Inputs / Harvest / Parma** tabs in the Google Sheet.
+
+**📒 उधारो (shop credit)** — its own tab in the 🏪 shop bar
+- Record 📕 **udharo given** or 📗 **paid back** (cash / QR) with person, amount and note; names are remembered.
+- Dashboard: total to receive and how many people, this month given vs received, how old the unpaid udharo is (under 1 month · 1–3 months · over 3 months), and who owes most.
+- Each person: ledger with running balance, + Udharo, Received, ✔ Settle, 📤 share their statement. Voice: "Ram udharo 500", "Ram le 300 tiryo", "उधारो राम ५००".
 
 **⚙️ मिल (Mill)**
 - Its own section in the top bar. **कुटानी** (धान → चामल) and **पिसानी** (मकै, गहुँ, कोदो → पिठो) for customers, each with its **rate per पाथी** (add more kinds in ⚙️ Rates).

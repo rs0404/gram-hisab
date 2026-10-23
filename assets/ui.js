@@ -55,7 +55,7 @@ function render() {
   renderView(view);
 }
 function renderView(v) {
-  ({ mill: renderMill, millreport: renderMillReport, kheti: renderKheti, kwork: renderKWork, kmachines: renderKMachines, workers: renderWorkers, kreports: renderKReports, home: renderHome, sell: renderSell, buy: renderBuy, shop: renderShop, reports: renderReports, settings: renderSettings })[v]();
+  ({ credit: renderCredit, mill: renderMill, millreport: renderMillReport, kheti: renderKheti, kwork: renderKWork, kmachines: renderKMachines, workers: renderWorkers, kreports: renderKReports, home: renderHome, sell: renderSell, buy: renderBuy, shop: renderShop, reports: renderReports, settings: renderSettings })[v]();
   if (typeof addHistPill === 'function') addHistPill('#v-' + v);
 }
 function renderHeader() {
@@ -814,6 +814,7 @@ function renderRecords() {
 function editRec(id) {
   const r = db.records[id];
   if (!r) return;
+  if (r.kind === 'credit') { creditClick('crEdit', { dataset: { id: r.id } }); return; }
   if (r.kind === 'mill') { millClick('millEdit', { dataset: { id: r.id } }); return; }
   if (r.kind === 'millcost') { openMillBill(Object.assign({}, r)); return; }
   if (KHETI_KINDS.includes(r.kind)) { khetiEditRec(r); return; }
@@ -828,12 +829,13 @@ function deleteRec(id, after) {
   if (!r) return;
   const blocked = KHETI_KINDS.includes(r.kind) ? khetiDeleteBlock(r) : '';
   if (blocked) { info("Can't delete yet", `<p>${esc(blocked)}</p>`, '', false); return; }
-  ask({ title: 'Delete this entry?', sub: r.kind === 'mill' || r.kind === 'millcost' ? recSummary(r) : r.kind === 'calnote' ? r.text : KHETI_KINDS.includes(r.kind) ? khetiRecSummary(r) : r.kind === 'sale' ? `${kgs(r.kg)} ${r.type} · ${money(r.amount)} · ${fmtDate(r.date)}` : r.kind === 'purchase' ? `Bought ${purchaseTitle(r)} · ${money(r.amount)}` : r.kind === 'grainsale' ? `Sold grain ${r.grade} · ${money(r.amount)}` : `${lotName(r.lotId)}: ${eventTitle(r)}`,
+  ask({ title: 'Delete this entry?', sub: r.kind === 'mill' || r.kind === 'millcost' || r.kind === 'credit' ? recSummary(r) : r.kind === 'calnote' ? r.text : KHETI_KINDS.includes(r.kind) ? khetiRecSummary(r) : r.kind === 'sale' ? `${kgs(r.kg)} ${r.type} · ${money(r.amount)} · ${fmtDate(r.date)}` : r.kind === 'purchase' ? `Bought ${purchaseTitle(r)} · ${money(r.amount)}` : r.kind === 'grainsale' ? `Sold grain ${r.grade} · ${money(r.amount)}` : `${lotName(r.lotId)}: ${eventTitle(r)}`,
     buttons: [{ label: '🗑 Delete', value: 'yes', cls: 'red' }, { label: 'Keep', value: 'no' }],
     onAnswer: a => {
       if (a !== 'yes') return;
       removeRec(id);
       if (typeof millDraft !== 'undefined' && millDraft && millDraft.id === id) millDraft = null;
+      if (typeof creditDraft !== 'undefined' && creditDraft && creditDraft.id === id) creditDraft = null;
       if (sellDraft && sellDraft.id === id) { sellDraft = newSellDraft(sellDraft); if (view === 'sell') go('records'); }
       if (buyDraft && buyDraft.id === id) { buyDraft = null; if (view === 'buy') go('records'); }
       render(); toast('Deleted', id, true);
@@ -912,6 +914,7 @@ function renderSettings() {
       <p class="small muted" style="margin-top:0">The shop register keeps each day's 💵 cash, 📱 QR (eSewa, Khalti, Fonepay) and 📦 goods bought. It is separate from the chicken accounts.</p>
       ${exp([['shop', 'Shop (CSV)']])}
       <div style="height:8px"></div>
+      <div class="btnrow" style="margin-bottom:8px"><button class="btn" data-act="go" data-view="credit">📒 Udharo</button><button class="btn" data-act="exportCsv" data-v="credit">📄 Udharo (CSV)</button></div>
       <div class="btnrow"><button class="btn" data-act="shareShop">💬 Share shop report</button><button class="btn ghost" data-act="section" data-v="shop">🏪 Open shop</button></div>
     </div>`,
     mill: () => `<h2>⚙️ Mill rates <span class="small muted">per पाथी</span></h2>
@@ -1004,6 +1007,7 @@ function exportCsv(which) {
   let rows, name;
   if (which === 'kheti' || which === 'khetiwork') ({ rows, name } = khetiCsv(which));
   else if (which === 'mill') ({ rows, name } = millCsv());
+  else if (which === 'credit') ({ rows, name } = creditCsv());
   else if (which === 'sales') {
     rows = [['Date (BS)', 'Date (AD)', 'Lot', 'Chicken type', 'Sale type', 'Kg', 'Birds', 'Rate', 'Amount', 'Invoice', 'Flag', 'Note', 'Phone']];
     all('sale').sort((a, b) => a.date.localeCompare(b.date)).forEach(r => rows.push([bsIso(r.date), r.date, lotName(r.lotId), breedName(r.breed || lotBreed(lotById(r.lotId))), r.type, r.kg, r.birds || '', r.rate, r.amount, r.invoice || '', r.flag ? 'FLAG' : '', r.note || '', r.device || '']));
@@ -1090,6 +1094,7 @@ function setBsDraftDate(key, ad) {
   else if (key === 'ev' && eventDraft) eventDraft.date = ad;
   else if (key === 'lot' && lotDraft) { lotDraft.startDate = ad; updateLotAutoName(); }
   else if (key === 'buy' && buyDraft) buyDraft.date = ad;
+  else if (key === 'credit' && creditDraft) { $$('#creditForm [data-cr]').forEach(el => { creditDraft[el.dataset.cr] = el.value; }); creditDraft.date = ad; renderCredit(); }
   else if (key === 'cut' && cutDraft) { readCutForm(); cutDraft.date = ad; }
   else if (key === 'mill' && millDraft) { $$('#millForm [data-ml]').forEach(el => { millDraft[el.dataset.ml] = el.value; }); millDraft.date = ad; renderMill(); }
   else if (key === 'millbill') millBillDate = ad;
@@ -1394,7 +1399,7 @@ document.addEventListener('click', e => {
   if (!b) return;
   const act = b.dataset.act, id = b.dataset.id, v = b.dataset.v;
   if (b.tagName === 'A') e.preventDefault();
-  if (khetiClick(act, b) || calendarClick(act, b) || machinesClick(act, b) || millClick(act, b) || cutClick(act, b) || listClick(act, b)) return;
+  if (khetiClick(act, b) || calendarClick(act, b) || machinesClick(act, b) || millClick(act, b) || cutClick(act, b) || listClick(act, b) || creditClick(act, b)) return;
   switch (act) {
     case 'go': closeSheet(); go(b.dataset.view); break;
     case 'mic': if (listening) cancelListening(); else listen(); break;

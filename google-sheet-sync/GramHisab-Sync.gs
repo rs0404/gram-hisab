@@ -147,6 +147,20 @@ function rebuildReadable_(ss, data) {
   write_(ss, 'Lots', ['Lot', 'Chicken type', 'Start (BS)', 'Start (AD)', 'Status', 'Chicks', 'Dead', 'Sold live', 'Cut', 'Left', 'Live kg', 'Meat kg', 'Sales Rs', 'Costs Rs', 'Profit Rs'], lotRows);
   rebuildKheti_(ss, recs);
   rebuildMill_(ss, recs);
+  rebuildCredit_(ss, recs);
+}
+
+// ---------- 📒 Udharo (shop credit) tab ----------
+function rebuildCredit_(ss, recs) {
+  const list = recs.filter(r => r.kind === 'credit').sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  if (!list.length) return;
+  const bal = {}, run = {};
+  const rows = list.map(r => { const k = String(r.person || '').trim().toLowerCase(), a = (r.type === 'paid' ? -1 : 1) * (Number(r.amount) || 0);
+    run[k] = (run[k] || 0) + a; bal[k] = { name: bal[k] ? bal[k].name : r.person, bal: run[k] };
+    return [r.bs || '', r.date, r.person || '', r.type === 'paid' ? 'Paid back' : 'Udharo', a, r.pay || '', run[k], r.note || '', r.by || '']; }).reverse();
+  const people = Object.keys(bal).map(k => [bal[k].name, bal[k].bal]).filter(x => Math.abs(x[1]) > 0.5).sort((a, b) => b[1] - a[1]);
+  write_(ss, 'Udharo', ['Date (BS)', 'Date (AD)', 'Person', 'Type', 'Amount', 'Pay', 'Balance after', 'Note', 'Entered by'], rows);
+  write_(ss, 'Udharo balances', ['Person', 'Owes Rs'], people);
 }
 
 // ---------- ⚙️ Mill tab ----------
