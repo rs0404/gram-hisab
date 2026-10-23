@@ -107,20 +107,25 @@ function families() {
 }
 
 // ---------- money of one labour day ----------
-function fworkAmount(r) {
-  const named = (r.workers || []).reduce((a, w) => a + (Number(w.rate) || 0), 0);
+// own household members (worker.own) are not paid: their days count as "family work value", not wages
+const isOwn = id => { const w = workerById(id); return !!(w && w.own); };
+function fworkAmount(r) {   // wages to pay
+  const named = (r.workers || []).filter(w => !isOwn(w.workerId)).reduce((a, w) => a + (Number(w.rate) || 0), 0);
   return named + (Number(r.extraFull) || 0) * (Number(r.rateFull) || 0) + (Number(r.extraHalf) || 0) * (Number(r.rateHalf) || 0);
+}
+function fworkFamily(r) {   // value of the household's own work that day
+  return (r.workers || []).filter(w => isOwn(w.workerId)).reduce((a, w) => a + (Number(w.rate) || 0), 0);
 }
 const shiftDays = s => s === 'half' ? 0.5 : 1;
 
 // ---------- all Kheti numbers in one pass ----------
 function computeKheti() {
   const K = {}, F = {}, W = {}, P = {};
-  const blank = () => ({ labour: 0, labourFull: 0, labourHalf: 0, parmaDays: 0, machineHire: 0, machineHours: 0, fuelCost: 0, petrol: 0, diesel: 0,
+  const blank = () => ({ labour: 0, labourFull: 0, labourHalf: 0, family: 0, familyFull: 0, familyHalf: 0, parmaDays: 0, machineHire: 0, machineHours: 0, fuelCost: 0, petrol: 0, diesel: 0,
     seed: 0, fert: 0, total: 0, harvestKg: {}, harvestUnits: {}, entries: 0, lastDate: '' });
   khetis().forEach(k => { K[k.id] = Object.assign(blank(), { kheti: k }); });
   fields().forEach(f => { F[f.id] = { field: f, lifetime: 0, khetis: 0 }; });
-  workers().forEach(w => { W[w.id] = { worker: w, earned: 0, paid: 0, fullDays: 0, halfDays: 0, last: '' }; });
+  workers().forEach(w => { W[w.id] = { worker: w, own: !!w.own, earned: 0, paid: 0, fullDays: 0, halfDays: 0, last: '' }; });
   const fam = name => P[name] || (P[name] = { family: name, came: 0, went: 0 });
   for (const id in db.records) {
     const r = db.records[id];
@@ -134,9 +139,11 @@ function computeKheti() {
       });
       (r.parma || []).forEach(p => { if (p.family) fam(p.family).came += (Number(p.full) || 0) + (Number(p.half) || 0) * 0.5; });
       if (k) {
-        k.labour += amt; k.entries++;
-        k.labourFull += (r.workers || []).filter(x => x.shift !== 'half').length + (Number(r.extraFull) || 0);
-        k.labourHalf += (r.workers || []).filter(x => x.shift === 'half').length + (Number(r.extraHalf) || 0);
+        k.labour += amt; k.family += fworkFamily(r); k.entries++;
+        const paidW = (r.workers || []).filter(x => !isOwn(x.workerId)), ownW = (r.workers || []).filter(x => isOwn(x.workerId));
+        k.labourFull += paidW.filter(x => x.shift !== 'half').length + (Number(r.extraFull) || 0);
+        k.labourHalf += paidW.filter(x => x.shift === 'half').length + (Number(r.extraHalf) || 0);
+        k.familyFull += ownW.filter(x => x.shift !== 'half').length; k.familyHalf += ownW.filter(x => x.shift === 'half').length;
         k.parmaDays += (r.parma || []).reduce((a, p) => a + (Number(p.full) || 0) + (Number(p.half) || 0) * 0.5, 0);
         if (r.date > k.lastDate) k.lastDate = r.date;
       }
@@ -160,7 +167,9 @@ function computeKheti() {
     }
   }
   Object.values(K).forEach(k => {
-    k.total = k.labour + k.machineHire + k.fuelCost + k.seed + k.fert;
+    k.cash = k.labour + k.machineHire + k.fuelCost + k.seed + k.fert;      // money actually spent
+    k.includeFamily = !!k.kheti.includeFamily;                           // the per-kheti toggle
+    k.total = k.cash + (k.includeFamily ? k.family : 0);
     const main = mainCrop(k.kheti);
     k.mainKg = k.harvestKg[main] || 0;
     k.costPerKg = k.mainKg ? k.total / k.mainKg : 0;
@@ -168,7 +177,7 @@ function computeKheti() {
     const f = F[k.kheti.fieldId];
     if (f) { f.lifetime += k.total; f.khetis++; }
   });
-  Object.values(W).forEach(w => { w.due = round(w.earned - w.paid, 2); });
+  Object.values(W).forEach(w => { w.due = w.own ? 0 : round(w.earned - w.paid, 2); });
   Object.values(P).forEach(p => { p.balance = round(p.came - p.went, 2); }); // > 0: we owe them days
   return { K, F, W, P };
 }

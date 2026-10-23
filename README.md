@@ -61,9 +61,11 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
 - **One main crop plus aali crops** (आली), e.g. Dhaan with Maas and Masuro on the bunds. The built-in list covers grains, pulses, cash crops and vegetables, and you can add your own.
 - **Labour:** each work type has its own **full-day and half-day rate**. Built-in types include goru jotne, tractor jotne, bause, lathe, aali lagaune, byad, ropai, godmel, mal halne, sinchai, dawai, katne, bhari, dain, sukaune and aalu khanne; you can add more.
   - On a work day you tap the named khetala (full → half) and/or type counts of others, plus **parma** (परमा) families.
-- **Workers book:** name, family (ghar), phone.
+- **Workers book (👷 Workers in the Kheti bar):** name, family (ghar), phone, grouped by family.
   - 📇 Pick a worker from your phone contacts, 💾 save one to contacts, 📞 call, or 📤 share.
   - Each worker has an account (earned − paid = due) with **Pay**, **Settle** and a shareable statement.
+- **🏠 My own household (आफ्नै परिवार):** mark family members who work in the fields. Their days are recorded and valued at the normal rate, but never shown as wages due.
+  - Each crop has a **🏠 Family work in cost** switch to count that value in the crop's cost (and cost per kg), or to keep only the money actually spent.
 - **Parma balance per family:** days they came to help, minus days we went to theirs.
 - **Machines:** hired tractor (hours × rate), own tractor, power tiller, water pump, thresher/harvester, with **petrol/diesel litres and cost**.
 - **Seed** by kg, **mana, pathi**, bora or packet.
@@ -117,6 +119,7 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
 **🏪 Shop register**
 - Daily **cash**, **QR** (eSewa, Khalti, Fonepay) and **goods bought**.
 - Reports: daily (31 days), weekly (12 weeks), monthly (12 Nepali months), with averages.
+- **🐔 Take chicken sales out:** chicken money is collected at the same counter, so a switch shows the shop's own amount (collected − chicken sales, only on days the shop was recorded).
 
 **Voice (English and Nepali)**
 - Tap 🎤 and speak. The app shows what it heard, asks "Save?", and you answer by voice or by tapping.

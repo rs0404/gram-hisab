@@ -43,6 +43,12 @@ function kToggle(id) {
   if (l.includes(id)) l = l.filter(x => x !== id); else { l.push(id); while (l.length > 3) l.shift(); }
   db.meta.kOpen = l; persist();
 }
+// 🏠 switch: count the household's own work (at normal rates) in this crop's cost, or not
+function famToggleHtml(k) {
+  if (!workers().some(w => w.own) && !k.family) return '';
+  return `<label class="switch kfam" style="padding:8px 0 2px"><span><b>🏠 Family work in cost</b><br><span class="small muted">${nfmt(k.familyFull + k.familyHalf * 0.5)} din · value ${money(k.family)} · ${k.includeFamily ? 'counted in total' : 'not counted'}</span></span>
+    <input type="checkbox" data-act="kFamToggle" data-id="${k.kheti.id}" ${k.includeFamily ? 'checked' : ''}></label>`;
+}
 function fieldCard(f, S) {
   const cur = currentKheti(f.id), k = cur ? S.K[cur.id] : null, area = fmtAreaBoth(f.areaM2 || 0);
   const open = kOpenIds().includes(f.id);
@@ -62,8 +68,9 @@ function fieldCard(f, S) {
         ${st('input', shortMoney(k.seed + k.fert), '🌱 Seed + मल')}
         ${st('parma', nfmt(k.parmaDays), '🤝 Parma din')}
         ${st('fuel', nfmt(round(k.petrol + k.diesel, 1)) + ' L', '⛽ Fuel')}
-        ${st('all', shortMoney(k.total), '💰 Total Rs', 'var(--red-l)')}
+        ${st('all', shortMoney(k.total), k.includeFamily && k.family ? '💰 Total + 🏠' : '💰 Total Rs', 'var(--red-l)')}
       </div>
+      ${famToggleHtml(k)}
       ${harvestText(k) ? `<div class="small" style="margin-top:8px" data-act="kEntries" data-id="${cur.id}" data-v="harvest">🌾 <b>Harvest:</b> ${esc(harvestText(k))}${k.costPerKg ? ` · cost ${money(k.costPerKg)}/kg` : ''} ›</div>` : ''}
       <div class="kacts">
         <button class="btn sm primary" data-act="kWork" data-id="${cur.id}">👷<br>Work</button>
@@ -197,7 +204,7 @@ function renderWorkForm() {
     <div class="field"><label>Work</label><div class="chips">${workTypes().map(w => kChip('kfWork', w.id, d.workType === w.id, esc(w.ne))).join('')}</div></div>
     <div class="grid2">${kNum('rateFull', 'Rate full day Rs', d.rateFull)}${kNum('rateHalf', 'Rate half day Rs', d.rateHalf)}</div>
     <div class="field"><label>Khetala who worked <span class="muted">(tap: — → full → half)</span></label>
-      <div class="chips">${ws.filter(w => w.active !== false).map(w => { const s = shiftOf(w.id); return `<button class="chip sm ${s ? 'on' : ''}" data-act="kfWorker" data-id="${w.id}">${esc(w.name)}${s ? ' · ' + (s === 'half' ? '½' : 'पूरा') : ''}</button>`; }).join('') || '<span class="muted small">No workers yet — add them in 👷 Workers, or use the counts below.</span>'}
+      <div class="chips">${ws.filter(w => w.active !== false).map(w => { const s = shiftOf(w.id); return `<button class="chip sm ${s ? 'on' : ''}" data-act="kfWorker" data-id="${w.id}">${w.own ? '🏠 ' : ''}${esc(w.name)}${s ? ' · ' + (s === 'half' ? '½' : 'पूरा') : ''}</button>`; }).join('') || '<span class="muted small">No workers yet — add them in 👷 Workers, or use the counts below.</span>'}
       <button class="chip sm" data-act="kAddWorker" data-v="work">+ New</button></div></div>
     <div class="grid2">${kNum('extraFull', 'Other khetala full', d.extraFull, '0', 'int')}${kNum('extraHalf', 'Other khetala half', d.extraHalf, '0', 'int')}</div>
     <div class="field"><label>🤝 Parma (came to help)</label>
@@ -221,8 +228,8 @@ function workDraftRec() {
     workers: (d.workers || []).map(w => ({ workerId: w.workerId, shift: w.shift, rate: w.shift === 'half' ? rh : rf })) });
 }
 function workHint() {
-  const r = workDraftRec(), n = r.workers.length + r.extraFull + r.extraHalf;
-  return `${n} khetala (${r.workers.filter(w => w.shift !== 'half').length + r.extraFull} full, ${r.workers.filter(w => w.shift === 'half').length + r.extraHalf} half)`;
+  const r = workDraftRec(), paid = r.workers.filter(w => !isOwn(w.workerId)), fam = r.workers.length - paid.length, n = paid.length + r.extraFull + r.extraHalf;
+  return `${n} khetala (${paid.filter(w => w.shift !== 'half').length + r.extraFull} full, ${paid.filter(w => w.shift === 'half').length + r.extraHalf} half)${fam ? ` · 🏠 ${fam} family (${money(fworkFamily(r))}, not paid)` : ''}`;
 }
 function updWorkTotal() { kRead(); workReadParma(); const t = $('#kwTotal'), h = $('#kwHint'); if (t) t.textContent = money(fworkAmount(workDraftRec())); if (h) h.textContent = workHint(); }
 function saveWorkForm() {
@@ -342,14 +349,22 @@ function saveHarvestForm() {
 // ================= WORKERS & SETTLEMENT =================
 function renderWorkers() {
   const S = computeKheti(), ws = workers();
-  const byFam = {};
-  ws.forEach(w => { (byFam[w.family || '—'] = byFam[w.family || '—'] || []).push(w); });
+  const byFam = {}, own = ws.filter(w => w.own);
+  ws.filter(w => !w.own).forEach(w => { (byFam[w.family || '—'] = byFam[w.family || '—'] || []).push(w); });
+  const famValue = own.reduce((a, w) => a + S.W[w.id].earned, 0);
   const dueTotal = Object.values(S.W).reduce((a, w) => a + Math.max(0, w.due), 0);
   const parma = Object.values(S.P).filter(p => p.came || p.went).sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance));
   $('#v-workers').innerHTML = `
     <div class="card"><div class="row between"><div><div class="label">👷 Wages still to pay</div><div class="huge" style="color:var(--red)">${money(dueTotal)}</div></div>
       <div style="text-align:right"><button class="btn primary" data-act="kAddWorker">+ Worker</button><div style="height:6px"></div><button class="btn sm ghost" data-act="kPickContact">📇 From contacts</button></div></div></div>
-    ${ws.length ? Object.keys(byFam).sort().map(f => `<h3>🏠 ${esc(f)}</h3>${byFam[f].map(w => { const x = S.W[w.id]; return `<button class="item" data-act="kWorker" data-id="${w.id}">
+    <div class="row between" style="margin-top:6px"><h3 style="margin:0">🏠 आफ्नै परिवार <span class="small muted">· my household</span></h3><button class="btn sm ghost" data-act="kAddWorker" data-v="own">+ Member</button></div>
+    ${own.length ? own.map(w => { const x = S.W[w.id]; return `<button class="item" data-act="kWorker" data-id="${w.id}">
+      <div class="ic" style="background:var(--amber-l)">🏠</div><div class="mid"><div class="t">${esc(w.name)}</div><div class="s">${x.fullDays} full + ${x.halfDays} half · not paid</div></div>
+      <div class="amt">${money(x.earned)}<div class="small muted">work value</div></div></button>`; }).join('')
+      : '<p class="small muted">Add the people of your own home who work in the fields. Their days are recorded and valued at the normal rate, but never shown as wages due. Each crop has a switch to count this value in its cost or not.</p>'}
+    ${own.length ? `<p class="small muted" style="margin-top:-4px">Family work value: ${money(famValue)}</p>` : ''}
+    <h3>👷 Hired khetala</h3>
+    ${ws.some(w => !w.own) ? Object.keys(byFam).sort().map(f => `<h3>🏠 ${esc(f)}</h3>${byFam[f].map(w => { const x = S.W[w.id]; return `<button class="item" data-act="kWorker" data-id="${w.id}">
       <div class="ic" style="background:var(--green-l)">👷</div><div class="mid"><div class="t">${esc(w.name)}</div><div class="s">${esc(w.phone || 'no number')} · ${x.fullDays} full + ${x.halfDays} half · earned ${money(x.earned)}</div></div>
       <div class="amt" style="color:${x.due > 0 ? 'var(--red)' : 'var(--green)'}">${x.due > 0 ? money(x.due) + '<div class="small muted">due</div>' : x.earned ? '✓ settled' : '<span class="small muted">no work yet</span>'}</div></button>`; }).join('')}`).join('')
       : '<div class="card empty"><div class="e">👷</div><p>No workers yet. Add khetala by name (or pick from your contacts).</p></div>'}
@@ -358,11 +373,12 @@ function renderWorkers() {
     <button class="btn big ghost" data-act="kParmaOut">🤝 We worked for a family (parma tirne)</button>`;
 }
 function openWorkerForm(w, back) {
-  kDraft = Object.assign({ kind: 'worker', name: '', family: '', phone: '', village: '', note: '', active: true, back }, w || {});
+  kDraft = Object.assign({ kind: 'worker', name: '', family: back === 'own' ? 'आफ्नै परिवार' : '', own: back === 'own', phone: '', village: '', note: '', active: true, back }, w || {});
   const d = kDraft;
   openSheet(`<h2>${d.id ? '✎ Worker' : '+ New worker (खेताला)'}</h2><div id="kForm">
     <button class="btn ghost" style="width:100%;margin-bottom:10px" data-act="kPickContact">📇 Pick from phone contacts</button>
     <div class="field"><label>Name</label><input data-k="name" value="${esc(d.name)}" placeholder="e.g. Ram Bahadur" autocomplete="off"></div>
+    <label class="switch" style="margin-bottom:8px"><span><b>🏠 My own household (आफ्नै परिवार)</b><br><span class="small muted">Not paid wages; their work is counted as family work</span></span><input type="checkbox" data-k="own" ${d.own ? 'checked' : ''}></label>
     <div class="field"><label>Family / ghar (थर)</label><input data-k="family" list="kFams2" value="${esc(d.family || '')}" placeholder="e.g. Thapa ghar" autocomplete="off">
       <datalist id="kFams2">${families().map(f => `<option value="${esc(f)}">`).join('')}</datalist></div>
     <div class="field"><label>Phone</label><input data-k="phone" type="tel" inputmode="tel" value="${esc(d.phone || '')}" placeholder="98XXXXXXXX"></div>
@@ -383,10 +399,10 @@ function saveWorkerForm() {
   kRead();
   const d = kDraft;
   if (!String(d.name || '').trim()) { toast('Type the name'); return; }
-  const rec = { kind: 'worker', name: String(d.name).trim(), family: String(d.family || '').trim(), phone: String(d.phone || '').trim(), village: String(d.village || '').trim(), note: '', active: true };
+  const rec = { kind: 'worker', name: String(d.name).trim(), family: String(d.family || '').trim() || (d.own ? 'आफ्नै परिवार' : ''), own: !!d.own, phone: String(d.phone || '').trim(), village: String(d.village || '').trim(), note: '', active: true };
   if (d.id) { rec.id = d.id; rec.createdAt = d.createdAt; }
   put(rec);
-  toast(`Worker ${rec.name} saved ✓`);
+  toast(`${rec.own ? '🏠 Household member' : 'Worker'} ${rec.name} saved ✓`);
   if (d.back === 'work' && kDraft) { closeSheet(); render(); openWorkForm(null); return; }
   closeSheet(); render();
 }
@@ -397,16 +413,20 @@ function openWorkerAccount(id) {
   all('fwork').forEach(r => (r.workers || []).forEach(y => { if (y.workerId === id) lines.push({ date: r.date, t: 'work', text: `${workById(r.workType).ne} · ${khetiById(r.khetiId) ? khetiTitle(khetiById(r.khetiId)) : ''} · ${y.shift === 'half' ? 'half' : 'full'}`, amt: Number(y.rate) || 0, id: r.id }); }));
   all('fpay').filter(p => p.workerId === id).forEach(p => lines.push({ date: p.date, t: 'pay', text: `Paid${p.method ? ' (' + p.method + ')' : ''}${p.note ? ' · ' + p.note : ''}`, amt: -(Number(p.amount) || 0), id: p.id }));
   lines.sort((a, b) => b.date.localeCompare(a.date));
-  openSheet(`<h2>👷 ${esc(workerLabel(w))}</h2>
+  openSheet(`<h2>${w.own ? '🏠' : '👷'} ${esc(workerLabel(w))}</h2>
     <div class="row wrap" style="gap:6px;margin-bottom:10px">
       ${w.phone ? `<button class="btn sm" data-act="kCall" data-v="${esc(w.phone)}">📞 Call</button><button class="btn sm" data-act="kSaveContact" data-id="${w.id}">💾 Save to contacts</button>` : ''}
       <button class="btn sm" data-act="kShareContact" data-id="${w.id}">📤 Share</button><button class="btn sm ghost" data-act="kEditWorker" data-id="${w.id}">✎ Edit</button></div>
-    <div class="summary">
+    ${x.own ? `<div class="summary">
+      <div class="line"><span>🏠 Household member</span><b>not paid</b></div>
+      <div class="line"><span>Worked</span><b>${x.fullDays} full + ${x.halfDays} half</b></div>
+      <div class="line"><span><b>Work value</b> (at normal rates)</span><b style="font-size:22px">${money(x.earned)}</b></div></div>
+      <div class="btnrow"><button class="btn ghost" data-act="kShareStatement" data-id="${w.id}">📤 Statement</button></div>` : `<div class="summary">
       <div class="line"><span>Worked</span><b>${x.fullDays} full + ${x.halfDays} half</b></div>
       <div class="line"><span>Earned</span><b>${money(x.earned)}</b></div>
       <div class="line"><span>Paid</span><b style="color:var(--green)">${money(x.paid)}</b></div>
       <div class="line"><span><b>Due</b></span><b style="font-size:24px;color:${x.due > 0 ? 'var(--red)' : 'var(--green)'}">${money(x.due)}</b></div></div>
-    <div class="btnrow"><button class="btn green" data-act="kPay" data-id="${w.id}">💵 Pay</button>${x.due > 0 ? `<button class="btn primary" data-act="kSettle" data-id="${w.id}">✔ Settle ${money(x.due)}</button>` : ''}<button class="btn ghost" data-act="kShareStatement" data-id="${w.id}">📤 Statement</button></div>
+    <div class="btnrow"><button class="btn green" data-act="kPay" data-id="${w.id}">💵 Pay</button>${x.due > 0 ? `<button class="btn primary" data-act="kSettle" data-id="${w.id}">✔ Settle ${money(x.due)}</button>` : ''}<button class="btn ghost" data-act="kShareStatement" data-id="${w.id}">📤 Statement</button></div>`}
     <h3>Statement</h3>
     ${lines.length ? `<div class="summary small">${lines.map(l => `<div class="line" data-act="editRec" data-id="${l.id}"><span>${fmtDate(l.date)} · ${esc(l.text)}</span><b style="white-space:nowrap;color:${l.t === 'pay' ? 'var(--green)' : 'inherit'}">${l.t === 'pay' ? '−' : ''}${money(Math.abs(l.amt))}</b></div>`).join('')}</div>` : '<p class="muted">No work or payments yet.</p>'}
     <div style="height:10px"></div><button class="btn big primary" data-act="closeSheet">Close</button>`);
@@ -417,7 +437,7 @@ function workerStatementText(id) {
   all('fwork').forEach(r => (r.workers || []).forEach(y => { if (y.workerId === id) lines.push([r.date, `${workById(r.workType).ne} ${y.shift === 'half' ? '(½)' : ''}`, money(y.rate)]); }));
   all('fpay').filter(p => p.workerId === id).forEach(p => lines.push([p.date, 'भुक्तानी Paid', '−' + money(p.amount)]));
   lines.sort((a, b) => a[0].localeCompare(b[0]));
-  return [`👷 ${workerLabel(w)} — ग्राम हिसाब`, ...lines.map(l => `${fmtDate(l[0], true)} · ${l[1]} · ${l[2]}`), '', `Earned ${money(x.earned)} · Paid ${money(x.paid)} · Due ${money(x.due)}`].join('\n');
+  return [`${x.own ? '🏠' : '👷'} ${workerLabel(w)} — ग्राम हिसाब`, ...lines.map(l => `${fmtDate(l[0], true)} · ${l[1]} · ${l[2]}`), '', x.own ? `Work value ${money(x.earned)} (household, not paid)` : `Earned ${money(x.earned)} · Paid ${money(x.paid)} · Due ${money(x.due)}`].join('\n');
 }
 function openPayForm(id, amount) {
   const w = workerById(id), due = computeKheti().W[id].due;
@@ -468,7 +488,7 @@ function renderKWork() {
 function kItemHtml(r) {
   let ic = '•', t = '', s = '', amt = '';
   const kt = r.khetiId && khetiById(r.khetiId) ? khetiTitle(khetiById(r.khetiId)) : '';
-  if (r.kind === 'fwork') { ic = '👷'; t = `${workById(r.workType).ne} · ${(r.workers || []).length + (r.extraFull || 0) + (r.extraHalf || 0)} khetala${(r.parma || []).length ? ' + parma' : ''}`; s = kt; amt = money(r.amount || fworkAmount(r)); }
+  if (r.kind === 'fwork') { ic = '👷'; t = `${workById(r.workType).ne} · ${(r.workers || []).length + (r.extraFull || 0) + (r.extraHalf || 0)} khetala${(r.parma || []).length ? ' + parma' : ''}`; s = kt; amt = money(fworkAmount(r)); }
   else if (r.kind === 'machine') { const m = MACHINES[r.type] || {}; ic = m.icon || '🚜'; t = `${m.en || r.type}${r.hours ? ' · ' + nfmt(r.hours) + ' hr' : ''}${r.litres ? ' · ' + nfmt(r.litres) + ' L ' + r.fuel : ''}`; s = kt; amt = money((r.hireAmount || 0) + (r.fuelCost || 0)); }
   else if (r.kind === 'finput') { ic = r.type === 'seed' ? '🌱' : '🧪'; t = `${r.item}${r.qty ? ' · ' + nfmt(r.qty) + ' ' + r.unit : ''}`; s = kt; amt = money(r.cost); }
   else if (r.kind === 'harvest') { ic = '🌾'; t = `${cropById(r.crop).ne} ${nfmt(r.qty)} ${r.unit} (≈ ${nfmt(round(r.kg || harvestKg(r)))} kg)`; s = kt; }
@@ -493,9 +513,11 @@ function openKhetiEntries(khetiId, key) {
       <div class="line"><span>⛽ Fuel (petrol ${nfmt(S.petrol)} L · diesel ${nfmt(S.diesel)} L)</span><b>${money(S.fuelCost)}</b></div>
       <div class="line"><span>🌱 Seed</span><b>${money(S.seed)}</b></div>
       <div class="line"><span>🧪 Fertilizer</span><b>${money(S.fert)}</b></div>
-      <div class="line"><span><b>Total investment</b></span><b style="font-size:20px;color:var(--red)">${money(S.total)}</b></div>
+      ${S.family || workers().some(w => w.own) ? `<div class="line"><span>🏠 Family work (${nfmt(S.familyFull)} full, ${nfmt(S.familyHalf)} half)${S.includeFamily ? '' : ' <span class="muted">— not counted</span>'}</span><b style="${S.includeFamily ? '' : 'color:var(--muted);text-decoration:line-through'}">${money(S.family)}</b></div>` : ''}
+      <div class="line"><span><b>Total investment</b>${S.includeFamily && S.family ? '<br><span class="muted">money spent ' + money(S.cash) + ' + family work ' + money(S.family) + '</span>' : ''}</span><b style="font-size:20px;color:var(--red)">${money(S.total)}</b></div>
       ${harvestText(S) ? `<div class="line"><span style="white-space:nowrap">🌾 Harvest</span><b style="text-align:right">${esc(harvestText(S))}</b></div>` : ''}
       ${S.costPerKg ? `<div class="line"><span>Cost per kg ${esc(cropById(mainCrop(k)).ne)}</span><b>${money(S.costPerKg)}</b></div>` : ''}</div>
+    ${famToggleHtml(S)}
     <p class="small muted">Tap an entry to edit, 🗑 to delete a mistake. Every change is logged.</p>
     ${list.length ? list.map(r => `<div class="row" style="gap:6px;align-items:stretch">${kItemHtml(r).replace('class="item"', 'class="item" style="flex:1;min-width:0;width:auto;margin-bottom:6px"')}
       <button class="btn redl" style="margin-bottom:6px;min-width:48px;padding:0 10px" data-act="kDeleteEntry" data-id="${r.id}" data-k="${khetiId}" data-v="${key}">🗑</button></div>`).join('') : '<p class="muted">No entries here yet.</p>'}
@@ -515,13 +537,15 @@ function renderKReports() {
       <div class="grid3" style="margin-top:10px"><div class="stat"><b>${shortMoney(sum('labour'))}</b><span>Labour</span></div><div class="stat"><b>${shortMoney(sum('machineHire') + sum('fuelCost'))}</b><span>Machine+fuel</span></div><div class="stat"><b>${shortMoney(sum('seed') + sum('fert'))}</b><span>Seed+मल</span></div></div></div>
     <div class="summary small">
       <div class="line"><span>Khetala days</span><b>${nfmt(sum('labourFull'))} full · ${nfmt(sum('labourHalf'))} half</b></div>
+      ${sum('family') ? `<div class="line"><span>🏠 Family work</span><b>${nfmt(sum('familyFull'))} full · ${nfmt(sum('familyHalf'))} half · ${money(sum('family'))}</b></div>
+      <div class="line"><span>Money spent (without family work)</span><b>${money(sum('cash'))}</b></div>` : ''}
       <div class="line"><span>Parma days</span><b>${nfmt(sum('parmaDays'))}</b></div>
       <div class="line"><span>Machine hours</span><b>${nfmt(sum('machineHours'))} hr</b></div>
       <div class="line"><span>Fuel</span><b>Petrol ${nfmt(round(sum('petrol'), 1))} L · Diesel ${nfmt(round(sum('diesel'), 1))} L</b></div></div>
     <h3>By kheti</h3>
     ${ks.length ? ks.map(k => `<button class="item" data-act="kOpenKheti" data-id="${k.kheti.id}" style="align-items:flex-start">
       <div class="ic" style="background:var(--green-l)">${k.kheti.status === 'done' ? '✅' : '🌱'}</div>
-      <div class="mid"><div class="t">${esc(khetiTitle(k.kheti))}</div><div class="s">${esc(seasonLabel(k.kheti.season))} · labour ${money(k.labour)} · machine ${money(k.machineHire + k.fuelCost)} · seed+मल ${money(k.seed + k.fert)}<br>${esc(harvestText(k) || 'no harvest yet')}${k.costPerKg ? ' · ' + money(k.costPerKg) + '/kg' : ''}</div></div>
+      <div class="mid"><div class="t">${esc(khetiTitle(k.kheti))}</div><div class="s">${esc(seasonLabel(k.kheti.season))} · labour ${money(k.labour)} · machine ${money(k.machineHire + k.fuelCost)} · seed+मल ${money(k.seed + k.fert)}${k.family ? ` · 🏠 ${money(k.family)}${k.includeFamily ? '' : ' (not counted)'}` : ''}<br>${esc(harvestText(k) || 'no harvest yet')}${k.costPerKg ? ' · ' + money(k.costPerKg) + '/kg' : ''}</div></div>
       <div class="amt" style="color:var(--red)">${money(k.total)}</div></button>`).join('') : '<p class="muted">No kheti yet.</p>'}
     <div class="grid2" style="margin-top:10px"><button class="btn" data-act="exportCsv" data-v="kheti">📄 Kheti (CSV)</button><button class="btn" data-act="exportCsv" data-v="khetiwork">📄 Work log (CSV)</button></div>`;
 }
@@ -587,7 +611,7 @@ function khetiRecSummary(r) {
     case 'field': return `Field ${r.name} · ${fmtArea(r.areaM2 || 0, landSystem(), 'ne')}`;
     case 'kheti': return `Kheti ${khetiTitle(r)}`;
     case 'worker': return `Worker ${workerLabel(r)}`;
-    case 'fwork': return `${kt}: ${workById(r.workType).ne} · ${money(r.amount || fworkAmount(r))}`;
+    case 'fwork': return `${kt}: ${workById(r.workType).ne} · ${money(fworkAmount(r))}`;
     case 'fpay': return `Paid ${workerLabel(workerById(r.workerId))} ${money(r.amount)}`;
     case 'parmaout': return `Parma for ${r.family} · ${nfmt((r.full || 0) + (r.half || 0) * 0.5)} din`;
     case 'machine': return `${kt}: ${(MACHINES[r.type] || {}).en || r.type} ${r.hours ? nfmt(r.hours) + ' hr' : ''} · ${money((r.hireAmount || 0) + (r.fuelCost || 0))}`;
@@ -637,14 +661,14 @@ function khetiDeleteBlock(r) {
 function khetiCsv(which) {
   const S = computeKheti();
   if (which === 'kheti') {
-    const rows = [['Field', 'Area (m²)', 'Area', 'Main crop', 'Aali crops', 'Variety', 'Season', 'Planted (BS)', 'Status', 'Labour', 'Full days', 'Half days', 'Parma days', 'Machine hire', 'Machine hours', 'Fuel cost', 'Petrol L', 'Diesel L', 'Seed', 'Fertilizer', 'Total cost', 'Harvest', 'Main crop kg', 'Cost per kg']];
-    Object.values(S.K).forEach(k => { const x = k.kheti, f = fieldById(x.fieldId) || {}; rows.push([f.name || '', round(f.areaM2 || 0), fmtArea(f.areaM2 || 0, landSystem(), 'en'), cropById(mainCrop(x)).en, (x.crops || []).filter(c => c.role === 'aali').map(c => cropById(c.crop).en).join(' + '), x.variety || '', x.season || '', bsIso(x.plantDate), x.status || '', round(k.labour), k.labourFull, k.labourHalf, k.parmaDays, round(k.machineHire), k.machineHours, round(k.fuelCost), k.petrol, k.diesel, round(k.seed), round(k.fert), round(k.total), harvestText(k), round(k.mainKg), round(k.costPerKg, 2)]); });
+    const rows = [['Field', 'Area (m²)', 'Area', 'Main crop', 'Aali crops', 'Variety', 'Season', 'Planted (BS)', 'Status', 'Labour (paid)', 'Full days', 'Half days', 'Family work value', 'Family work counted', 'Parma days', 'Machine hire', 'Machine hours', 'Fuel cost', 'Petrol L', 'Diesel L', 'Seed', 'Fertilizer', 'Total cost', 'Harvest', 'Main crop kg', 'Cost per kg']];
+    Object.values(S.K).forEach(k => { const x = k.kheti, f = fieldById(x.fieldId) || {}; rows.push([f.name || '', round(f.areaM2 || 0), fmtArea(f.areaM2 || 0, landSystem(), 'en'), cropById(mainCrop(x)).en, (x.crops || []).filter(c => c.role === 'aali').map(c => cropById(c.crop).en).join(' + '), x.variety || '', x.season || '', bsIso(x.plantDate), x.status || '', round(k.labour), k.labourFull, k.labourHalf, round(k.family), k.includeFamily ? 'yes' : 'no', k.parmaDays, round(k.machineHire), k.machineHours, round(k.fuelCost), k.petrol, k.diesel, round(k.seed), round(k.fert), round(k.total), harvestText(k), round(k.mainKg), round(k.costPerKg, 2)]); });
     return { rows, name: 'kheti-' + bsIso(today()) + '.csv' };
   }
   const rows = [['Date (BS)', 'Date (AD)', 'Kheti', 'Entry', 'Details', 'Qty', 'Unit', 'Amount', 'Note', 'By', 'Phone']];
   Object.values(db.records).filter(r => !hidden(r) && ['fwork', 'machine', 'finput', 'harvest', 'fpay', 'parmaout'].includes(r.kind)).sort((a, b) => (a.date || '').localeCompare(b.date || '')).forEach(r => {
     const kt = r.khetiId && khetiById(r.khetiId) ? khetiTitle(khetiById(r.khetiId)) : '';
-    if (r.kind === 'fwork') rows.push([bsIso(r.date), r.date, kt, 'Work: ' + workById(r.workType).en, [(r.workers || []).map(w => (workerById(w.workerId) || {}).name + (w.shift === 'half' ? ' ½' : '')).join(', '), r.extraFull ? r.extraFull + ' more full' : '', r.extraHalf ? r.extraHalf + ' more half' : '', (r.parma || []).map(p => 'parma ' + p.family + ' ' + ((p.full || 0) + (p.half || 0) * 0.5)).join(', ')].filter(Boolean).join('; '), (r.workers || []).length + (r.extraFull || 0) + (r.extraHalf || 0), 'people', round(r.amount || fworkAmount(r)), r.note || '', r.by || '', r.device || '']);
+    if (r.kind === 'fwork') rows.push([bsIso(r.date), r.date, kt, 'Work: ' + workById(r.workType).en, [(r.workers || []).map(w => (workerById(w.workerId) || {}).name + (w.shift === 'half' ? ' ½' : '')).join(', '), r.extraFull ? r.extraFull + ' more full' : '', r.extraHalf ? r.extraHalf + ' more half' : '', (r.parma || []).map(p => 'parma ' + p.family + ' ' + ((p.full || 0) + (p.half || 0) * 0.5)).join(', ')].filter(Boolean).join('; '), (r.workers || []).length + (r.extraFull || 0) + (r.extraHalf || 0), 'people', round(fworkAmount(r)), r.note || '', r.by || '', r.device || '']);
     else if (r.kind === 'machine') rows.push([bsIso(r.date), r.date, kt, (MACHINES[r.type] || {}).en || r.type, r.fuel ? r.litres + ' L ' + r.fuel + ' Rs ' + r.fuelCost : '', r.hours, 'hours', round((r.hireAmount || 0) + (r.fuelCost || 0)), r.note || '', r.by || '', r.device || '']);
     else if (r.kind === 'finput') rows.push([bsIso(r.date), r.date, kt, r.type === 'seed' ? 'Seed' : 'Fertilizer', r.item, r.qty, r.unit, round(r.cost), r.note || '', r.by || '', r.device || '']);
     else if (r.kind === 'harvest') rows.push([bsIso(r.date), r.date, kt, 'Harvest', cropById(r.crop).en + ' ≈ ' + round(r.kg || harvestKg(r)) + ' kg', r.qty, r.unit, '', r.note || '', r.by || '', r.device || '']);
@@ -738,6 +762,8 @@ function khetiClick(act, b) {
     case 'kSaveHarvest': saveHarvestForm(); break;
     case 'kSaveParmaOut': saveParmaOutForm(); break;
     case 'kAddWorker': if (v === 'work') { rr(() => {}); kWorkStash = kDraft; } else kWorkStash = null; openWorkerForm(null, v); break;
+    case 'kFamToggle': { const k = khetiById(id); put(Object.assign({}, k, { includeFamily: !k.includeFamily })); render(); if ($('#sheet .kfam')) openKhetiEntries(id, 'all');
+      toast(!k.includeFamily ? '🏠 Family work now counted in this crop\'s cost' : '🏠 Family work left out of this crop\'s cost'); break; }
     case 'kEditWorker': openWorkerForm(Object.assign({}, workerById(id))); break;
     case 'kSaveWorker': saveWorkerForm(); break;
     case 'kWorker': openWorkerAccount(id); break;

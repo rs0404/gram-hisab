@@ -177,7 +177,7 @@ function rebuildKheti_(ss, recs) {
   const fields = {}, khetis = {}, workers = {}, fam = {};
   of('field').forEach(f => { fields[f.id] = f; });
   of('worker').forEach(w => { workers[w.id] = { w: w, earned: 0, paid: 0, full: 0, half: 0 }; });
-  const kc = () => ({ labour: 0, parma: 0, hire: 0, hours: 0, fuel: 0, litres: 0, seed: 0, fert: 0, harvest: {} });
+  const kc = () => ({ labour: 0, family: 0, parma: 0, hire: 0, hours: 0, fuel: 0, litres: 0, seed: 0, fert: 0, harvest: {} });
   of('kheti').forEach(k => { khetis[k.id] = { k: k, c: kc() }; });
   const mainCrop = k => { const c = (k.crops || []).filter(x => x.role === 'main')[0] || (k.crops || [])[0]; return c ? c.crop : ''; };
   const title = id => { const x = khetis[id]; if (!x) return ''; const f = fields[x.k.fieldId]; return (f ? f.name : '?') + ' · ' + crop(mainCrop(x.k)); };
@@ -188,16 +188,18 @@ function rebuildKheti_(ss, recs) {
   recs.forEach(r => {
     const c = khetis[r.khetiId] ? khetis[r.khetiId].c : null;
     if (r.kind === 'fwork') {
-      const named = (r.workers || []).reduce((a, x) => a + (Number(x.rate) || 0), 0);
+      const own = x => workers[x.workerId] && workers[x.workerId].w.own;   // household members are not paid
+      const named = (r.workers || []).filter(x => !own(x)).reduce((a, x) => a + (Number(x.rate) || 0), 0);
+      const famVal = (r.workers || []).filter(own).reduce((a, x) => a + (Number(x.rate) || 0), 0);
       const amt = named + (Number(r.extraFull) || 0) * (Number(r.rateFull) || 0) + (Number(r.extraHalf) || 0) * (Number(r.rateHalf) || 0);
       const pd = (r.parma || []).reduce((a, p) => a + (Number(p.full) || 0) + (Number(p.half) || 0) * 0.5, 0);
       (r.workers || []).forEach(x => { const w = workers[x.workerId]; if (w) { w.earned += Number(x.rate) || 0; if (x.shift === 'half') w.half++; else w.full++; } });
       (r.parma || []).forEach(p => { if (p.family) famOf(p.family).came += (Number(p.full) || 0) + (Number(p.half) || 0) * 0.5; });
-      if (c) { c.labour += amt; c.parma += pd; }
+      if (c) { c.labour += amt; c.family += famVal; c.parma += pd; }
       workRows.push([r.bs || '', r.date, title(r.khetiId), work(r.workType),
         (r.workers || []).map(x => (workers[x.workerId] ? workers[x.workerId].w.name : '?') + (x.shift === 'half' ? ' ½' : '')).join(', '),
         Number(r.extraFull) || 0, Number(r.extraHalf) || 0, Number(r.rateFull) || 0, Number(r.rateHalf) || 0,
-        (r.parma || []).map(p => (p.family || '—') + ' ' + ((Number(p.full) || 0) + (Number(p.half) || 0) * 0.5)).join(', '), amt, r.note || '', by(r)]);
+        (r.parma || []).map(p => (p.family || '—') + ' ' + ((Number(p.full) || 0) + (Number(p.half) || 0) * 0.5)).join(', '), amt, famVal, r.note || '', by(r)]);
     } else if (r.kind === 'fpay') {
       if (workers[r.workerId]) workers[r.workerId].paid += Number(r.amount) || 0;
       payRows.push([r.bs || '', r.date, wname(r.workerId), Number(r.amount) || 0, r.method || '', r.note || '', by(r)]);
@@ -223,22 +225,22 @@ function rebuildKheti_(ss, recs) {
   const fieldRows = Object.keys(fields).map(id => {
     const f = fields[id], ks = Object.keys(khetis).filter(k => khetis[k].k.fieldId === id);
     const cur = ks.map(k => khetis[k].k).filter(k => k.status !== 'done')[0];
-    const life = ks.reduce((a, k) => { const c = khetis[k].c; return a + c.labour + c.hire + c.fuel + c.seed + c.fert; }, 0);
+    const life = ks.reduce((a, k) => { const c = khetis[k].c; return a + c.labour + c.hire + c.fuel + c.seed + c.fert + (khetis[k].k.includeFamily ? c.family : 0); }, 0);
     return [f.name, ropani(f.areaM2 || 0), kattha(f.areaM2 || 0), Math.round(f.areaM2 || 0), f.closed ? 'Not in use' : 'In use', cur ? crop(mainCrop(cur)) : 'Khali', ks.length, life, f.location || ''];
   });
   const khetiRows = Object.keys(khetis).map(id => {
-    const x = khetis[id], k = x.k, c = x.c, f = fields[k.fieldId] || {}, total = c.labour + c.hire + c.fuel + c.seed + c.fert, mk = c.harvest[mainCrop(k)] || 0;
+    const x = khetis[id], k = x.k, c = x.c, f = fields[k.fieldId] || {}, total = c.labour + c.hire + c.fuel + c.seed + c.fert + (k.includeFamily ? c.family : 0), mk = c.harvest[mainCrop(k)] || 0;
     return [f.name || '', crop(mainCrop(k)), (k.crops || []).filter(z => z.role === 'aali').map(z => crop(z.crop)).join(', '), k.variety || '', k.season || '', k.bs || '', k.plantDate || '',
-      k.status === 'done' ? 'Done' : 'Growing', c.labour, c.parma, c.hire, c.hours, c.fuel, c.litres, c.seed, c.fert, total,
+      k.status === 'done' ? 'Done' : 'Growing', c.labour, c.family, k.includeFamily ? 'yes' : 'no', c.parma, c.hire, c.hours, c.fuel, c.litres, c.seed, c.fert, total,
       Object.keys(c.harvest).map(z => crop(z) + ' ' + Math.round(c.harvest[z]) + ' kg').join(', '), Math.round(mk), mk ? Math.round(total / mk * 100) / 100 : ''];
   }).sort((a, b) => String(b[6]).localeCompare(String(a[6])));
-  const workerRows = Object.keys(workers).map(id => { const w = workers[id]; return [w.w.name, w.w.family || '', w.w.phone || '', w.w.village || '', w.full, w.half, w.earned, w.paid, w.earned - w.paid]; });
+  const workerRows = Object.keys(workers).map(id => { const w = workers[id]; return [w.w.name, w.w.own ? 'Household (not paid)' : 'Hired', w.w.family || '', w.w.phone || '', w.w.village || '', w.full, w.half, w.earned, w.paid, w.w.own ? 0 : w.earned - w.paid]; });
   Object.keys(fam).forEach(n => parmaRows.unshift(['', '', n, 'BALANCE (+ we owe them, − they owe us)', fam[n].came - fam[n].went, 'came ' + fam[n].came + ' · went ' + fam[n].went, '']));
   if (!fieldRows.length && !khetiRows.length && !workerRows.length) return; // no Kheti yet: don't add empty tabs
   write_(ss, 'Fields', ['Field', 'Ropani', 'Kattha', 'm²', 'Status', 'Current crop', 'Kheti count', 'Lifetime cost Rs', 'Place'], fieldRows);
-  write_(ss, 'Kheti', ['Field', 'Main crop', 'Aali crops', 'Variety', 'Season', 'Planted (BS)', 'Planted (AD)', 'Status', 'Labour Rs', 'Parma days', 'Machine hire Rs', 'Machine hours', 'Fuel Rs', 'Fuel litres', 'Seed Rs', 'Fertilizer Rs', 'Total cost Rs', 'Harvest', 'Main crop kg', 'Cost per kg'], khetiRows);
-  write_(ss, 'Kheti work', ['Date (BS)', 'Date (AD)', 'Kheti', 'Work', 'Khetala by name', 'Other full', 'Other half', 'Full rate', 'Half rate', 'Parma (family days)', 'Wages Rs', 'Note', 'Entered by'], workRows);
-  write_(ss, 'Workers', ['Name', 'Family', 'Phone', 'Village', 'Full days', 'Half days', 'Earned Rs', 'Paid Rs', 'Due Rs'], workerRows);
+  write_(ss, 'Kheti', ['Field', 'Main crop', 'Aali crops', 'Variety', 'Season', 'Planted (BS)', 'Planted (AD)', 'Status', 'Labour Rs (paid)', 'Family work Rs', 'Family work counted', 'Parma days', 'Machine hire Rs', 'Machine hours', 'Fuel Rs', 'Fuel litres', 'Seed Rs', 'Fertilizer Rs', 'Total cost Rs', 'Harvest', 'Main crop kg', 'Cost per kg'], khetiRows);
+  write_(ss, 'Kheti work', ['Date (BS)', 'Date (AD)', 'Kheti', 'Work', 'Khetala by name', 'Other full', 'Other half', 'Full rate', 'Half rate', 'Parma (family days)', 'Wages Rs', 'Family work value Rs', 'Note', 'Entered by'], workRows);
+  write_(ss, 'Workers', ['Name', 'Type', 'Family', 'Phone', 'Village', 'Full days', 'Half days', 'Earned Rs', 'Paid Rs', 'Due Rs'], workerRows);
   write_(ss, 'Payments', ['Date (BS)', 'Date (AD)', 'Worker', 'Amount', 'Method', 'Note', 'Entered by'], payRows);
   write_(ss, 'Machines', ['Date (BS)', 'Date (AD)', 'Kheti', 'Machine', 'Hours', 'Rate/hour', 'Hire Rs', 'Fuel', 'Litres', 'Fuel Rs', 'Note', 'Entered by'], machRows);
   write_(ss, 'Inputs', ['Date (BS)', 'Date (AD)', 'Kheti', 'Type', 'Item', 'Qty', 'Unit', 'Cost Rs', 'Note', 'Entered by'], inRows);

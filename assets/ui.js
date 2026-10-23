@@ -1459,6 +1459,7 @@ document.addEventListener('click', e => {
     case 'deleteShop': ask({ title: 'Delete this shop entry?', buttons: [{ label: '🗑 Delete', value: 'yes', cls: 'red' }, { label: 'Keep', value: 'no' }],
       onAnswer: a => { if (a === 'yes') { removeRec(id); shopDraft = newShopDraft(shopDraft.date); renderShop(); toast('Deleted', id, true); } } }); break;
     case 'shopTab': shopTab = v; renderShop(); break;
+    case 'shopLessChicken': db.meta.shopLessChicken = !db.meta.shopLessChicken; persist(); renderShop(); break;
     case 'shareShop': shareText(shopReportText()); break;
     case 'goShop': goShop(); break;
     case 'shopMic': if (view !== 'shop') go('shop'); listen(); break;

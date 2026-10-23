@@ -16,7 +16,7 @@ function calTile(big) { const b = adToBs(today()); return `<span class="caltile$
 
 // money spent on Kheti by one record (wages, machine + fuel, seed / fertilizer)
 function khetiCostOf(r) {
-  if (r.kind === 'fwork') return Number(r.amount) || (typeof fworkAmount === 'function' ? fworkAmount(r) : 0);
+  if (r.kind === 'fwork') return typeof fworkAmount === 'function' ? fworkAmount(r) : Number(r.amount) || 0;
   if (r.kind === 'machine') return (Number(r.hireAmount) || 0) + (Number(r.fuelCost) || 0);
   if (r.kind === 'finput') return Number(r.cost) || 0;
   return 0;
