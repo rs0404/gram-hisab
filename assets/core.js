@@ -2,7 +2,7 @@
 'use strict';
 
 const HAS_ANDROID = typeof window.Android !== 'undefined';
-const APP_VERSION = '2.9.0';
+const APP_VERSION = '2.9.1';
 
 // ---------- small utils ----------
 const $ = (sel, el) => (el || document).querySelector(sel);
@@ -137,7 +137,7 @@ function fmtField(k, v) {
   if (k === 'workers' && Array.isArray(v) && typeof workerById === 'function') return v.map(w => (workerById(w.workerId) || {}).name + (w.shift === 'half' ? ' ½' : '')).join(', ') || '—';
   if (k === 'crops' && Array.isArray(v) && typeof cropById === 'function') return v.map(c => cropById(c.crop).ne + (c.role === 'aali' ? ' (आली)' : '')).join(', ');
   if (k === 'breed') return breedName(v);
-  if (k === 'mix' && Array.isArray(v)) return v.map(m => breedName(m.breed) + ' ' + m.chicks).join(' + ');
+  if (k === 'mix' && Array.isArray(v)) return v.map(m => breedName(m.breed) + ' ' + m.chicks + (m.free ? ' + ' + m.free + ' free' : '')).join(' + ');
   if (typeof v === 'boolean') return v ? 'yes' : 'no';
   if (typeof v === 'number') return nfmt(v);
   if (typeof v === 'object') return JSON.stringify(v).slice(0, 60);
@@ -392,7 +392,7 @@ function eventTitle(e) {
   const t = EVENT_TYPES[e.type] || { label: e.type };
   switch (e.type) {
     case 'dead': return (e.count || 0) + ' dead';
-    case 'restock': return 'Added ' + (e.count || 0) + ' chicks';
+    case 'restock': return 'Added ' + (e.count || 0) + ' chicks' + (e.free ? ' + ' + e.free + ' free' : '');
     case 'cut': return 'Cut ' + (e.count || 0) + ' birds' + (e.qty ? ' → ' + kgs(e.qty) + ' meat' : '');
     case 'feed': return 'Feed' + (e.grade ? ' ' + e.grade : '') + (e.qty ? ' · ' + nfmt(e.qty) + ' ' + ((e.unit || 'bags') === 'bags' ? 'bora' : e.unit) : '');
     case 'weight': return 'Avg weight ' + (e.qty ? kgs(e.qty) : '');
@@ -407,12 +407,15 @@ function eventTitle(e) {
 // ---------- chicken types inside a lot ----------
 // lot.mix = [{breed, chicks}] (older lots: one breed from lot.breed)
 function lotMix(l) {
-  if (l && Array.isArray(l.mix) && l.mix.length) return l.mix.filter(m => Number(m.chicks) > 0 || m.added || l.mix.length === 1);
-  return [{ breed: (l && l.breed) || 'broiler', chicks: Number(l && l.chicks) || 0 }];
+  if (l && Array.isArray(l.mix) && l.mix.length) return l.mix.filter(m => Number(m.chicks) > 0 || Number(m.free) > 0 || m.added || l.mix.length === 1);
+  return [{ breed: (l && l.breed) || 'broiler', chicks: Number(l && l.chicks) || 0, free: Number(l && l.free) || 0 }];
 }
+// birds that came in: paid chicks + free (bonus) chicks, e.g. 100 + 2 free. The lot name and cost use the paid count.
+const mixIn = m => (Number(m.chicks) || 0) + (Number(m.free) || 0);
+const restockIn = r => (Number(r.count) || 0) + (Number(r.free) || 0);
 function lotBreeds(l) { return lotMix(l).map(m => m.breed); }
 function recBreed(r, l) { const bs = lotBreeds(l); return r.breed && bs.includes(r.breed) ? r.breed : bs[0]; }
-function mixLabel(l) { const m = lotMix(l); return m.length === 1 ? breedName(m[0].breed) : m.map(x => breedName(x.breed) + ' ' + x.chicks).join(' + '); }
+function mixLabel(l) { const m = lotMix(l); return m.length === 1 ? breedName(m[0].breed) : m.map(x => breedName(x.breed) + ' ' + x.chicks + (x.free ? '+' + x.free : '')).join(' + '); }
 
 // ---------- weight estimate (kg per live bird) ----------
 // Default growth guide: ~day 30 → 2–2.5 kg, ~day 45 → 3–4 kg, later 4–6 kg. Editable in Settings.
@@ -430,11 +433,11 @@ function curveKg(age) {
 // average age of a type's birds in a lot, counting chicks added later as younger
 function batchAge(l, breed, date) {
   const m = lotMix(l).find(x => x.breed === breed);
-  let n = m ? Number(m.chicks) || 0 : 0, sum = n * Math.max(0, daysBetween(l.startDate, date));
+  let n = m ? mixIn(m) : 0, sum = n * Math.max(0, daysBetween(l.startDate, date));
   for (const id in db.records) {
     const r = db.records[id];
     if (hidden(r) || r.kind !== 'event' || r.type !== 'restock' || r.lotId !== l.id || !r.date || r.date > date || recBreed(r, l) !== breed) continue;
-    const c = Number(r.count) || 0; n += c; sum += c * Math.max(0, daysBetween(r.date, date));
+    const c = restockIn(r); n += c; sum += c * Math.max(0, daysBetween(r.date, date));
   }
   return n ? Math.round(sum / n) : Math.max(0, daysBetween(l.startDate, date));
 }
@@ -480,8 +483,8 @@ function computeStats() {
   const blank = () => ({ chicks: 0, restock: 0, adjust: 0, dead: 0, soldBirds: 0, cutBirds: 0, cutKg: 0, liveKg: 0, meatKg: 0, revenue: 0 });
   lots().forEach(l => {
     const byBreed = {};
-    lotMix(l).forEach(m => { byBreed[m.breed] = Object.assign(blank(), { chicks: Number(m.chicks) || 0 }); });
-    L[l.id] = { lot: l, byBreed, chicks: Number(l.chicks) || 0, adjust: 0, dead: 0, soldBirds: 0, cutBirds: 0, cutKg: 0,
+    lotMix(l).forEach(m => { byBreed[m.breed] = Object.assign(blank(), { chicks: mixIn(m), free: Number(m.free) || 0 }); });
+    L[l.id] = { lot: l, byBreed, chicks: lotMix(l).reduce((a, m) => a + mixIn(m), 0), free: lotMix(l).reduce((a, m) => a + (Number(m.free) || 0), 0), adjust: 0, dead: 0, soldBirds: 0, cutBirds: 0, cutKg: 0,
       liveKg: 0, meatKg: 0, partsKg: 0, partsRev: 0, restock: 0, revenue: 0, liveRev: 0, meatRev: 0, expenses: Number(l.chickCost) || 0, feedQty: 0, feedKg: 0,
       costChicks: Number(l.chickCost) || 0, costFeed: 0, costMed: 0, costOther: 0,
       bought: 0, buyCount: 0, sales: 0, salesNoBirds: 0, lastCheck: l.startDate, lastWeight: null, lastWeightDate: '', feedByGrade: {} };
@@ -516,7 +519,7 @@ function computeStats() {
     } else if (r.kind === 'event') {
       const c = Number(r.count) || 0, a = Number(r.amount) || 0;
       if (r.type === 'dead') b.dead += c;
-      else if (r.type === 'restock') { b.restock += c; s.costChicks += a; s.expenses += a; }
+      else if (r.type === 'restock') { b.restock += restockIn(r); s.free += Number(r.free) || 0; s.costChicks += a; s.expenses += a; }
       else if (r.type === 'cut') { b.cutBirds += c; b.cutKg += Number(r.qty) || c * curveKg(daysBetween(s.lot.startDate, r.date)) * dressYield(); }
       else if (r.type === 'soldfix') b.soldBirds += c;
       else if (r.type === 'adjust') b.adjust += c;
@@ -587,7 +590,7 @@ function farmReport(from, to) {
     const r = db.records[id];
     if (hidden(r)) continue;
     if (r.kind === 'lot') {
-      if (r.startDate >= from && r.startDate <= to) { R.chicks += Number(r.chicks) || 0; R.chicksCost += Number(r.chickCost) || 0; }
+      if (r.startDate >= from && r.startDate <= to) { R.chicks += lotMix(r).reduce((a, m) => a + mixIn(m), 0); R.chicksCost += Number(r.chickCost) || 0; }
       continue;
     }
     if (!r.date || r.date < from || r.date > to) continue;
@@ -607,7 +610,7 @@ function farmReport(from, to) {
       if (r.flag) R.payable += amt;
     } else if (r.kind === 'event') {
       if (r.type === 'dead') R.dead += Number(r.count) || 0;
-      else if (r.type === 'restock') { R.chicks += Number(r.count) || 0; R.chicksCost += amt; }
+      else if (r.type === 'restock') { R.chicks += restockIn(r); R.chicksCost += amt; }
       else if (r.type === 'expense') R.expenses += amt;
       else if (USAGE_TYPES.includes(r.type)) {
         if (r.type === 'feed') R.feedKgUsed += stockQty('feed', r);

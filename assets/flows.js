@@ -521,13 +521,14 @@ function flowNewLot(p, v) {
   if (!p.mix) p.mix = [{ breed: p.breed, chicks: p.chicks }];
   const date = p.date || today();
   const seq = nextLotSeq(date);
-  const lot = { kind: 'lot', name: lotAutoName(date, seq, p.chicks), seq, breed: p.breed, mix: p.mix, startDate: date, chicks: p.chicks,
+  if (p.free && p.mix.length) p.mix[0].free = p.free;
+  const lot = { kind: 'lot', name: lotAutoName(date, seq, p.chicks), seq, breed: p.breed, mix: p.mix, startDate: date, chicks: p.chicks, ...(p.free ? { free: p.free } : {}),
     chickCost: p.cost != null ? p.cost : (p.chickRate ? round(p.chickRate * p.chicks) : null), closed: false, note: '' };
   ask({
     title: `Add new lot ${lot.name}?`,
     html: `<div class="summary"><div class="line"><span>Lot</span><b>${esc(lot.name)}</b></div><div class="line"><span>Type</span><b>${esc(mixLabel(lot))}</b></div>
       <div class="line"><span>Start date</span><b>${fmtDate(lot.startDate, true)}</b></div>
-      <div class="line"><span>Chicks</span><b>${lot.chicks}</b></div>${lot.chickCost ? `<div class="line"><span>Chick cost</span><b>${money(lot.chickCost)}</b></div>` : ''}</div>`,
+      <div class="line"><span>Chicks</span><b>${lot.chicks}${lot.free ? ` + 🎁${lot.free} free = ${lot.chicks + lot.free}` : ''}</b></div>${lot.chickCost ? `<div class="line"><span>Chick cost</span><b>${money(lot.chickCost)}</b></div>` : ''}</div>`,
     speech: `Add ${lotSpeak(lot)}, ${lot.mix.map(m => m.chicks + ' ' + breedName(m.breed)).join(' and ')} chicks?`,
     buttons: [{ label: '✔ Add lot', value: 'yes', cls: 'green' }, { label: '✎ Edit', value: 'edit' }, { label: '✕ Cancel', value: 'no', cls: 'redl' }],
     voice: yesNo, voiceMode: v,
@@ -544,9 +545,10 @@ function flowRestock(p, v) {
     const go = (breed, count) => {
       const rec = { kind: 'event', type: 'restock', date: p.date || today(), lotId: lot.id, breed, count,
         amount: p.cost != null ? p.cost : (p.chickRate ? round(p.chickRate * count) : null), note: '' };
+      if (p.free) rec.free = p.free;
       ask({ title: `Add ${count} ${breedName(breed)} chicks to ${lot.name}?`,
         html: `<div class="summary"><div class="line"><span>Lot</span><b>${esc(lot.name)}</b></div><div class="line"><span>Type</span><b>${esc(breedName(breed))}</b></div>
-          <div class="line"><span>Chicks added</span><b>${count}</b></div><div class="line"><span>Date</span><b>${fmtDate(rec.date, true)}</b></div>
+          <div class="line"><span>Chicks added</span><b>${count}${rec.free ? ` + 🎁${rec.free} free` : ''}</b></div><div class="line"><span>Date</span><b>${fmtDate(rec.date, true)}</b></div>
           ${rec.amount ? `<div class="line"><span>Cost</span><b>${money(rec.amount)}</b></div>` : ''}</div>`,
         speech: `Add ${count} ${breedName(breed)} chicks to ${lotSpeak(lot)}?`,
         buttons: [{ label: '✔ Add', value: 'yes', cls: 'green' }, { label: '✎ Edit', value: 'edit' }, { label: '✕ Cancel', value: 'no', cls: 'redl' }],
@@ -778,7 +780,7 @@ function helpHtml(short) {
     ['Weight', 'lot 1 average weight 1.8 kg'],
     ['Count check', 'lot 1 has 220 left'],
     ['Ask', 'how many left?', "today's summary", 'this month summary'],
-    ['New lot', 'new lot 100 giriraj chicks at 65', 'new lot 80 broiler 20 giriraj chicks'],
+    ['New lot', 'new lot 100 giriraj chicks at 65', 'new lot 80 broiler 20 giriraj chicks', 'new lot 100 broiler chicks 2 free'],
     ['Chicks added later', 'added 100 broiler chicks to lot 1 at 120', 'lot 1 ma 100 challa thapeko'],
     ['Khutta-tauko', 'khutta tauko 2 kg', 'sold 3 kg khutta tauko 450'],
     ['Only amount', 'sold live 550 rupees (kg worked out from the rate)'],

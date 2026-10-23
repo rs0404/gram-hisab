@@ -329,7 +329,7 @@ function openLotEntries(lotId, key) {
   const amt = list.reduce((a, r) => a + (Number(r.amount) || 0), 0);
   const kg = list.reduce((a, r) => a + (r.kind === 'sale' ? Number(r.kg) || 0 : (r.category === 'feed' || r.type === 'feed') ? stockQty('feed', r) : 0), 0);
   const birds = list.reduce((a, r) => a + (Number(r.count) || Number(r.birds) || 0), 0);
-  const extra = base === 'chicks' ? `<div class="line"><span>First chicks (${fmtDate(l.startDate, true)})</span><b>${l.chicks} · ${money(l.chickCost || 0)} <button class="btn sm ghost" data-act="editLot" data-id="${l.id}">✎</button></b></div>` : '';
+  const extra = base === 'chicks' ? `<div class="line"><span>First chicks (${fmtDate(l.startDate, true)})</span><b>${l.chicks}${lotMix(l).reduce((a, m) => a + (Number(m.free) || 0), 0) ? ' + 🎁' + lotMix(l).reduce((a, m) => a + (Number(m.free) || 0), 0) + ' free' : ''} · ${money(l.chickCost || 0)} <button class="btn sm ghost" data-act="editLot" data-id="${l.id}">✎</button></b></div>` : '';
   openSheet(`<button class="btn sm ghost" data-act="openLot" data-id="${l.id}">‹ ${esc(l.name)}</button>
     <h2>${v.title}${grade ? ' · ' + esc(grade) : ''}</h2>
     <div class="summary small">${extra}
@@ -554,6 +554,7 @@ function renderEventForm() {
     ${BIRD_TYPES.includes(e.type) && lotById(e.lotId) && (e.type === 'restock' || lotBreeds(lotById(e.lotId)).length > 1) ? `<div class="field"><label>Chicken type</label><div class="chips">${(e.type === 'restock' ? breeds().map(x => x.id) : lotBreeds(lotById(e.lotId))).map(bb => `<button class="chip ${recBreed(e, lotById(e.lotId)) === bb ? 'on' : ''}" data-act="evBreed" data-v="${bb}">${esc(breedName(bb))}</button>`).join('')}</div></div>` : ''}
     ${t.grade ? `<div class="field"><label>Feed grain size</label><div class="chips">${FEED_GRADES.concat(['']).map(g => `<button class="chip ${(e.grade || '') === g ? 'on' : ''}" data-act="evGrade" data-v="${g}">${g || 'Other'}</button>`).join('')}</div></div>` : ''}
     ${t.count ? `<div class="field"><label>${e.type === 'restock' ? 'How many chicks added?' : e.type === 'dead' ? 'How many dead?' : e.type === 'cut' ? 'How many birds cut?' : e.type === 'adjust' ? 'Change (+/-)' : 'Birds'}</label><input data-ef="count" type="number" inputmode="numeric" value="${esc(e.count != null ? e.count : '')}" placeholder="0"></div>` : ''}
+    ${e.type === 'restock' ? `<div class="field"><label>🎁 Free chicks <span class="muted">(bonus, e.g. 1 per 50)</span></label><input data-ef="free" type="number" inputmode="numeric" value="${esc(e.free || '')}" placeholder="0"></div>` : ''}
     ${t.item ? `<div class="field"><label>${t.label} name</label><input data-ef="item" list="itemList" value="${esc(e.item || '')}" placeholder="e.g. Amprolium" autocomplete="off">
       <datalist id="itemList">${knownItems(e.type).map(x => `<option value="${esc(x)}">`).join('')}</datalist></div>` : ''}
     ${t.qty ? `<div class="grid2"><div class="field"><label>${e.type === 'weight' ? 'Avg weight' : e.type === 'cut' ? 'Meat weight' : 'Quantity used'}</label><input data-ef="qty" type="number" inputmode="decimal" step="any" value="${esc(e.qty != null ? e.qty : '')}" placeholder="0"></div>
@@ -581,7 +582,7 @@ function saveEventForm() {
   if (PURCHASE_CATS[e.type] && t.qty) rec.unit = e.unit || PURCHASE_CATS[e.type].units[0];
   if ((e.type === 'dead' || e.type === 'cut') && !rec.count) { toast('Enter how many birds'); return; }
   if (e.id) { rec.id = e.id; rec.createdAt = e.createdAt; }
-  if (rec.type === 'restock') { if (!rec.count) { toast('Enter how many chicks'); return; } addRestock(rec); } else put(rec);
+  if (rec.type === 'restock') { const f = Math.round(num(e.free) || 0); if (f) rec.free = f; if (!rec.count && !rec.free) { toast('Enter how many chicks'); return; } addRestock(rec); } else put(rec);
   closeSheet(); render();
   const lot = lotById(rec.lotId);
   toast(`Saved ✓ ${lot.name}: ${eventTitle(rec)}${['dead', 'cut'].includes(rec.type) ? '. ' + lowNote(lot).text : ''}`, e.id ? null : rec.id);
@@ -731,8 +732,11 @@ function openLotForm(lot) {
   openSheet(`<h2>${d.id ? 'Edit lot' : 'New lot'}</h2><div id="lotForm">
     <div class="field"><label>Chicks by type <span class="muted">(fill one or more)</span></label>
       <div class="summary" style="padding:10px">${breeds().map(b => { const m = (d.mix || []).find(x => x.breed === b.id); return `<div class="row" style="gap:8px;margin-bottom:8px">
-        <b style="flex:1">🐔 ${esc(b.name)}</b><input data-mix="${b.id}" type="number" inputmode="numeric" value="${m && m.chicks ? m.chicks : ''}" placeholder="0" style="width:120px;border:2px solid var(--line);border-radius:12px;padding:10px;font-size:20px;font-weight:800"></div>`; }).join('')}
-        <div class="row between"><button class="btn sm ghost" data-act="addBreed">+ New type</button><b>Total: <span id="mixTotal">${num(d.chicks) || 0}</span> chicks</b></div></div></div>
+        <b style="flex:1;min-width:0">🐔 ${esc(b.name)}</b><input data-mix="${b.id}" type="number" inputmode="numeric" value="${m && m.chicks ? m.chicks : ''}" placeholder="paid" style="width:88px;border:2px solid var(--line);border-radius:12px;padding:10px;font-size:20px;font-weight:800">
+        <span style="font-weight:900">+🎁</span><input data-mixfree="${b.id}" type="number" inputmode="numeric" value="${m && m.free ? m.free : ''}" placeholder="free" style="width:64px;border:2px solid var(--line);border-radius:12px;padding:10px 6px;font-size:18px;font-weight:800"></div>`; }).join('')}
+        <div class="row between" style="gap:6px;flex-wrap:wrap"><span class="row" style="gap:6px"><button class="btn sm ghost" data-act="addBreed">+ New type</button><button class="btn sm ghost" data-act="lotFreePer50">🎁 1 free per 50</button></span>
+          <b>Total: <span id="mixTotal">${lotTotalTxt(d)}</span></b></div>
+        <div class="hint">🎁 Free (bonus) chicks count as birds but not in the cost or the lot name.</div></div></div>
     <div class="field"><label>Chicks arrived on (नेपाली)</label>${bsDateHtml('lot', d.startDate)}</div>
     <div class="field"><label>Lot name <span class="muted">(automatic)</span></label><input data-lf="name" value="${esc(d.name)}" autocomplete="off">
       <div class="hint">Month+year _ day _ lot no. in that month _ chicks, e.g. Ashar83_10_1_100</div></div>
@@ -755,11 +759,12 @@ function saveLotForm() {
   if (!d.name) { toast('Enter a lot name'); return; }
   const dup = lotByName(d.name);
   if (dup && dup.id !== d.id) { toast(`Lot ${d.name} already exists`); return; }
-  const rec = Object.assign({}, d, { chicks: Math.round(chicks), chickCost: num(d.chickCost), note: (d.note || '').trim() });
+  const rec = Object.assign({}, d, { chicks: Math.round(chicks), free: Math.round(num(d.free) || 0), chickCost: num(d.chickCost), note: (d.note || '').trim() });
+  if (!rec.free) delete rec.free;
   delete rec.nameManual;
   put(rec);
   closeSheet(); render();
-  toast(`Lot ${rec.name} ${d.id ? 'updated' : 'added'} ✓`);
+  toast(`Lot ${rec.name} ${d.id ? 'updated' : 'added'} ✓${rec.free ? ` · ${rec.chicks} + 🎁${rec.free} free = ${rec.chicks + rec.free} chicks` : ''}`);
 }
 
 // ---------- RECORDS ----------
@@ -1096,12 +1101,18 @@ function bsQuick(key, days) {
 
 function readLotMix() {
   const mix = [];
-  $$('#lotForm [data-mix]').forEach(el => { const n = Math.round(num(el.value) || 0); if (n > 0) mix.push({ breed: el.dataset.mix, chicks: n }); });
+  $$('#lotForm [data-mix]').forEach(el => {
+    const n = Math.round(num(el.value) || 0), fe = $(`#lotForm [data-mixfree="${el.dataset.mix}"]`), f = Math.round(num(fe && fe.value) || 0);
+    const old = (lotDraft.mix || []).find(x => x.breed === el.dataset.mix);
+    if (n > 0 || f > 0 || (old && old.added)) mix.push(Object.assign({ breed: el.dataset.mix, chicks: n }, f ? { free: f } : {}, old && old.added ? { added: true } : {}));
+  });
   lotDraft.mix = mix;
-  lotDraft.chicks = mix.reduce((a, m) => a + m.chicks, 0);
+  lotDraft.chicks = mix.reduce((a, m) => a + m.chicks, 0);          // paid chicks (lot name uses this)
+  lotDraft.free = mix.reduce((a, m) => a + (m.free || 0), 0);
   lotDraft.breed = mix.length ? mix[0].breed : lotDraft.breed;
-  const t = $('#mixTotal'); if (t) t.textContent = lotDraft.chicks;
+  const t = $('#mixTotal'); if (t) t.textContent = lotTotalTxt(lotDraft);
 }
+function lotTotalTxt(d) { const p = num(d.chicks) || 0, f = num(d.free) || 0; return f ? `${p} + 🎁${f} = ${p + f} chicks` : `${p} chicks`; }
 function updateLotAutoName(silent) {
   const d = lotDraft;
   if (!d || d.nameManual) return;
@@ -1397,6 +1408,7 @@ document.addEventListener('click', e => {
     case 'newLot': openLotForm(); break;
     case 'editLot': openLotForm(Object.assign({}, lotById(id))); break;
     case 'saveLot': saveLotForm(); break;
+    case 'lotFreePer50': $$('#lotForm [data-mix]').forEach(el => { const n = Math.round(num(el.value) || 0), fe = $(`#lotForm [data-mixfree="${el.dataset.mix}"]`); if (fe && n >= 50) fe.value = Math.floor(n / 50); }); readLotMix(); toast('🎁 1 free chick per 50 filled in — change it if different'); break;
     case 'deleteLot': deleteLot(id); break;
     case 'openArchive': openArchive(); break;
     case 'lotHist': openLot(id, v); break;
@@ -1504,7 +1516,7 @@ document.addEventListener('input', e => {
     if (el.dataset.lf === 'name') lotDraft.nameManual = true;
     if (el.dataset.lf === 'chicks') updateLotAutoName();
   }
-  if (el.dataset.mix && lotDraft) { readLotMix(); updateLotAutoName(); }
+  if ((el.dataset.mix || el.dataset.mixfree) && lotDraft) { readLotMix(); updateLotAutoName(); }
 });
 document.addEventListener('change', e => {
   const el = e.target;

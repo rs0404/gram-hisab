@@ -272,6 +272,8 @@ function parseCommand(text) {
   else if (has(/\b(new|add|added|start|started|create|open|arrived|came|placed|brought)\b/) && has(/\b(lot|lotx|batch|chicks?)\b/) && !has(/\b(dead|died|feed|sold|medicine|vaccine)\b/)) {
     p.intent = n.refs.length ? 'restock' : 'newlot';
     if (p.intent === 'newlot') p.lotRefs = [];
+    let fm = take(ctx, /(\d+)\s*(?:wota\s+|birds\s+|chicks?\s+)?(?:free|fri|bonus|muft|sittai|सित्तै|फ्री|फ्रि)\b|\b(?:free|fri|bonus|muft|sittai)\s*(\d+)/);
+    if (fm) p.free = parseInt(fm[1] || fm[2], 10);
     let m = take(ctx, /\b(?:at|each|per chick|rate)\s*(?:rs\s*)?(\d+(?:\.\d+)?)(?:\s*rs)?(?:\s*(?:each|per chick))?/);
     if (m) p.chickRate = parseFloat(m[1]);
     else if ((m = take(ctx, /(\d+(?:\.\d+)?)\s*(?:rs\s*)?(?:each|per chick)/))) p.chickRate = parseFloat(m[1]);

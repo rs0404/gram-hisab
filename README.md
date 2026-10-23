@@ -90,6 +90,7 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
 **Chickens and lots**
 - Lots are auto-named from the Nepali date the chicks arrived, e.g. `Ashar83_10_1_100`: Ashar 2083, day 10, the 1st lot that month, 100 chicks.
 - One lot can hold several chicken types (Broiler, Local, Giriraj, or your own), each with its own count and prices.
+- **🎁 Free chicks:** when the supplier gives bonus chicks (e.g. 1 free per 50), type them next to the paid count (or tap "1 free per 50"). They count as birds but not in the cost or the lot name; old lots can be edited to add them.
 - You can add chicks to a lot later (for example after a predator attack). Deaths, cuts, weigh-ins and count checks are kept per type.
 - Every sale reduces the bird count:
   - **Live sales:** the app estimates the birds from kg and the weight per bird, which comes from age, weigh-ins and recent sales.

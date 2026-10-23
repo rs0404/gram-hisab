@@ -135,7 +135,7 @@ function rebuildReadable_(ss, data) {
   purchases.sort((a, b) => String(b[1]).localeCompare(String(a[1])));
   shop.sort((a, b) => String(b[1]).localeCompare(String(a[1])));
   const lotRows = Object.keys(lots).map(id => {
-    const l = lots[id], s = stats[id], chicks = (Number(l.chicks) || 0) + s.adj;
+    const l = lots[id], s = stats[id], chicks = (Number(l.chicks) || 0) + (Number(l.free) || 0) + s.adj;   // paid + free (bonus) chicks
     return [l.name, breed(l.breed), l.startBs || '', l.startDate, l.closed ? 'Closed' : 'Active', chicks, s.dead, s.sold, s.cut, chicks - s.dead - s.sold - s.cut, s.liveKg, s.meatKg, s.rev, s.cost, s.rev - s.cost];
   });
   write_(ss, 'Sales', ['Date (BS)', 'Date (AD)', 'Lot', 'Chicken type', 'Sale type', 'Kg', 'Birds', 'Rate', 'Amount', 'Invoice', 'Flag', 'Note', 'Entered by'], sales);
