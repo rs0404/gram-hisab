@@ -2,7 +2,7 @@
 'use strict';
 
 let shopDraft = null;
-let shopTab = 'daily';
+let shopTab = 'daily', shopDateOpen = false, shopNoteOpen = false;
 
 function shopSum(list) {
   const o = { cash: 0, qr: 0, goods: 0, n: list.length, days: new Set(list.map(r => r.date)).size };
@@ -23,17 +23,22 @@ const shopSplit = o => shopLess() ? `Collected ${money(o.total)} − 🐔 chicke
 // ---------- entry form ----------
 function newShopDraft(date) { return { kind: 'shop', date: date || today(), cash: '', qr: '', goods: '', note: '' }; }
 function shopFormHtml(d) {
-  const editing = !!d.id;
-  const inp = (f, label, color) => `<div class="field"><label>${label}</label><input data-s="${f}" ${calcAttrs()} value="${esc(d[f] == null ? '' : d[f])}" placeholder="0" style="font-size:24px;${color ? 'border-color:' + color : ''}"></div>`;
-  return `<div class="card" id="shopForm">
-    <h3 style="margin-top:0">${editing ? '✎ Edit entry' : '➕ Add today\'s amounts'}</h3>
-    <div class="field"><label>Date (नेपाली)</label>${bsDateHtml('shop', d.date)}</div>
-    <div class="grid2">${inp('cash', '💵 Cash collected')}${inp('qr', '📱 QR collected')}</div>
-    ${inp('goods', '📦 Goods bought (Rs)')}
-    <div class="totalbox"><span><b style="font-size:15px">COLLECTED</b><br><span class="small" id="shopNetTxt">${shopFormNet(d)}</span></span><b id="shopTotal">${money((num(d.cash) || 0) + (num(d.qr) || 0))}</b></div>
-    <div class="field"><label>Note <span class="muted">(optional)</span></label><input data-s="note" value="${esc(d.note || '')}" placeholder="—" autocomplete="off"></div>
-    <button class="btn big green" data-act="saveShop">✔ ${editing ? 'Update' : 'Save'}</button>
-    ${editing ? `<div style="height:10px"></div><div class="btnrow"><button class="btn ghost" data-act="cancelShopEdit">Cancel</button><button class="btn redl" data-act="deleteShop" data-id="${d.id}">🗑 Delete</button></div>${historyHtml(d.id)}` : ''}
+  const editing = !!d.id, t = today(), y = addDays(t, -1);
+  const box = (f, label) => `<label><span>${label}</span><input data-s="${f}" ${calcAttrs()} value="${esc(d[f] == null || d[f] === 0 ? '' : d[f])}" placeholder="0"></label>`;
+  return `<div class="card tight" id="shopForm">
+    <div class="row between" style="gap:6px;flex-wrap:wrap">
+      <b>${editing ? '✎ Edit' : '➕ Add'} · ${d.date === t ? 'आज Today' : esc(fmtDate(d.date))}</b>
+      <span class="chips" style="gap:4px">
+        <button class="chip sm ${d.date === t ? 'on' : ''}" data-act="bsQuick" data-key="shop" data-days="0">Today</button>
+        <button class="chip sm ${d.date === y ? 'on' : ''}" data-act="bsQuick" data-key="shop" data-days="-1">Yesterday</button>
+        <button class="chip sm ${d.date !== t && d.date !== y ? 'on' : ''}" data-act="shopDatePick" aria-label="Other date">${calTile()}</button></span></div>
+    <div id="shopDateBox" class="${shopDateOpen ? '' : 'hidden'}" style="margin-top:6px">${bsDateHtml('shop', d.date)}</div>
+    <div class="hshop shopboxes">${box('cash', '💵 Cash')}${box('qr', '📱 QR')}${box('goods', '📦 Goods')}</div>
+    <div class="row between" style="margin-top:8px;gap:8px">
+      <span style="min-width:0"><span class="small muted">Collected</span> <b id="shopTotal" style="font-size:20px;color:var(--green)">${money((num(d.cash) || 0) + (num(d.qr) || 0))}</b><br><span class="small muted" id="shopNetTxt">${shopFormNet(d)}</span></span>
+      <span class="row" style="gap:6px;flex:none"><button class="btn sm ghost" data-act="shopNoteToggle" aria-label="Note">📝</button><button class="btn green" data-act="saveShop" style="padding:12px 18px">✔ ${editing ? 'Update' : 'Save'}</button></span></div>
+    <div class="field ${d.note || shopNoteOpen ? '' : 'hidden'}" id="shopNoteBox" style="margin:8px 0 0"><input data-s="note" value="${esc(d.note || '')}" placeholder="Note (optional)" autocomplete="off"></div>
+    ${editing ? `<div class="btnrow" style="margin-top:8px"><button class="btn sm ghost" data-act="cancelShopEdit">Cancel</button><button class="btn sm redl" data-act="deleteShop" data-id="${d.id}">🗑 Delete</button></div>${historyHtml(d.id)}` : ''}
   </div>`;
 }
 function shopFormNet(d) {
@@ -96,8 +101,9 @@ function shopBars(rows) {
     <div class="row small" style="justify-content:center;gap:14px;margin-top:6px"><span><b style="color:var(--green)">■</b> ${shopLess() ? 'Shop only (after chicken)' : 'Collected (cash + QR)'}</span><span><b style="color:var(--red)">■</b> Goods bought</span></div>`;
 }
 // one day (daily), one week or one month of shop entries, opened from a chart bar
-function openShopDay(from) {
+function openShopDay(from, title) {
   const rows = shopReportRows(shopTab), r = rows.find(x => x.from === from) || { label: fmtDate(from, true), from, to: from };
+  if (title && r.from === r.to) r.label = title + ' · ' + fmtDate(from, true).replace(/^(Today|Yesterday) · /, '');
   const list = shopEntries(r.from, r.to).sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
   const s = shopRange(r.from, r.to);
   openSheet(`<h2>🏪 ${esc(r.label)}</h2>
@@ -122,27 +128,19 @@ function renderShop() {
   const withData = rows.filter(r => r.s.n);
   const tot = withData.length ? shopRange(rows[rows.length - 1].from, rows[0].to) : Object.assign(shopSum([]), { chicken: 0, own: 0 });
   const avgDays = tot.days || 1;
+  const yd = addDays(t, -1), yy = shopRange(yd, yd);
+  const mini = (o, label, from, to) => `<button class="card tight shopmini" data-act="shopRange" data-from="${from}" data-to="${to}" data-label="${esc(label)}">
+      <div class="label">${esc(label)}</div><div class="v">${money(shopShown(o))}</div><div class="small muted">📦 ${shortMoney(o.goods)}${shopLess() && o.chicken ? ' · 🐔 −' + shortMoney(o.chicken) : ''} ›</div></button>`;
   $('#v-shop').innerHTML = `
-    <h2>🏪 Shop</h2>
-    <label class="switch card tight" style="margin-bottom:10px"><span><b>🐔 Take chicken sales out</b><br><span class="small muted">Chicken money is collected at the shop too. On: show only the shop's own amount (collected − chicken sales).</span></span>
-      <input type="checkbox" data-act="shopLessChicken" ${shopLess() ? 'checked' : ''}></label>
-    <div class="card today">
-      <div class="row between"><div class="label">${shopLess() ? 'Today · shop only' : 'Today collected'}</div><div class="label">${fmtDate(t, true).replace('Today · ', '')}</div></div>
-      <div class="huge" style="margin:6px 0 ${shopLess() ? 2 : 12}px">${money(shopShown(td))}</div>
-      ${shopLess() ? `<div class="small" style="margin-bottom:10px;opacity:.95">${shopSplit(td)}</div>` : ''}
-      <div class="grid3">
-        <div class="stat"><b>${shortMoney(td.cash)}</b><span>💵 Cash</span></div>
-        <div class="stat"><b>${shortMoney(td.qr)}</b><span>📱 QR</span></div>
-        <div class="stat"><b>${shortMoney(td.goods)}</b><span>📦 Goods</span></div>
-      </div>
+    <div class="row between" style="margin:2px 0 8px"><h2 style="margin:0">🏪 Shop</h2>
+      <label class="minitoggle" title="Take chicken sales out of the collection"><span>−🐔</span><input type="checkbox" data-act="shopLessChicken" ${shopLess() ? 'checked' : ''}></label></div>
+    <div class="card today tight shoptoday">
+      <div class="row between" style="align-items:flex-end;gap:8px">
+        <div><div class="label">${shopLess() ? 'Today · shop only' : 'Today collected'}</div><div style="font-size:30px;font-weight:900;line-height:1.1">${money(shopShown(td))}</div></div>
+        <div class="small" style="text-align:right;line-height:1.35">💵 ${money(td.cash)} · 📱 ${money(td.qr)}<br>📦 ${money(td.goods)}${shopLess() && td.chicken ? ' · 🐔 −' + money(td.chicken) : ''}</div></div>
     </div>
-    <div class="grid2">
-      <div class="card tight"><div class="label">This week</div><div style="font-size:21px;font-weight:900">${money(shopShown(wk))}</div><div class="small muted">${shopLess() ? '🐔 −' + money(wk.chicken) + ' · ' : ''}Goods ${money(wk.goods)}</div></div>
-      <div class="card tight"><div class="label">${BS_MONTHS[adToBs(t).m - 1]}</div><div style="font-size:21px;font-weight:900">${money(shopShown(mo))}</div><div class="small muted">${shopLess() ? '🐔 −' + money(mo.chicken) + ' · ' : ''}Goods ${money(mo.goods)}</div></div>
-    </div>
-
-    <button class="btn big" style="background:var(--red);color:#fff;margin-bottom:12px" data-act="shopMic">🎤 Speak shop amounts<br><span class="small" style="font-weight:600">“cash 5000 QR 3000 goods 2000” · “नगद ५००० क्यूआर ३०००”</span></button>
     ${shopFormHtml(shopDraft)}
+    <div class="grid3" style="margin-bottom:12px">${mini(yy, 'Yesterday', yd, yd)}${mini(wk, 'This week', weekStart(t), t)}${mini(mo, BS_MONTHS[adToBs(t).m - 1], bsMonthStart(t), t)}</div>
     ${dayList.length ? `<h3>Entries on ${fmtDate(shopDraft.date, true)}</h3>${dayList.map(r => `<button class="item" data-act="editShop" data-id="${r.id}">
       <div class="ic" style="background:var(--green-l)">🏪</div>
       <div class="mid"><div class="t">Collected ${money((Number(r.cash) || 0) + (Number(r.qr) || 0))}${r.goods ? ' · Goods ' + money(r.goods) : ''}</div>
@@ -227,3 +225,22 @@ function sayShop(v) {
   speak(`Today the shop collected ${sayMoney(td.total)}: cash ${sayMoney(td.cash)}, QR ${sayMoney(td.qr)}. Goods bought ${sayMoney(td.goods)}. This month collected ${sayMoney(mo.total)}.`);
 }
 function goShop() { closeSheet(); go('shop'); }
+
+// a week / month: totals and every day (tap a day for its entries; Back returns here)
+function openShopRange(from, to, label) {
+  if (from === to) { openShopDay(from, label); return; }
+  const s0 = shopRange(from, to), days = [];
+  for (let d = to; d >= from; d = addDays(d, -1)) days.push(d);
+  openSheet(`<h2>🏪 ${esc(label)}</h2><div class="small muted" style="margin:-6px 0 10px">${fmtDate(from, true)} – ${fmtDate(to, true)}</div>
+    <div class="summary">
+      <div class="line"><span>Collected <span class="small muted">(cash ${money(s0.cash)} · QR ${money(s0.qr)})</span></span><b style="color:var(--green);font-size:${shopLess() ? 17 : 22}px">${money(s0.total)}</b></div>
+      ${s0.chicken ? `<div class="line"><span>🐔 Chicken sales (on shop days)</span><b>− ${money(s0.chicken)}</b></div>` : ''}
+      ${shopLess() ? `<div class="line"><span><b>Shop only</b></span><b style="color:var(--green);font-size:22px">${money(s0.own)}</b></div>` : ''}
+      <div class="line"><span>📦 Goods bought</span><b style="color:var(--red)">${money(s0.goods)}</b></div>
+      <div class="line"><span>Days recorded</span><b>${s0.days} · avg ${money(shopShown(s0) / (s0.days || 1))}/day</b></div></div>
+    <h3>Every day</h3>
+    <div class="summary small">${days.map(d => { const x = shopRange(d, d); return `<div class="line" data-act="shopRangeDay" data-d="${d}" data-from="${from}" data-to="${to}" data-label="${esc(label)}" style="cursor:pointer">
+      <span><b>${fmtDate(d)}</b> <span class="muted">· ${WEEK_NE[weekday(d)]}</span>${x.n ? `<br><span class="muted">💵 ${money(x.cash)} · 📱 ${money(x.qr)}${x.goods ? ' · 📦 ' + money(x.goods) : ''}${shopLess() && x.chicken ? ' · 🐔 −' + money(x.chicken) : ''}</span>` : ''}</span>
+      <b style="color:${x.n ? 'var(--green)' : 'var(--muted)'};white-space:nowrap">${x.n ? money(shopShown(x)) : '—'} ›</b></div>`; }).join('')}</div>
+    <div style="height:10px"></div><button class="btn big primary" data-act="closeSheet">Close</button>`);
+}

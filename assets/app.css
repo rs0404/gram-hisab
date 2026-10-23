@@ -296,3 +296,13 @@ u.dk{background:#16A34A}u.dp{background:#F59E0B}u.ds{background:#2563EB}
 .hshop .calcbar{grid-column:1/-1}
 .calcbar button{min-width:40px}
 .calcbar .calcres{white-space:normal;font-size:13px;line-height:1.15}
+
+/* compact shop */
+.minitoggle{display:flex;align-items:center;gap:6px;background:#fff;border:2px solid var(--line);border-radius:999px;padding:4px 6px 4px 12px;font-weight:900;font-size:16px}
+.minitoggle input{width:22px;height:22px}
+.shoptoday{padding:12px 14px;margin-bottom:10px}
+.shopboxes{margin-top:8px}
+.shopboxes input{font-size:21px;padding:10px 8px}
+.shopmini{text-align:left;margin:0;padding:10px}
+.shopmini .v{font-size:17px;font-weight:900;white-space:nowrap}
+.shopmini .label{font-size:11px}

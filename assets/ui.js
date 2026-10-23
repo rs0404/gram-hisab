@@ -1464,6 +1464,11 @@ document.addEventListener('click', e => {
     case 'deleteShop': ask({ title: 'Delete this shop entry?', buttons: [{ label: '🗑 Delete', value: 'yes', cls: 'red' }, { label: 'Keep', value: 'no' }],
       onAnswer: a => { if (a === 'yes') { removeRec(id); shopDraft = newShopDraft(shopDraft.date); renderShop(); toast('Deleted', id, true); } } }); break;
     case 'shopTab': shopTab = v; renderShop(); break;
+    case 'shopRange': openShopRange(b.dataset.from, b.dataset.to, b.dataset.label); break;
+    case 'shopRangeDay': { const f = b.dataset.from, t2 = b.dataset.to, l = b.dataset.label; openShopDay(b.dataset.d); sheetBackFn = () => openShopRange(f, t2, l); break; }
+    case 'shopDatePick': shopDateOpen = !shopDateOpen; $('#shopDateBox').classList.toggle('hidden', !shopDateOpen); break;
+    case 'shopNoteToggle': shopNoteOpen = !shopNoteOpen; $('#shopNoteBox').classList.toggle('hidden', !shopNoteOpen); if (shopNoteOpen) $('#shopNoteBox input').focus(); break;
+    case 'voiceHelp': cancelListening(); info('🎤 What can I say?', helpHtml(), '', false); break;
     case 'shopLessChicken': db.meta.shopLessChicken = !db.meta.shopLessChicken; persist(); renderShop(); break;
     case 'shareShop': shareText(shopReportText()); break;
     case 'goShop': goShop(); break;

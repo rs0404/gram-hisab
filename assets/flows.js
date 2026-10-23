@@ -759,7 +759,7 @@ function helpHtml(short) {
     ['🤝 Parma', 'Thapa ghar parma tirne 2 din', 'parma kati baki'],
     ['Ask', 'Ram ko hisab']
   ];
-  const rows = (typeof section !== 'undefined' && section === 'kheti' ? krows : []).concat([
+  const prows = [
     ['Sell meat', 'chicken sold 1 kg', 'sold 2 kg meat lot 1'],
     ['Sell live', 'sold 3 live chickens 7 kg Ashar lot 1 at 320'],
     ['By type', 'sold 2 kg giriraj meat', 'sold 1 local chicken 2 kg live'],
@@ -784,11 +784,23 @@ function helpHtml(short) {
     ['Only amount', 'sold live 550 rupees (kg worked out from the rate)'],
     ['Birds in a sale', 'sold 2.5 kg live (app guesses 1 bird)', 'sold 3 kg meat 2 chickens cut'],
     ['Price', 'set broiler meat price 450', 'set local live price 600'],
-    ['🏪 Shop', 'shop cash 5000 QR 3000 goods 2000', 'pasal nagad 4000 qr 2500', 'पसल नगद पाँच हजार क्यूआर तीन हजार सामान दुई हजार', 'shop today'],
     ['Undo', 'undo'],
     ['नेपाली', '१ केजी मासु', 'डेढ केजी जिउँदो कुखुरा', 'आज दुई वटा कुखुरा मरे', 'बी२ दाना दुई बोरा किनेको सात हजार', 'कति कुखुरा बाँकी छ'],
     ['Nepali (roman)', '1kg masu', 'sadhe dui kg jiudo kukhura', 'hijo 1 wota kukhura maryo', 'yo mahina ko nafa kati']
-  ]);
-  return `<ul class="help">${(short ? rows.slice(0, 6) : rows).map(r => `<li><b>${r[0]}:</b> ${r.slice(1).map(x => `<code>${esc(x)}</code>`).join(' ')}</li>`).join('')}</ul>
+  ];
+  const srows = [
+    ['🏪 Shop amounts', 'cash 5000 QR 3000 goods 2000', 'nagad 4000 qr 2500', 'नगद पाँच हजार क्यूआर तीन हजार सामान दुई हजार'],
+    ['Only one', 'QR 2500', 'goods 3000', '5000 (then it asks: cash, QR or goods?)'],
+    ['Another day', 'yesterday cash 4000', 'हिजो नगद ४०००'],
+    ['Ask', 'shop today', 'पसल आज कति']
+  ];
+  const all = [['🌾 Kheti', krows], ['🐔 Chicken', prows], ['🏪 Shop', srows]];
+  const sec = typeof section !== 'undefined' ? ({ kheti: 0, poultry: 1, shop: 2 })[section] || 0 : 1;
+  const rows = all[sec][1];
+  const others = all.filter((x, i) => i !== sec);
+  const list = rs => `<ul class="help">${rs.map(r => `<li><b>${r[0]}:</b> ${r.slice(1).map(x => `<code>${esc(x)}</code>`).join(' ')}</li>`).join('')}</ul>`;
+  return `<p class="small muted" style="margin-top:0">Tap 🎤 and say it in English, roman Nepali or नेपाली. You can also type it.</p>
+    <h3 style="margin-top:4px">${all[sec][0]}</h3>${list(short ? rows.slice(0, 6) : rows)}
+    ${short ? '' : others.map(([t, rs]) => `<details><summary><b>${t}</b></summary>${list(rs)}</details>`).join('') + `<details><summary><b>📅 Patro</b></summary>${list([['Calendar', 'patro', 'calendar', 'पात्रो']])}</details>`}
     ${short ? '' : `<p class="small muted">Lots are named by Nepali date, e.g. <b>Ashar83_10_1_100</b> (Ashar 2083, day 10, 1st lot that month, 100 chicks). Say it as “Ashar lot 1”, or “lot 1” = the 1st lot on the Home screen, or by type (“the giriraj lot”). B0–B3 are feed grain sizes. Nepali works too: numbers (एक, डेढ, साढे दुई, आधा, सय, हजार), masu/मासु, jiudo/जिउँदो, mare/मरे, baki/बाँकी, dana/दाना, kineko/किनेको, gate/गते, hunchha/हजुर, hoina/पर्दैन. For Devanagari, set Voice language to नेपाली in Settings.</p>`}`;
 }

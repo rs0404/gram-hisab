@@ -119,11 +119,13 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
 
 **🏪 Shop register**
 - Daily **cash**, **QR** (eSewa, Khalti, Fonepay) and **goods bought**.
+- A compact screen: today's total, then one row of Cash / QR / Goods with Save (Today, Yesterday or 📅 another date), then **Yesterday · This week · Month**. Tap a week or month to see every day; tap a day to see and edit its entries.
 - Reports: daily (31 days), weekly (12 weeks), monthly (12 Nepali months), with averages.
-- **🐔 Take chicken sales out:** chicken money is collected at the same counter, so a switch shows the shop's own amount (collected − chicken sales, only on days the shop was recorded).
+- **−🐔 switch** (top right): chicken money is collected at the same counter, so a switch shows the shop's own amount (collected − chicken sales, only on days the shop was recorded).
 
 **Voice (English and Nepali)**
 - Tap 🎤 and speak. The app shows what it heard, asks "Save?", and you answer by voice or by tapping.
+- **📖 What can I say?** on the listening screen opens the voice guide for the section you are in (Kheti, Chicken or Shop).
 - It understands Nepali numbers, including डेढ, साढे दुई, आधा, सय and हजार, and Devanagari or romanized words such as masu, jiudo, mare, dana, kineko, nagad and gate.
 
 **Settings**
