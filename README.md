@@ -116,6 +116,14 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
 - **Tap any number** (dead, sold, grain, spent…) to see the entries behind it, then edit or delete a mistake.
 - Archive a lot instead of deleting it, and restore it any time.
 
+**✂️ Cutting and meat on hand**
+- **✂️ Cut** (chicken home): birds cut (1, 2, 3…), the meat after cleaning, and optionally the live weight and khutta-tauko — or each bird's meat separately. It shows meat per bird and yield (meat ÷ live).
+- The meat goes into **🔪 Meat on hand**; meat sales then take from it, so no bird count is needed. "Meat left?" records loss/wastage, and the app asks when only a little should be left.
+- The app **learns your real yield and meat per bird** for each chicken type from your cuts (instead of a fixed 70%).
+- Each lot shows meat per bird, live per bird, yield, khutta-tauko per bird, and whether **cutting or selling live earns more per bird**.
+- **Yesterday · This week · Month** cards on the chicken home; tap to see every day, tap a day for its entries.
+- **🕘 History** next to the title of any entry that was changed: who changed what, and when.
+
 **Selling**
 - **Quick sale on the chicken home:** pick Live / Meat / Khutta and the lot, then type the kg *or* the amount. The price and the bird count fill in by themselves.
 - Sale types: **live**, **cut meat**, **khutta-tauko** (own rate, default Rs 150/kg) and **grain** (B0–B3, by bora or kg).

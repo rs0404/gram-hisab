@@ -321,3 +321,6 @@ u.dm{background:#7C3AED}
 .millboxes label span{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .lotin{min-width:0;width:100%;border:2px solid var(--line);border-radius:12px;padding:10px 6px;font-size:18px;font-weight:800;text-align:center}
 .lotgrid{display:grid;grid-template-columns:1.3fr .9fr 1fr;gap:6px;margin-top:4px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.grid4 .btn{padding:8px 2px;font-size:13px}
+.cutbirds{grid-template-columns:repeat(auto-fit,minmax(90px,1fr))}

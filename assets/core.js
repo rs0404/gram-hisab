@@ -2,7 +2,7 @@
 'use strict';
 
 const HAS_ANDROID = typeof window.Android !== 'undefined';
-const APP_VERSION = '2.11.1';
+const APP_VERSION = '2.12.0';
 
 // ---------- small utils ----------
 const $ = (sel, el) => (el || document).querySelector(sel);
@@ -280,6 +280,7 @@ const EVENT_TYPES = {
   dead: { label: 'Dead', icon: '💀', count: true },
   restock: { label: 'Chicks added', icon: '🐣', count: true, amount: true },
   cut: { label: 'Cut (meat)', icon: '🔪', count: true, qty: true },
+  meatloss: { label: 'Meat loss / wastage', icon: '🗑', qty: true },
   feed: { label: 'Feed', icon: '🌾', qty: true, amount: true, grade: true },
   medicine: { label: 'Medicine', icon: '💊', item: true, qty: true, amount: true },
   vitamin: { label: 'Vitamin', icon: '🧪', item: true, qty: true, amount: true },
@@ -395,7 +396,8 @@ function eventTitle(e) {
   switch (e.type) {
     case 'dead': return (e.count || 0) + ' dead';
     case 'restock': return 'Added ' + (e.count || 0) + ' chicks' + (e.free ? ' + ' + e.free + ' free' : '');
-    case 'cut': return 'Cut ' + (e.count || 0) + ' birds' + (e.qty ? ' → ' + kgs(e.qty) + ' meat' : '');
+    case 'cut': return '✂️ Cut ' + (e.count || 0) + ' bird' + (e.count == 1 ? '' : 's') + (e.liveKg ? ' (' + kgs(e.liveKg) + ' live)' : '') + (e.qty ? ' → ' + kgs(e.qty) + ' meat' : '') + (e.partsKg ? ' + ' + kgs(e.partsKg) + ' khutta-tauko' : '');
+    case 'meatloss': return 'Meat loss ' + kgs(e.qty || 0);
     case 'feed': return 'Feed' + (e.grade ? ' ' + e.grade : '') + (e.qty ? ' · ' + nfmt(e.qty) + ' ' + ((e.unit || 'bags') === 'bags' ? 'bora' : e.unit) : '');
     case 'weight': return 'Avg weight ' + (e.qty ? kgs(e.qty) : '');
     case 'check': return 'Counted ' + (e.count || 0) + ' birds';
@@ -443,7 +445,19 @@ function batchAge(l, breed, date) {
   }
   return n ? Math.round(sum / n) : Math.max(0, daysBetween(l.startDate, date));
 }
-function dressYield() { return (Number(getSet('dressPct')) || 70) / 100; }
+// meat ÷ live weight. Learned from your own ✂️ cuts of that chicken type (the last 8 with both weights), else the setting.
+function cutSamples(breed) {
+  const out = [];
+  for (const id in db.records) { const r = db.records[id]; if (!hidden(r) && r.kind === 'event' && r.type === 'cut' && Number(r.qty) > 0 && Number(r.count) > 0 && (!breed || !r.breed || r.breed === breed)) out.push(r); }
+  return out.sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.createdAt - a.createdAt).slice(0, 8);
+}
+function dressYield(breed) {
+  const w = cutSamples(breed).filter(r => Number(r.liveKg) > 0);
+  if (w.length) { const y = w.reduce((a, r) => a + Number(r.qty) / Number(r.liveKg), 0) / w.length; if (y > 0.3 && y < 1) return y; }
+  return (Number(getSet('dressPct')) || 70) / 100;
+}
+// meat one bird gives, from recent cuts of that type (null when there are none yet)
+function learnedMeatPerBird(breed) { const s = cutSamples(breed).slice(0, 5); return s.length ? s.reduce((a, r) => a + Number(r.qty) / Number(r.count), 0) / s.length : null; }
 // Uses (1) a recent weigh-in, (2) recent live sales of this lot & type, else (3) the age curve.
 function estBirdKg(l, breed, date, excludeId) {
   date = date || today();
@@ -475,14 +489,14 @@ function estMeatCut(kg, l, breed, date) {
   const s = lotStats(l.id), b = s && s.byBreed[breed];
   const stock = b ? b.meatStock : 0;
   const e = estBirdKg(l, breed, date);
-  const perBird = e.kg * dressYield();
+  const perBird = learnedMeatPerBird(breed) || e.kg * dressYield(breed);
   const need = kg - stock;
   return { birds: need <= 0.05 ? 0 : Math.max(1, Math.ceil(need / perBird)), stock, perBird: round(perBird, 2), est: e };
 }
 
 function computeStats() {
   const L = {};
-  const blank = () => ({ chicks: 0, restock: 0, adjust: 0, dead: 0, soldBirds: 0, cutBirds: 0, cutKg: 0, liveKg: 0, meatKg: 0, revenue: 0 });
+  const blank = () => ({ chicks: 0, restock: 0, adjust: 0, dead: 0, soldBirds: 0, cutBirds: 0, cutKg: 0, liveKg: 0, meatKg: 0, meatLoss: 0, partsCut: 0, revenue: 0, moves: [] });
   lots().forEach(l => {
     const byBreed = {};
     lotMix(l).forEach(m => { byBreed[m.breed] = Object.assign(blank(), { chicks: mixIn(m), free: Number(m.free) || 0 }); });
@@ -516,13 +530,15 @@ function computeStats() {
       else if (r.type === 'parts') { s.partsKg += kg; s.partsRev += amt; }
       else {
         s.meatKg += kg; s.meatRev += amt; b.meatKg += kg; b.cutBirds += birds;
-        if (birds) b.cutKg += Number(r.cutKg) || birds * curveKg(daysBetween(s.lot.startDate, r.date)) * dressYield();
+        const ck = birds ? Number(r.cutKg) || birds * curveKg(daysBetween(s.lot.startDate, r.date)) * dressYield(r.breed) : 0;
+        b.cutKg += ck; b.moves.push([r.date, r.createdAt || 0, ck - kg]);
       }
     } else if (r.kind === 'event') {
       const c = Number(r.count) || 0, a = Number(r.amount) || 0;
       if (r.type === 'dead') b.dead += c;
       else if (r.type === 'restock') { b.restock += restockIn(r); s.free += Number(r.free) || 0; s.costChicks += a; s.expenses += a; }
-      else if (r.type === 'cut') { b.cutBirds += c; b.cutKg += Number(r.qty) || c * curveKg(daysBetween(s.lot.startDate, r.date)) * dressYield(); }
+      else if (r.type === 'cut') { const ck = Number(r.qty) || c * curveKg(daysBetween(s.lot.startDate, r.date)) * dressYield(r.breed); b.cutBirds += c; b.cutKg += ck; b.partsCut += Number(r.partsKg) || 0; b.moves.push([r.date, r.createdAt || 0, ck]); }
+      else if (r.type === 'meatloss') { b.meatLoss += Number(r.qty) || 0; b.moves.push([r.date, r.createdAt || 0, -(Number(r.qty) || 0)]); }
       else if (r.type === 'soldfix') b.soldBirds += c;
       else if (r.type === 'adjust') b.adjust += c;
       else if (r.type === 'check') { if (r.date > s.lastCheck) s.lastCheck = r.date; }
@@ -544,7 +560,10 @@ function computeStats() {
     Object.values(s.byBreed).forEach(b => {
       b.totalIn = b.chicks + b.adjust;
       b.remaining = b.totalIn - b.dead - b.soldBirds - b.cutBirds;
-      b.meatStock = round(Math.max(0, b.cutKg - b.meatKg), 2);
+      // cut meat not sold yet: a running balance in date order that never goes below 0
+      // (an old sale of more meat than the estimate must not swallow later cuts)
+      b.meatStock = round(b.moves.sort((p, q) => String(p[0]).localeCompare(String(q[0])) || p[1] - q[1]).reduce((a, m) => Math.max(0, a + m[2]), 0), 2);
+      delete b.moves;
       b.totalIn = b.chicks + b.restock + b.adjust;
       b.remaining = b.totalIn - b.dead - b.soldBirds - b.cutBirds;
       ['restock', 'adjust', 'dead', 'soldBirds', 'cutBirds', 'cutKg'].forEach(k => { s[k] += b[k]; });

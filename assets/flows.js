@@ -258,10 +258,11 @@ function confirmSale(sale, told, v, silent) {
 function saveSale(sale, told, v) {
   const isNew = !sale.id;
   sale.birds = Number(sale.birds) || 0;
-  if (sale.type === 'meat' && sale.birds) { const lot = lotById(sale.lotId); sale.cutKg = round(sale.birds * estBirdKg(lot, sale.breed, sale.date, sale.id).kg * dressYield(), 2); }
+  if (sale.type === 'meat' && sale.birds) { const lot = lotById(sale.lotId); sale.cutKg = round(sale.birds * (learnedMeatPerBird(sale.breed) || estBirdKg(lot, sale.breed, sale.date, sale.id).kg * dressYield(sale.breed)), 2); }
   else delete sale.cutKg;
   put(sale);
   render();
+  if (isNew && typeof askMeatLeftAfterSale === 'function') askMeatLeftAfterSale(sale);
   const def = priceFor(sale.type, sale.breed);
   const finish = () => announceSale(sale, v, isNew);
   if (told && sale.rate > 0 && round(sale.rate) !== round(def)) {

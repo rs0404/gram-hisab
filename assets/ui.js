@@ -16,6 +16,7 @@ function openSheet(html, isAsk) {
   if (!isAsk && pendingAsk) cancelAsk();
   if (!isAsk) sheetBackFn = null;
   $('#sheet').innerHTML = '<div class="grab"></div>' + html;
+  if (typeof addHistPill === 'function') addHistPill('#sheet');
   $('#sheetWrap').classList.remove('hidden');
   $('#sheet').scrollTop = 0;
 }
@@ -55,6 +56,7 @@ function render() {
 }
 function renderView(v) {
   ({ mill: renderMill, millreport: renderMillReport, kheti: renderKheti, kwork: renderKWork, kmachines: renderKMachines, workers: renderWorkers, kreports: renderKReports, home: renderHome, sell: renderSell, buy: renderBuy, shop: renderShop, reports: renderReports, settings: renderSettings })[v]();
+  if (typeof addHistPill === 'function') addHistPill('#v-' + v);
 }
 function renderHeader() {
   const t = today(), b = adToBs(t), d = new Date();
@@ -94,12 +96,11 @@ function renderHome() {
       ${homeSaleHtml()}
     </div>
 
-    <div class="grid2">
-      <div class="card tight"><div class="label">Last 7 days</div><div style="font-size:22px;font-weight:900">${money(wk.amount)}</div><div class="small muted">${kgs(wk.kg)}</div></div>
-      <div class="card tight"><div class="label">${BS_MONTHS[adToBs(t).m - 1]} (month)</div><div style="font-size:22px;font-weight:900">${money(mo.amount)}</div><div class="small muted">${kgs(mo.kg)}</div></div>
-    </div>
+    ${meatOnHandHtml()}
+    ${chickMiniCards()}
 
-    <div class="grid3" style="margin-bottom:12px">
+    <div class="grid4" style="margin-bottom:12px">
+      <button class="btn ghost" style="flex-direction:column;min-height:72px" data-act="cutNew"><span style="font-size:24px">✂️</span>Cut</button>
       <button class="btn ghost" style="flex-direction:column;min-height:72px" data-act="askLeft"><span style="font-size:24px">🐔</span>Birds left</button>
       <button class="btn ghost" style="flex-direction:column;min-height:72px" data-act="openStock"><span style="font-size:24px">📦</span>Stock</button>
       <button class="btn ghost" style="flex-direction:column;min-height:72px" data-act="openReport"><span style="font-size:24px">📊</span>Profit</button>
@@ -196,7 +197,7 @@ function historyHtml(id) {
   if (!id) return '';
   const list = auditsFor(id);
   const r = db.records[id];
-  return `<details style="margin-top:12px"${list.length > 1 ? ' open' : ''}><summary class="small" style="font-weight:800;color:var(--muted)">📜 History (${list.length || 1})</summary>
+  return `<details class="hist" data-n="${list.length || 1}" style="margin-top:12px"${list.length > 1 ? ' open' : ''}><summary class="small" style="font-weight:800;color:var(--muted)">📜 History (${list.length || 1})</summary>
     <div class="summary small" style="margin-top:6px">${list.length ? list.map(a => auditLine(a, false)).join('') : `<div class="line"><span>➕ <b>${esc((r && (r.by || r.device)) || '')}</b> added</span><span class="muted">${r ? fmtStamp(r.createdAt) : ''}</span></div>`}</div></details>`;
 }
 const POULTRY_LOG_KINDS = ['sale', 'grainsale', 'purchase', 'event', 'lot'];
@@ -646,6 +647,7 @@ function openLot(id, tab) {
     ${feed.length ? `<div class="summary small"><div class="line"><span><b>🌾 Feed used</b></span><b></b></div>${feed.map(g => `<div class="line"><span>${esc(g)}</span><b>${nfmt(s.feedByGrade[g])} kg · ${nfmt(round(s.feedByGrade[g] / bagKg(), 1))} bags</b></div>`).join('')}</div>` : ''}
     ${s.lastWeight ? `<p class="small">⚖️ Last avg weight: <b>${kgs(s.lastWeight)}</b> (${fmtDate(s.lastWeightDate)})</p>` : ''}
     ${s.meatStock ? `<p class="small">🔪 Cut meat not sold yet: <b>${kgs(s.meatStock)}</b></p>` : ''}
+    ${lotCutSummaryHtml(l)}
     <div class="grid2" style="margin-bottom:10px">
       ${l.closed ? '' : `<button class="btn primary" data-act="sellLot" data-id="${id}">+ Sale</button><button class="btn" data-act="addEvent" data-id="${id}" data-type="dead">+ Process entry</button>
       <button class="btn" data-act="countCheck" data-id="${id}">🔢 Count check</button>`}
@@ -816,6 +818,7 @@ function editRec(id) {
   if (r.kind === 'sale') goSell(r);
   else if (r.kind === 'grainsale') { sellDraft = Object.assign({}, r, { type: 'grain', amountManual: true }); closeSheet(); go('sell'); }
   else if (r.kind === 'purchase') goBuy(r);
+  else if (r.kind === 'event' && r.type === 'cut') openCutForm(r);
   else if (r.kind === 'event') openEventForm(Object.assign({}, r));
 }
 function deleteRec(id, after) {
@@ -1085,6 +1088,7 @@ function setBsDraftDate(key, ad) {
   else if (key === 'ev' && eventDraft) eventDraft.date = ad;
   else if (key === 'lot' && lotDraft) { lotDraft.startDate = ad; updateLotAutoName(); }
   else if (key === 'buy' && buyDraft) buyDraft.date = ad;
+  else if (key === 'cut' && cutDraft) { readCutForm(); cutDraft.date = ad; }
   else if (key === 'mill' && millDraft) { $$('#millForm [data-ml]').forEach(el => { millDraft[el.dataset.ml] = el.value; }); millDraft.date = ad; renderMill(); }
   else if (key === 'millbill') millBillDate = ad;
   else if (key === 'ksvc' && svcDraft) { readServiceForm(); const nd = svcDraft.nextDate && svcDraft.date ? daysBetween(svcDraft.date, svcDraft.nextDate) : 0; svcDraft.date = ad; if (nd) svcDraft.nextDate = addDays(ad, nd); }
@@ -1388,7 +1392,7 @@ document.addEventListener('click', e => {
   if (!b) return;
   const act = b.dataset.act, id = b.dataset.id, v = b.dataset.v;
   if (b.tagName === 'A') e.preventDefault();
-  if (khetiClick(act, b) || calendarClick(act, b) || machinesClick(act, b) || millClick(act, b)) return;
+  if (khetiClick(act, b) || calendarClick(act, b) || machinesClick(act, b) || millClick(act, b) || cutClick(act, b)) return;
   switch (act) {
     case 'go': closeSheet(); go(b.dataset.view); break;
     case 'mic': if (listening) cancelListening(); else listen(); break;
