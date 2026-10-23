@@ -157,10 +157,10 @@ function chickRangeSum(from, to) {
   for (const id in db.records) {
     const r = db.records[id];
     if (hidden(r) || !r.date || r.date < from || r.date > to) continue;
-    if (r.kind === 'sale') { o.sales++; o.amount += Number(r.amount) || 0; o[r.type === 'live' ? 'liveKg' : r.type === 'parts' ? 'partsKg' : 'meatKg'] += Number(r.kg) || 0; if (r.type === 'live') o.birds += Number(r.birds) || 0; }
+    if (r.kind === 'sale') { o.sales++; o.amount += Number(r.amount) || 0; o[r.type === 'live' ? 'liveKg' : r.type === 'parts' ? 'partsKg' : 'meatKg'] += Number(r.kg) || 0; if (r.type === 'live') o.birds += Number(r.birds) || 0; else if (r.type === 'meat') o.cutBirds += Number(r.birds) || 0; }
     else if (r.kind === 'grainsale') { o.sales++; o.amount += Number(r.amount) || 0; }
     else if (r.kind === 'event' && r.type === 'dead') o.dead += Number(r.count) || 0;
-    else if (r.kind === 'event' && r.type === 'cut') o.cutBirds += Number(r.count) || 0;
+    else if (r.kind === 'event' && r.type === 'cut') { o.cutBirds += Number(r.count) || 0; o.cutMeat = (o.cutMeat || 0) + (Number(r.qty) || 0); }
     else if (r.kind === 'purchase') o.bought += Number(r.amount) || 0;
   }
   return o;
@@ -173,18 +173,20 @@ function openChickRange(from, to, label) {
     <div class="summary">
       <div class="line"><span><b>Sales</b> (${o.sales})</span><b style="color:var(--green);font-size:22px">${money(o.amount)}</b></div>
       <div class="line"><span>🐔 Live · 🔪 Meat · 🍗 Khutta</span><b>${nfmt(round(o.liveKg, 1))} · ${nfmt(round(o.meatKg, 1))} · ${nfmt(round(o.partsKg, 1))} kg</b></div>
-      <div class="line"><span>Birds sold live · cut · dead</span><b>${o.birds} · ${o.cutBirds} · ${o.dead}</b></div>
+      <div class="line"><span>🐔 Live sold</span><b>${o.birds} birds · ${kgs(o.liveKg)}</b></div>
+      <div class="line"><span>✂️ Cut</span><b>${o.cutBirds} birds${o.cutMeat ? ' → ' + kgs(o.cutMeat) + ' meat' : ''} · sold ${kgs(o.meatKg)}</b></div>
+      <div class="line"><span>💀 Dead</span><b>${o.dead}</b></div>
       ${o.bought ? `<div class="line"><span>🛒 Bought</span><b style="color:var(--red)">${money(o.bought)}</b></div>` : ''}</div>
     <h3>Every day</h3>
     <div class="summary small">${days.map(d => { const x = chickRangeSum(d, d); return `<div class="line" data-act="chickRangeDay" data-d="${d}" data-from="${from}" data-to="${to}" data-label="${esc(label)}" style="cursor:pointer">
-      <span><b>${fmtDate(d)}</b> <span class="muted">· ${WEEK_NE[weekday(d)]}</span>${x.sales || x.dead || x.cutBirds ? `<br><span class="muted">${x.liveKg ? '🐔 ' + nfmt(round(x.liveKg, 1)) + ' kg ' : ''}${x.meatKg ? '🔪 ' + nfmt(round(x.meatKg, 1)) + ' kg ' : ''}${x.cutBirds ? '✂️ ' + x.cutBirds + ' ' : ''}${x.dead ? '💀 ' + x.dead : ''}</span>` : ''}</span>
+      <span><b>${fmtDate(d)}</b> <span class="muted">· ${WEEK_NE[weekday(d)]}</span>${x.sales || x.dead || x.cutBirds ? `<br><span class="muted">${x.birds || x.liveKg ? `🐔 ${x.birds} live (${nfmt(round(x.liveKg, 1))} kg) · ` : ''}${x.cutBirds ? `✂️ ${x.cutBirds} cut${x.cutMeat ? ' → ' + nfmt(round(x.cutMeat, 1)) + ' kg' : ''} · ` : ''}${x.meatKg ? `🔪 ${nfmt(round(x.meatKg, 1))} kg sold · ` : ''}💀 ${x.dead}</span>` : ''}</span>
       <b style="color:${x.amount ? 'var(--green)' : 'var(--muted)'};white-space:nowrap">${x.amount ? money(x.amount) : '—'} ›</b></div>`; }).join('')}</div>
     <div style="height:10px"></div><button class="btn big primary" data-act="closeSheet">Close</button>`);
 }
 function chickMiniCards() {
   const t = today(), y = addDays(t, -1), ws = typeof weekStart === 'function' ? weekStart(t) : addDays(t, -6);
   const card = (from, to, label) => { const o = chickRangeSum(from, to); return `<button class="card tight shopmini" data-act="chickRange" data-from="${from}" data-to="${to}" data-label="${esc(label)}">
-    <div class="label">${esc(label)}</div><div class="v">${money(o.amount)}</div><div class="small muted">${nfmt(round(o.liveKg + o.meatKg, 1))} kg ›</div></button>`; };
+    <div class="label">${esc(label)}</div><div class="v">${money(o.amount)}</div><div class="small muted" style="white-space:nowrap">🐔${o.birds} ✂️${o.cutBirds} 💀${o.dead} ›</div></button>`; };
   return `<div class="grid3" style="margin-bottom:12px">${card(y, y, 'Yesterday')}${card(ws, t, 'This week')}${card(bsMonthStart(t), t, BS_MONTHS[adToBs(t).m - 1])}</div>`;
 }
 

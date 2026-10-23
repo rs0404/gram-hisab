@@ -89,9 +89,9 @@ function renderHome() {
       <div class="row between"><div class="label">🐔 Chicken sales today</div><div class="label">${td.count} sale${td.count === 1 ? '' : 's'}</div></div>
       <div class="huge" style="margin:6px 0 12px">${money(td.amount)}</div>
       <div class="grid3">
-        <div class="stat"><b>${nfmt(td.liveKg)}</b><span>Live kg</span></div>
-        <div class="stat"><b>${nfmt(td.meatKg)}</b><span>Meat kg</span></div>
-        <div class="stat"><b>${td.dead}</b><span>Dead</span></div>
+        <div class="stat" data-act="dayDetail" data-d="${t}"><b>🐔 ${td.liveBirds}</b><span>Live · ${nfmt(round(td.liveKg, 1))} kg</span></div>
+        <div class="stat" data-act="dayDetail" data-d="${t}"><b>✂️ ${td.cutBirds}</b><span>Cut${td.cutMeat ? ' → ' + nfmt(round(td.cutMeat, 1)) + ' kg' : ''} · ${nfmt(round(td.meatKg, 1))} kg sold</span></div>
+        <div class="stat" data-act="dayDetail" data-d="${t}"><b>💀 ${td.dead}</b><span>Dead</span></div>
       </div>
       ${homeSaleHtml()}
     </div>
@@ -706,8 +706,10 @@ function openDay(date, lotId, fromCal) {
     <div class="summary" ${fromCal && !kh.line && !sales.length && !buys.length && !shop.length ? 'style="display:none"' : ''}>
       ${kh.line}
       ${sales.length || !fromCal ? `<div class="line"><span><b>Sales</b> (${sales.length})</span><b style="font-size:22px;color:var(--green)">${money(sum(sales, 'amount'))}</b></div>` : ''}
-      ${by('live').length ? `<div class="line"><span>🐔 Live</span><b>${kgs(sum(by('live'), 'kg'))} · ${sum(by('live'), 'birds')} birds · ${money(sum(by('live'), 'amount'))}</b></div>` : ''}
-      ${by('meat').length ? `<div class="line"><span>🔪 Meat</span><b>${kgs(sum(by('meat'), 'kg'))} · ${sum(by('meat'), 'birds')} cut · ${money(sum(by('meat'), 'amount'))}</b></div>` : ''}
+      ${by('live').length ? `<div class="line"><span>🐔 Live sold</span><b>${kgs(sum(by('live'), 'kg'))} · ${sum(by('live'), 'birds')} birds · ${money(sum(by('live'), 'amount'))}</b></div>` : ''}
+      ${by('meat').length ? `<div class="line"><span>🔪 Meat sold</span><b>${kgs(sum(by('meat'), 'kg'))}${sum(by('meat'), 'birds') ? ' · ' + sum(by('meat'), 'birds') + ' cut' : ''} · ${money(sum(by('meat'), 'amount'))}</b></div>` : ''}
+      ${(() => { const cuts = proc.filter(r => r.type === 'cut'), dd = proc.filter(r => r.type === 'dead').reduce((a, r) => a + (Number(r.count) || 0), 0), cb = cuts.reduce((a, r) => a + (Number(r.count) || 0), 0), cm = cuts.reduce((a, r) => a + (Number(r.qty) || 0), 0);
+        return (cb ? `<div class="line"><span>✂️ Cut</span><b>${cb} bird${cb > 1 ? 's' : ''} → ${kgs(cm)} meat</b></div>` : '') + (dd ? `<div class="line"><span>💀 Dead</span><b>${dd}</b></div>` : ''); })()}
       ${by('parts').length ? `<div class="line"><span>🍗 Khutta-tauko</span><b>${kgs(sum(by('parts'), 'kg'))} · ${money(sum(by('parts'), 'amount'))}</b></div>` : ''}
       ${sales.filter(r => r.kind === 'grainsale').length ? `<div class="line"><span>🌾 Grain</span><b>${money(sum(sales.filter(r => r.kind === 'grainsale'), 'amount'))}</b></div>` : ''}
       ${Object.keys(perLot).map(id => `<div class="line"><span class="muted">${esc(lotName(id))}</span><b>${money(perLot[id])}</b></div>`).join('')}
