@@ -129,7 +129,7 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
 - The meat goes into **🔪 Meat on hand**; meat sales then take from it, so no bird count is needed. "Meat left?" records loss/wastage, and the app asks when only a little should be left.
 - The app **learns your real yield and meat per bird** for each chicken type from your cuts (instead of a fixed 70%).
 - Each lot shows meat per bird, live per bird, yield, khutta-tauko per bird, and whether **cutting or selling live earns more per bird**.
-- **Bird counts every day:** 🐔 live sold (birds, kg), ✂️ cut (birds → meat kg) and 🔪 meat sold, 💀 dead — on the Today card, the cards and every day's line.
+- **Bird counts every day:** 🐔 live sold (birds, kg), ✂️ cut (birds → meat kg) and 🔪 meat sold, 💀 dead, and 🌾 grain sold (bora/kg, Rs) at the right — on the Today card, the cards and every day's line.
 - **Yesterday · This week · Month** cards on the chicken home; tap to see every day, tap a day for its entries.
 - **🕘 History** next to the title of any entry that was changed: who changed what, and when.
 

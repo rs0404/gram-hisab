@@ -2,7 +2,7 @@
 'use strict';
 
 const HAS_ANDROID = typeof window.Android !== 'undefined';
-const APP_VERSION = '2.14.0';
+const APP_VERSION = '2.14.1';
 
 // ---------- small utils ----------
 const $ = (sel, el) => (el || document).querySelector(sel);
@@ -588,8 +588,9 @@ function computeStats() {
 }
 function lotStats(id) { return computeStats()[id]; }
 
+const grainQtyText = kg => kg >= bagKg() ? `${nfmt(round(kg / bagKg(), 2))} bora` : `${nfmt(round(kg, 1))} kg`;
 function periodStats(from, to) {
-  const out = { kg: 0, liveKg: 0, meatKg: 0, amount: 0, birds: 0, liveBirds: 0, cutBirds: 0, cutMeat: 0, count: 0, dead: 0, expenses: 0 };
+  const out = { kg: 0, liveKg: 0, meatKg: 0, amount: 0, birds: 0, liveBirds: 0, cutBirds: 0, cutMeat: 0, count: 0, dead: 0, expenses: 0, grainKg: 0, grainAmount: 0, grainN: 0 };
   for (const id in db.records) {
     const r = db.records[id];
     if (hidden(r) || !r.date || r.date < from || r.date > to) continue;
@@ -602,6 +603,7 @@ function periodStats(from, to) {
       if (r.type === 'cut') { out.cutBirds += Number(r.count) || 0; out.cutMeat += Number(r.qty) || 0; }
       if (r.type === 'expense') out.expenses += Number(r.amount) || 0;
     } else if (r.kind === 'purchase') out.expenses += Number(r.amount) || 0;
+    else if (r.kind === 'grainsale') { out.grainN++; out.grainAmount += Number(r.amount) || 0; out.grainKg += r.unit === 'kg' ? Number(r.qty) || 0 : (Number(r.qty) || 0) * bagKg(); }
   }
   return out;
 }

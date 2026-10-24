@@ -88,10 +88,11 @@ function renderHome() {
     <div class="card today">
       <div class="row between"><div class="label">🐔 Chicken sales today</div><div class="label">${td.count} sale${td.count === 1 ? '' : 's'}</div></div>
       <div class="huge" style="margin:6px 0 12px">${money(td.amount)}</div>
-      <div class="grid3">
+      <div class="grid4 todaystats">
         <div class="stat" data-act="dayDetail" data-d="${t}"><b>🐔 ${td.liveBirds}</b><span>Live · ${nfmt(round(td.liveKg, 1))} kg</span></div>
         <div class="stat" data-act="dayDetail" data-d="${t}"><b>✂️ ${td.cutBirds}</b><span>Cut${td.cutMeat ? ' → ' + nfmt(round(td.cutMeat, 1)) + ' kg' : ''} · ${nfmt(round(td.meatKg, 1))} kg sold</span></div>
         <div class="stat" data-act="dayDetail" data-d="${t}"><b>💀 ${td.dead}</b><span>Dead</span></div>
+        <div class="stat" data-act="dayDetail" data-d="${t}"><b>🌾 ${td.grainKg ? grainQtyText(td.grainKg).split(' ')[0] : 0}</b><span>${td.grainKg ? grainQtyText(td.grainKg).split(' ')[1] + ' grain' : 'Grain'}${td.grainAmount ? ' · ' + money(td.grainAmount) : ' sold'}</span></div>
       </div>
       ${homeSaleHtml()}
     </div>
@@ -711,7 +712,7 @@ function openDay(date, lotId, fromCal) {
       ${(() => { const cuts = proc.filter(r => r.type === 'cut'), dd = proc.filter(r => r.type === 'dead').reduce((a, r) => a + (Number(r.count) || 0), 0), cb = cuts.reduce((a, r) => a + (Number(r.count) || 0), 0), cm = cuts.reduce((a, r) => a + (Number(r.qty) || 0), 0);
         return (cb ? `<div class="line"><span>✂️ Cut</span><b>${cb} bird${cb > 1 ? 's' : ''} → ${kgs(cm)} meat</b></div>` : '') + (dd ? `<div class="line"><span>💀 Dead</span><b>${dd}</b></div>` : ''); })()}
       ${by('parts').length ? `<div class="line"><span>🍗 Khutta-tauko</span><b>${kgs(sum(by('parts'), 'kg'))} · ${money(sum(by('parts'), 'amount'))}</b></div>` : ''}
-      ${sales.filter(r => r.kind === 'grainsale').length ? `<div class="line"><span>🌾 Grain</span><b>${money(sum(sales.filter(r => r.kind === 'grainsale'), 'amount'))}</b></div>` : ''}
+      ${sales.filter(r => r.kind === 'grainsale').length ? `<div class="line"><span>🌾 Grain sold</span><b>${grainQtyText(sales.filter(r => r.kind === 'grainsale').reduce((a, r) => a + (r.unit === 'kg' ? Number(r.qty) || 0 : (Number(r.qty) || 0) * bagKg()), 0))} · ${money(sum(sales.filter(r => r.kind === 'grainsale'), 'amount'))}</b></div>` : ''}
       ${Object.keys(perLot).map(id => `<div class="line"><span class="muted">${esc(lotName(id))}</span><b>${money(perLot[id])}</b></div>`).join('')}
       ${buys.length ? `<div class="line"><span><b>Bought</b> (${buys.length})</span><b style="color:var(--red)">${money(sum(buys, 'amount'))}</b></div>` : ''}
       ${shop.length ? `<div class="line"><span>🏪 Shop collected</span><b>${money(sh.total)} <span class="small muted">(goods ${money(sh.goods)})</span></b></div>` : ''}

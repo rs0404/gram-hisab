@@ -325,3 +325,7 @@ u.dm{background:#7C3AED}
 .grid4 .btn{padding:8px 2px;font-size:13px}
 .cutbirds{grid-template-columns:repeat(auto-fit,minmax(90px,1fr))}
 .settabs button{font-size:13px;padding:9px 4px;flex:1 1 0;min-width:0}
+.todaystats{gap:6px}
+.todaystats .stat{padding:8px 4px;min-width:0}
+.todaystats .stat b{font-size:17px;white-space:nowrap}
+.todaystats .stat span{font-size:10px;line-height:1.2}
