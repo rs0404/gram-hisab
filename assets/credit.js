@@ -71,6 +71,10 @@ function renderCredit() {
       <div class="amt" style="color:var(--red)">${money(p.balance)}</div></button>`).join('') : '<p class="muted">Nobody owes anything 🎉</p>'}
     ${adv.length ? `<h3>Paid extra (advance)</h3>${adv.map(p => `<button class="item" data-act="crPerson" data-v="${esc(p.key)}"><div class="ic">👤</div><div class="mid"><div class="t">${esc(p.name)}</div></div><div class="amt" style="color:var(--green)">${money(-p.balance)}</div></button>`).join('')}` : ''}
     ${P.some(p => Math.abs(p.balance) <= 0.5) ? `<details style="margin-top:8px"><summary class="small muted" style="font-weight:800">✓ Settled (${P.filter(p => Math.abs(p.balance) <= 0.5).length})</summary>${P.filter(p => Math.abs(p.balance) <= 0.5).sort((a, b) => b.last.localeCompare(a.last)).map(p => `<button class="item" data-act="crPerson" data-v="${esc(p.key)}"><div class="ic">👤</div><div class="mid"><div class="t">${esc(p.name)}</div><div class="s">last ${fmtDate(p.last)}</div></div><div class="amt">✓</div></button>`).join('')}</details>` : ''}
+    ${(() => { const rec = all('credit').sort((a, b) => b.createdAt - a.createdAt).slice(0, 15); return rec.length ? `<h3>🕒 Recent entries</h3>${rec.map(r => `<button class="item" data-act="crEdit" data-id="${r.id}">
+      <div class="ic" style="background:${r.type === 'paid' ? 'var(--green-l)' : 'var(--red-l)'}">${r.type === 'paid' ? '📗' : '📕'}</div>
+      <div class="mid"><div class="t">${esc(r.person)} · ${r.type === 'paid' ? 'paid back' + (r.pay === 'qr' ? ' (QR)' : '') : 'udharo'}</div><div class="s">${fmtDate(r.date)}${r.note ? ' · ' + esc(r.note) : ''} · ${whoWhen(r)}</div></div>
+      <div class="amt" style="color:${r.type === 'paid' ? 'var(--green)' : 'var(--red)'}">${r.type === 'paid' ? '−' : '+'}${money(r.amount)}</div></button>`).join('')}` : ''; })()}
     <div class="grid2" style="margin-top:12px"><button class="btn" data-act="crShareAll">💬 Share list</button><button class="btn" data-act="exportCsv" data-v="credit">📄 Udharo (CSV)</button></div>
     <p class="small muted" style="text-align:center">🎤 “Ram udharo 500” · “Ram le 300 tiryo” · “उधारो राम ५००”</p>`;
 }
@@ -108,7 +112,7 @@ function openCreditPerson(key) {
     <div class="btnrow" style="margin-top:8px">${p.balance > 0.5 ? `<button class="btn primary" data-act="crSettle" data-v="${esc(key)}">✔ Settle ${money(p.balance)}</button>` : ''}<button class="btn ghost" data-act="crShare" data-v="${esc(key)}">📤 Share</button></div>
     <h3>Ledger</h3>
     <div class="summary small">${rows.map(({ r, run }) => `<div class="line" data-act="crEdit" data-id="${r.id}" style="cursor:pointer">
-      <span>${fmtDate(r.date, true)} · ${r.type === 'paid' ? '📗 paid' + (r.pay === 'qr' ? ' (QR)' : '') : '📕 udharo'}${r.note ? '<br><span class="muted">' + esc(r.note) + '</span>' : ''}</span>
+      <span>${fmtDate(r.date, true)} · ${r.type === 'paid' ? '📗 paid' + (r.pay === 'qr' ? ' (QR)' : '') : '📕 udharo'}${r.note ? '<br><span class="muted">' + esc(r.note) + '</span>' : ''}<br><span class="muted" style="font-size:11px">${whoWhen(r)}</span></span>
       <b style="text-align:right;white-space:nowrap;color:${r.type === 'paid' ? 'var(--green)' : 'inherit'}">${r.type === 'paid' ? '−' : '+'}${money(r.amount)}<br><span class="small muted">= ${money(run)}</span></b></div>`).join('')}</div>
     <div style="height:10px"></div><button class="btn big primary" data-act="closeSheet">Close</button>`);
 }
