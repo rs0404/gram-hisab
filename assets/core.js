@@ -2,7 +2,7 @@
 'use strict';
 
 const HAS_ANDROID = typeof window.Android !== 'undefined';
-const APP_VERSION = '2.14.2';
+const APP_VERSION = '2.14.3';
 
 // ---------- small utils ----------
 const $ = (sel, el) => (el || document).querySelector(sel);
@@ -590,13 +590,14 @@ function lotStats(id) { return computeStats()[id]; }
 
 const grainQtyText = kg => kg >= bagKg() ? `${nfmt(round(kg / bagKg(), 2))} bora` : `${nfmt(round(kg, 1))} kg`;
 function periodStats(from, to) {
-  const out = { kg: 0, liveKg: 0, meatKg: 0, amount: 0, birds: 0, liveBirds: 0, cutBirds: 0, cutMeat: 0, count: 0, dead: 0, expenses: 0, grainKg: 0, grainAmount: 0, grainN: 0 };
+  const out = { kg: 0, liveKg: 0, meatKg: 0, amount: 0, birds: 0, liveBirds: 0, cutBirds: 0, cutMeat: 0, count: 0, dead: 0, expenses: 0, grainKg: 0, grainAmount: 0, grainN: 0, liveAmt: 0, meatAmt: 0, partsAmt: 0 };
   for (const id in db.records) {
     const r = db.records[id];
     if (hidden(r) || !r.date || r.date < from || r.date > to) continue;
     if (r.kind === 'sale') {
       out.count++; out.kg += Number(r.kg) || 0; out.amount += Number(r.amount) || 0; out.birds += Number(r.birds) || 0;
       if (r.type === 'live') out.liveBirds += Number(r.birds) || 0; else if (r.type === 'meat') out.cutBirds += Number(r.birds) || 0;   // old-style meat sales with birds cut
+      out[r.type === 'live' ? 'liveAmt' : r.type === 'parts' ? 'partsAmt' : 'meatAmt'] += Number(r.amount) || 0;
       if (r.type === 'live') out.liveKg += Number(r.kg) || 0; else if (r.type === 'parts') out.partsKg = (out.partsKg || 0) + (Number(r.kg) || 0); else out.meatKg += Number(r.kg) || 0;
     } else if (r.kind === 'event') {
       if (r.type === 'dead') out.dead += Number(r.count) || 0;

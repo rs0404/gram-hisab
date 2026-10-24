@@ -329,3 +329,4 @@ u.dm{background:#7C3AED}
 .todaystats .stat{padding:8px 4px;min-width:0}
 .todaystats .stat b{font-size:17px;white-space:nowrap}
 .todaystats .stat span{font-size:10px;line-height:1.2}
+.todaystats .stat em{display:block;font-style:normal;font-weight:900;font-size:12px;margin-top:3px;white-space:nowrap}

@@ -89,10 +89,10 @@ function renderHome() {
       <div class="row between"><div class="label">🐔 Chicken sales today</div><div class="label">${td.count} sale${td.count === 1 ? '' : 's'}</div></div>
       <div class="huge" style="margin:6px 0 12px">${money(td.amount)}</div>
       <div class="grid4 todaystats">
-        <div class="stat" data-act="dayDetail" data-d="${t}"><b>🐔 ${td.liveBirds}</b><span>Live · ${nfmt(round(td.liveKg, 1))} kg</span></div>
-        <div class="stat" data-act="dayDetail" data-d="${t}"><b>✂️ ${td.cutBirds}</b><span>Cut${td.cutMeat ? ' → ' + nfmt(round(td.cutMeat, 1)) + ' kg' : ''} · ${nfmt(round(td.meatKg, 1))} kg sold</span></div>
-        <div class="stat" data-act="dayDetail" data-d="${t}"><b>💀 ${td.dead}</b><span>Dead</span></div>
-        <div class="stat" data-act="dayDetail" data-d="${t}"><b>🌾 ${td.grainKg ? grainQtyText(td.grainKg).split(' ')[0] : 0}</b><span>${td.grainKg ? grainQtyText(td.grainKg).split(' ')[1] + ' grain' : 'Grain'}${td.grainAmount ? ' · ' + money(td.grainAmount) : ' sold'}</span></div>
+        <div class="stat" data-act="dayDetail" data-d="${t}"><b>🐔 ${td.liveBirds}</b><span>Live · ${nfmt(round(td.liveKg, 1))} kg</span><em>${money(td.liveAmt)}</em></div>
+        <div class="stat" data-act="dayDetail" data-d="${t}"><b>✂️ ${td.cutBirds}</b><span>Cut · ${nfmt(round(td.meatKg, 1))} kg sold${td.partsAmt ? ' +🍗' : ''}</span><em>${money(td.meatAmt + td.partsAmt)}</em></div>
+        <div class="stat" data-act="dayDetail" data-d="${t}"><b>💀 ${td.dead}</b><span>Dead</span><em>&nbsp;</em></div>
+        <div class="stat" data-act="dayDetail" data-d="${t}"><b>🌾 ${td.grainKg ? grainQtyText(td.grainKg).split(' ')[0] : 0}</b><span>${td.grainKg ? grainQtyText(td.grainKg).split(' ')[1] + ' grain' : 'Grain sold'}</span><em>${money(td.grainAmount)}</em></div>
       </div>
       ${homeSaleHtml()}
     </div>
