@@ -160,6 +160,10 @@ const lotBreed = l => (l && l.breed) || 'broiler';
 
 // ---------- sale ----------
 function flowSale(p, v) {
+  if ((p.type || getSet('defaultType')) === 'meat' && !(p.lotRefs && p.lotRefs.length) && typeof meatLotFor === 'function') {
+    const m = meatLotFor(p.breed);
+    if (m) { p.lotRefs = oneLot(m.lot); if (!p.breed) p.breed = m.breed; }
+  }
   withLot(p, v, lot => {
     p.lotRefs = oneLot(lot);
     if (p.type === 'parts') return flowSaleBreed(p, v, lot, lotBreeds(lot)[0]);

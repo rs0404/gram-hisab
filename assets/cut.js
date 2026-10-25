@@ -223,3 +223,10 @@ function addHistPill(root) {
   const h = box.querySelector('details.hist'), t = box.querySelector('h2');
   if (h && t && h.dataset.n > 1 && !t.querySelector('[data-act=showHist]')) t.insertAdjacentHTML('beforeend', ` <button class="chip sm" data-act="showHist" style="vertical-align:middle">🕘 History (${h.dataset.n})</button>`);
 }
+
+// meat sales take from the cut meat on hand: the lot / type that has it (the given type first, then the most kg)
+function meatLotFor(breed) {
+  const m = meatOnHand().sort((a, b) => b.kg - a.kg);
+  return m.find(x => !breed || x.breed === breed) || m[0] || null;
+}
+function hasMeatOn(lotId, breed) { const x = (computeStats()[lotId] || { byBreed: {} }).byBreed[breed]; return !!(x && x.meatStock > 0.04); }

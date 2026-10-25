@@ -247,6 +247,7 @@ function homeSaleState() {
   if (!act.some(l => l.id === h.lotId)) h.lotId = act.length ? act[0].id : '';
   const lot = lotById(h.lotId);
   if (lot && !lotBreeds(lot).includes(h.breed)) h.breed = lotBreeds(lot)[0];
+  if (h.type === 'meat' && typeof meatLotFor === 'function' && !hasMeatOn(h.lotId, h.breed)) { const m = meatLotFor(); if (m) { h.lotId = m.lot.id; h.breed = m.breed; } }
   return h;
 }
 function homeSaleCalc() {
@@ -1472,7 +1473,7 @@ document.addEventListener('click', e => {
     case 'countCheck': startCountCheck(id, false); break;
     case 'sellLot': sellDraft = newSellDraft({ lotId: id, type: sellDraft && sellDraft.type }); closeSheet(); go('sell'); break;
     case 'goSellNew': sellDraft = newSellDraft(sellDraft && !sellDraft.id ? sellDraft : null); go('sell'); break;
-    case 'sellType': sellDraft.type = v; sellAutoBirds(sellDraft); renderSell(); break;
+    case 'sellType': sellDraft.type = v; if (v === 'meat' && !sellDraft.id && !(sellDraft.lotId && hasMeatOn(sellDraft.lotId, sellDraft.breed || lotBreeds(lotById(sellDraft.lotId) || { breed: 'broiler' })[0]))) { const m = meatLotFor(); if (m) { sellDraft.lotId = m.lot.id; sellDraft.breed = m.breed; } } sellAutoBirds(sellDraft); renderSell(); break;
     case 'sellLotPick': sellDraft.lotId = id; sellDraft.breed = null; sellAutoBirds(sellDraft); renderSell(); break;
     case 'sellGrade': sellDraft.grade = v; sellDraft.rate = ''; renderSell(); break;
     case 'sellBreed': sellDraft.breed = v; sellAutoBirds(sellDraft); renderSell(); break;
@@ -1534,7 +1535,7 @@ document.addEventListener('click', e => {
     case 'shopMic': if (view !== 'shop') go('shop'); listen(); break;
     case 'homeShopSave': saveHomeShop(); break;
     case 'homeSaleSave': saveHomeSale(); break;
-    case 'hsType': homeSaleState().type = v; persist(); renderHome(); break;
+    case 'hsType': { const h = homeSaleState(); h.type = v; if (v === 'meat' && !hasMeatOn(h.lotId, h.breed)) { const m = meatLotFor(); if (m) { h.lotId = m.lot.id; h.breed = m.breed; } } persist(); renderHome(); break; }
     case 'hsLot': homeSaleState().lotId = v; persist(); renderHome(); break;
     case 'hsBreed': homeSaleState().breed = v; persist(); renderHome(); break;
     case 'cancelEditBuy': buyDraft = null; go('records'); break;
