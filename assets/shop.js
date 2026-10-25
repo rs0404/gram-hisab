@@ -115,8 +115,9 @@ function openShopDay(from, title) {
       <div class="line"><span>📦 Goods bought</span><b style="color:var(--red)">${money(s.goods)}</b></div>
       <div class="line"><span>${shopLess() ? 'Shop only − goods' : 'Collected − goods'}</span><b>${money(shopShown(s) - s.goods)}</b></div></div>
     ${list.length ? list.map(x => `<button class="item" data-act="editShopFromDay" data-id="${x.id}"><div class="ic" style="background:var(--green-l)">🏪</div>
-      <div class="mid"><div class="t">${fmtDate(x.date)} · Collected ${money((Number(x.cash) || 0) + (Number(x.qr) || 0))}${x.goods ? ' · Goods ' + money(x.goods) : ''}</div>
-      <div class="s">Cash ${money(x.cash)} · QR ${money(x.qr)} · ${whoWhen(x)}</div></div><div class="amt">✎</div></button>`).join('') : '<p class="muted">No entries.</p>'}
+      <div class="mid"><div class="dt">📅 ${fmtDate(x.date)}</div>
+      <div class="s">💵 Cash ${money(x.cash)} · 📱 QR ${money(x.qr)}${x.goods ? ' · 📦 Goods ' + money(x.goods) : ''}</div><div class="s">${whoWhen(x)}</div></div>
+      <div class="amt">${money((Number(x.cash) || 0) + (Number(x.qr) || 0))}<small>collected</small></div></button>`).join('') : '<p class="muted">No entries.</p>'}
     <div style="height:10px"></div><button class="btn big primary" data-act="closeSheet">Close</button>`);
 }
 function renderShop() {
@@ -142,9 +143,9 @@ function renderShop() {
     <div class="grid3" style="margin-bottom:12px">${mini(yy, 'Yesterday', yd, yd)}${mini(wk, 'This week', weekStart(t), t)}${mini(mo, BS_MONTHS[adToBs(t).m - 1], bsMonthStart(t), t)}</div>
     ${(() => { const rec = all('shop').sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 12); return rec.length ? `<h3>🕒 Recent entries <span class="small muted">· tap to edit</span></h3>${rec.map(r => `<button class="item" data-act="editShop" data-id="${r.id}">
       <div class="ic" style="background:var(--green-l)">🏪</div>
-      <div class="mid"><div class="t">${fmtDate(r.date)} · ${money((Number(r.cash) || 0) + (Number(r.qr) || 0))}${r.goods ? ' · goods ' + money(r.goods) : ''}</div>
-      <div class="s">Cash ${money(r.cash)} · QR ${money(r.qr)}${r.note ? ' · ' + esc(r.note) : ''} · ${whoWhen(r)}</div></div>
-      <div class="amt"></div></button>`).join('')}` : ''; })()}
+      <div class="mid"><div class="dt">📅 ${fmtDate(r.date)}</div>
+      <div class="s">💵 Cash ${money(r.cash)} · 📱 QR ${money(r.qr)}${r.goods ? ' · 📦 Goods ' + money(r.goods) : ''}${r.note ? ' · ' + esc(r.note) : ''}</div><div class="s">${whoWhen(r)}</div></div>
+      <div class="amt">${money((Number(r.cash) || 0) + (Number(r.qr) || 0))}<small>collected</small></div></button>`).join('')}` : ''; })()}
 
     <h2>Report</h2>
     <div class="seg">${[['daily', 'Daily'], ['weekly', 'Weekly'], ['monthly', 'Monthly']].map(([k, l]) => `<button class="${shopTab === k ? 'on' : ''}" data-act="shopTab" data-v="${k}">${l}</button>`).join('')}</div>
