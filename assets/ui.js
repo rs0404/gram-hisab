@@ -86,13 +86,12 @@ function renderHome() {
     ${flags.map(f => `<button class="flag ${f.cls}" data-act="${f.act}" ${f.id ? `data-id="${f.id}"` : ''}><span class="fi">${f.icon}</span><span>${esc(f.text)}</span><span class="go">${f.go}</span></button>`).join('')}
 
     <div class="card today">
-      <div class="row between"><div class="label">🐔 Chicken sales today</div><div class="label">${td.count} sale${td.count === 1 ? '' : 's'}</div></div>
-      <div class="huge" style="margin:6px 0 12px">${money(td.amount)}</div>
+      <div class="todayhead"><div class="label">🐔 Today · ${td.count} sale${td.count === 1 ? '' : 's'}</div><b class="todayamt">${money(td.amount)}</b></div>
       <div class="grid4 todaystats">
         <div class="stat" data-act="dayDetail" data-d="${t}"><b>🐔 ${td.liveBirds}</b><span>Live · ${nfmt(round(td.liveKg, 1))} kg</span><em>${money(td.liveAmt)}</em></div>
-        <div class="stat" data-act="dayDetail" data-d="${t}"><b>✂️ ${td.cutBirds}</b><span>Cut · ${nfmt(round(td.meatKg, 1))} kg sold${td.partsAmt ? ' +🍗' : ''}</span><em>${money(td.meatAmt + td.partsAmt)}</em></div>
+        <div class="stat" data-act="dayDetail" data-d="${t}"><b>✂️ ${td.cutBirds}</b><span>Cut · ${nfmt(round(td.meatKg, 1))} kg${td.partsAmt ? ' +🍗' : ''}</span><em>${money(td.meatAmt + td.partsAmt)}</em></div>
         <div class="stat" data-act="dayDetail" data-d="${t}"><b>💀 ${td.dead}</b><span>Dead</span><em>&nbsp;</em></div>
-        <div class="stat" data-act="dayDetail" data-d="${t}"><b>🌾 ${td.grainKg ? grainQtyText(td.grainKg).split(' ')[0] : 0}</b><span>${td.grainKg ? grainQtyText(td.grainKg).split(' ')[1] + ' grain' : 'Grain sold'}</span><em>${money(td.grainAmount)}</em></div>
+        <div class="stat" data-act="dayDetail" data-d="${t}"><b>🌾 ${td.grainKg ? grainQtyText(td.grainKg).split(' ')[0] : 0}</b><span>${td.grainKg ? grainQtyText(td.grainKg).split(' ')[1] + ' grain' : 'Grain'}</span><em>${money(td.grainAmount)}</em></div>
       </div>
       ${homeSaleHtml()}
     </div>
@@ -101,10 +100,10 @@ function renderHome() {
     ${chickMiniCards()}
 
     <div class="grid4" style="margin-bottom:12px">
-      <button class="btn ghost" style="flex-direction:column;min-height:72px" data-act="cutNew"><span style="font-size:24px">✂️</span>Cut</button>
-      <button class="btn ghost" style="flex-direction:column;min-height:72px" data-act="askLeft"><span style="font-size:24px">🐔</span>Birds left</button>
-      <button class="btn ghost" style="flex-direction:column;min-height:72px" data-act="openStock"><span style="font-size:24px">📦</span>Stock</button>
-      <button class="btn ghost" style="flex-direction:column;min-height:72px" data-act="openReport"><span style="font-size:24px">📊</span>Profit</button>
+      <button class="btn ghost qact" data-act="cutNew"><span>✂️</span>Cut</button>
+      <button class="btn ghost qact" data-act="askLeft"><span>🐔</span>Birds left</button>
+      <button class="btn ghost qact" data-act="openStock"><span>📦</span>Stock</button>
+      <button class="btn ghost qact" data-act="openReport"><span>📊</span>Profit</button>
     </div>
 
     <div class="row between"><h2>Active lots ${act.length ? `<span class="pill">${act.length}</span>` : ''}</h2>
@@ -269,16 +268,16 @@ function homeSaleHtml() {
   const h = homeSaleState(), lot = lotById(h.lotId);
   const chip = (act_, v, on, label, extra) => `<button class="chip sm ${on ? 'on' : ''}" data-act="${act_}" data-v="${v}" ${extra || ''}>${label}</button>`;
   return `<div class="hsale">
-    <div class="chips">${chip('hsType', 'live', h.type === 'live', '🐔 Live')}${chip('hsType', 'meat', h.type === 'meat', '🔪 Meat')}${chip('hsType', 'parts', h.type === 'parts', '🍗 Khutta')}</div>
-    ${act.length > 1 ? `<div class="chips">${act.map(l => chip('hsLot', l.id, h.lotId === l.id, 'Lot ' + lotVoiceNo(l) + ' · ' + BS_MONTHS[lotBs(l).m - 1] + ' ' + lotBs(l).d)).join('')}</div>` : ''}
-    ${lot && lotBreeds(lot).length > 1 && h.type !== 'parts' ? `<div class="chips">${lotBreeds(lot).map(b => chip('hsBreed', b, h.breed === b, esc(breedName(b)))).join('')}</div>` : ''}
+    <div class="chips hrow">${chip('hsType', 'live', h.type === 'live', '🐔 Live')}${chip('hsType', 'meat', h.type === 'meat', '🔪 Meat')}${chip('hsType', 'parts', h.type === 'parts', '🍗 Khutta')}</div>
+    ${act.length > 1 ? `<div class="chips hrow">${act.map(l => chip('hsLot', l.id, h.lotId === l.id, 'Lot ' + lotVoiceNo(l) + ' · ' + BS_MONTHS[lotBs(l).m - 1] + ' ' + lotBs(l).d)).join('')}</div>` : ''}
+    ${lot && lotBreeds(lot).length > 1 && h.type !== 'parts' ? `<div class="chips hrow">${lotBreeds(lot).map(b => chip('hsBreed', b, h.breed === b, esc(breedName(b)))).join('')}</div>` : ''}
     <form class="hshop" data-form="homeSale">
       <label><span>⚖️ Kg</span><input data-hsale="kg" type="number" inputmode="decimal" step="any" placeholder="0"></label>
       <label><span>💰 Rs total</span><input data-hsale="amount" ${calcAttrs('#v-home [data-hsale=kg]')} placeholder="auto"></label>
       <label><span>${h.type === 'meat' ? '🔪 Cut' : '🐔 Birds'}</span><input data-hsale="birds" type="number" inputmode="numeric" placeholder="${h.type === 'parts' ? '—' : 'auto'}" ${h.type === 'parts' ? 'disabled' : ''} enterkeyhint="done"></label>
     </form>
     <div class="small hsale-hint" id="hsaleHint">${esc(homeSaleHint())}</div>
-    <button class="btn big" style="background:#fff;color:var(--amber-d);margin-top:8px" data-act="homeSaleSave">✔ Save sale</button>
+    <button class="btn hsave" data-act="homeSaleSave">✔ Save sale</button>
   </div>`;
 }
 function homeSaleHint() {
@@ -1617,6 +1616,26 @@ window.onAppResume = () => {
   scheduleSync(300);
   if (!db.meta.lastUpdateCheck || Date.now() - db.meta.lastUpdateCheck > 3 * 3600 * 1000) checkForUpdates(false);
 };
+
+// ---------- keyboard: keep the field you tapped (and its Save) in view ----------
+let fullH = window.innerHeight;
+function kbdFit(el) {
+  if (!el || !el.isConnected) return;
+  const box = el.closest('.hsale') || el;               // quick sale: show the inputs and the Save button together
+  const r = box.getBoundingClientRect(), vh = window.innerHeight, top = $('#top') ? $('#top').getBoundingClientRect().bottom : 0;
+  if (r.top >= top + 4 && r.bottom <= vh - 8) return;   // already fully visible
+  box.scrollIntoView({ block: box === el || r.height > vh - top ? 'center' : 'end', behavior: 'smooth' });
+}
+const isField = el => el && el.matches && el.matches('input:not([type=checkbox]):not([type=radio]):not([type=hidden]),textarea');
+document.addEventListener('focusin', e => { if (isField(e.target)) { setTimeout(() => kbdFit(e.target), 350); setTimeout(() => kbdFit(e.target), 700); } });
+window.addEventListener('orientationchange', () => { fullH = 0; });
+window.addEventListener('resize', () => {
+  const h = window.innerHeight;
+  if (h > fullH || !isField(document.activeElement)) fullH = Math.max(h, isField(document.activeElement) ? fullH : 0);
+  const open = h < fullH * 0.8;                          // the keyboard took the bottom of the screen
+  document.body.classList.toggle('kbd', open);
+  if (open && isField(document.activeElement)) setTimeout(() => kbdFit(document.activeElement), 60);
+});
 
 // ---------- start ----------
 loadDb();
