@@ -176,6 +176,11 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
 **✎ Edit your lists**
 - Chicken types (Settings → Chicken), crops, work types and मल types (Settings → Kheti) and mill kinds (Settings → Mill): ✎ rename (old records follow the new name), 🗑 delete a name never used, 🙈 hide a used one (not offered for new entries, old records keep it) and ↺ restore.
 
+**Entries and editing**
+- Every entry stores **when it was entered** (date + time) and by whom: "🕒 entered Today 6:12 PM · 👤 Roshan", next to the date it is for.
+- **🕒 Recent entries** (chicken home, Kheti work, shop, mill, udharo) are **newest-entered first**, even when the entry is for an older date.
+- Every editable entry shows ✎ — tap it to change or delete. Shop entries open in their own **✎ Edit popup** (the form on the page is only for new amounts).
+
 **Several phones and users**
 - Every entry stores **who** entered it and **when**. Edits and deletes are logged in a **change log**.
 - Sync works through a Google Sheet (automatic; the sheet also gets readable tabs) or a sync file (offline).

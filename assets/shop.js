@@ -123,7 +123,6 @@ function renderShop() {
   if (!shopDraft) shopDraft = newShopDraft();
   const t = today();
   const td = shopRange(t, t), wk = shopRange(weekStart(t), t), mo = shopRange(bsMonthStart(t), t);
-  const dayList = all('shop').filter(r => r.date === shopDraft.date).sort((a, b) => a.createdAt - b.createdAt);
   const rows = shopReportRows(shopTab);
   const withData = rows.filter(r => r.s.n);
   const tot = withData.length ? shopRange(rows[rows.length - 1].from, rows[0].to) : Object.assign(shopSum([]), { chicken: 0, own: 0 });
@@ -141,11 +140,11 @@ function renderShop() {
     </div>
     ${shopFormHtml(shopDraft)}
     <div class="grid3" style="margin-bottom:12px">${mini(yy, 'Yesterday', yd, yd)}${mini(wk, 'This week', weekStart(t), t)}${mini(mo, BS_MONTHS[adToBs(t).m - 1], bsMonthStart(t), t)}</div>
-    ${dayList.length ? `<h3>Entries on ${fmtDate(shopDraft.date, true)}</h3>${dayList.map(r => `<button class="item" data-act="editShop" data-id="${r.id}">
+    ${(() => { const rec = all('shop').sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 12); return rec.length ? `<h3>🕒 Recent entries <span class="small muted">· tap to edit</span></h3>${rec.map(r => `<button class="item" data-act="editShop" data-id="${r.id}">
       <div class="ic" style="background:var(--green-l)">🏪</div>
-      <div class="mid"><div class="t">Collected ${money((Number(r.cash) || 0) + (Number(r.qr) || 0))}${r.goods ? ' · Goods ' + money(r.goods) : ''}</div>
+      <div class="mid"><div class="t">${fmtDate(r.date)} · ${money((Number(r.cash) || 0) + (Number(r.qr) || 0))}${r.goods ? ' · goods ' + money(r.goods) : ''}</div>
       <div class="s">Cash ${money(r.cash)} · QR ${money(r.qr)}${r.note ? ' · ' + esc(r.note) : ''} · ${whoWhen(r)}</div></div>
-      <div class="amt">✎</div></button>`).join('')}` : ''}
+      <div class="amt"></div></button>`).join('')}` : ''; })()}
 
     <h2>Report</h2>
     <div class="seg">${[['daily', 'Daily'], ['weekly', 'Weekly'], ['monthly', 'Monthly']].map(([k, l]) => `<button class="${shopTab === k ? 'on' : ''}" data-act="shopTab" data-v="${k}">${l}</button>`).join('')}</div>
@@ -244,3 +243,33 @@ function openShopRange(from, to, label) {
       <b style="color:${x.n ? 'var(--green)' : 'var(--muted)'};white-space:nowrap">${x.n ? money(shopShown(x)) : '—'} ›</b></div>`; }).join('')}</div>
     <div style="height:10px"></div><button class="btn big primary" data-act="closeSheet">Close</button>`);
 }
+
+// ---------- ✎ edit a shop entry in a popup (the form on the page is only for new entries) ----------
+let shopEdit = null;
+function openShopEdit(id, back) {
+  const r = db.records[id]; if (!r) return;
+  shopEdit = Object.assign({}, r);
+  const box = (f, label) => `<label><span>${label}</span><input data-se="${f}" ${calcAttrs()} value="${esc(r[f] == null || r[f] === 0 ? '' : r[f])}" placeholder="0"></label>`;
+  openSheet(`<h2>✎ Edit shop entry</h2><div id="shopEditForm">
+    <div class="field"><label>Date (नेपाली)</label>${bsDateHtml('shopedit', r.date)}</div>
+    <div class="hshop shopboxes">${box('cash', '💵 Cash')}${box('qr', '📱 QR')}${box('goods', '📦 Goods')}</div>
+    <div class="field" style="margin-top:10px"><input data-se="note" value="${esc(r.note || '')}" placeholder="Note (optional)" autocomplete="off"></div>
+    <div class="totalbox"><span><b style="font-size:15px">COLLECTED</b><br><span class="small" id="seNet">${shopFormNet(r)}</span></span><b id="seTotal">${money((Number(r.cash) || 0) + (Number(r.qr) || 0))}</b></div>
+    <button class="btn big green" data-act="shopEditSave">✔ Update</button>
+    <div style="height:10px"></div>
+    <div class="btnrow"><button class="btn ghost" data-act="closeSheet">Cancel</button><button class="btn redl" data-act="deleteShop" data-id="${r.id}">🗑 Delete</button></div>
+    ${historyHtml(r.id)}</div>`);
+  if (back) sheetBackFn = back;
+}
+function shopEditRead() { $$('#shopEditForm [data-se]').forEach(el => { shopEdit[el.dataset.se] = el.value; }); }
+function saveShopEdit() {
+  shopEditRead();
+  const d = shopEdit, old = db.records[d.id];
+  const rec = Object.assign({}, old, { date: d.date || old.date, cash: num(d.cash) || 0, qr: num(d.qr) || 0, goods: num(d.goods) || 0, note: String(d.note || '').trim() });
+  if (!rec.cash && !rec.qr && !rec.goods) { toast('Enter cash, QR or goods amount — or 🗑 Delete'); return; }
+  put(rec); shopEdit = null; closeSheet(); renderShop();
+  toast(`✎ Updated ✓ ${fmtDate(rec.date)}: collected ${money(rec.cash + rec.qr)}${rec.goods ? ' · goods ' + money(rec.goods) : ''}`);
+}
+document.addEventListener('input', e => {
+  if (e.target.dataset && e.target.dataset.se && shopEdit) { shopEditRead(); const t = $('#seTotal'), n = $('#seNet'); if (t) t.textContent = money((num(shopEdit.cash) || 0) + (num(shopEdit.qr) || 0)); if (n) n.textContent = shopFormNet(shopEdit); }
+});

@@ -94,8 +94,8 @@ function renderMill() {
     <div class="grid3" style="margin-bottom:10px">${mini(yy, 'Yesterday', y, y)}${mini(wk, 'This week', weekStart(t), t)}${mini(mo, BS_MONTHS[adToBs(t).m - 1], bsMonthStart(t), t)}</div>
     <div class="grid3" style="margin-bottom:12px">
       <button class="btn" data-act="millBill">⚡ Bill</button><button class="btn" data-act="millService">🔧 Servicing</button><button class="btn" data-act="millRates">⚙️ Rates</button></div>
-    <h3>${d.date === t ? 'Today' : esc(fmtDate(d.date, true))} (${list.length})</h3>
-    ${list.length ? list.map(millItemHtml).join('') : '<p class="muted">No entries yet.</p>'}
+    <h3>🕒 Recent entries <span class="small muted">· tap to edit</span></h3>
+    ${(() => { const rec = all('mill').sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 15); return rec.length ? rec.map(millItemHtml).join('') : '<p class="muted">No entries yet.</p>'; })()}
     <p class="small muted" style="text-align:center">🎤 “dhan 5 pathi kutani” · “makai 3 pathi pisani qr” · “गहुँ २ पाथी पिसानी”</p>`;
 }
 function millHint(d) {
@@ -106,7 +106,7 @@ function millHint(d) {
 function millItemHtml(r) {
   const it = millItem(r.item);
   return `<button class="item" data-act="millEdit" data-id="${r.id}"><div class="ic" style="background:#EDE9FE">🏭</div>
-    <div class="mid"><div class="t">${esc(it.ne)} · ${nfmt(r.qty)} ${MILL_UNITS[r.unit || 'pathi'].ne}${r.customer ? ' · ' + esc(r.customer) : ''}</div>
+    <div class="mid"><div class="t">${esc(it.ne)} · ${nfmt(r.qty)} ${MILL_UNITS[r.unit || 'pathi'].ne}${r.customer ? ' · ' + esc(r.customer) : ''}</div><div class="s">${fmtDate(r.date)}</div>
     <div class="s">${r.own ? '🏠 own · free' : (r.pay === 'qr' ? '📱 QR' : '💵 Cash')} · ${whoWhen(r)}</div></div><div class="amt">${r.own ? '—' : money(r.amount)}</div></button>`;
 }
 function saveMill() {

@@ -501,9 +501,9 @@ function saveParmaOutForm() {
 // ================= WORK PAGE (all entry buttons + recent) =================
 function renderKWork() {
   const recent = Object.values(db.records).filter(r => !hidden(r) && ['fwork', 'machine', 'finput', 'harvest', 'fpay', 'parmaout', 'kheti', 'mservice'].includes(r.kind))
-    .sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.createdAt - a.createdAt).slice(0, 60);
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 60);   // newest entered first
   let last = '', html = '';
-  recent.forEach(r => { if (r.date !== last) { last = r.date; html += `<div class="dayhead"><span>${fmtDate(r.date, true)}</span></div>`; } html += kItemHtml(r); });
+  recent.forEach(r => { const ed = r.createdAt ? iso(new Date(r.createdAt)) : ''; if (ed !== last) { last = ed; html += `<div class="dayhead"><span>Entered ${fmtDate(ed, true)}</span></div>`; } html += kItemHtml(r); });
   $('#v-kwork').innerHTML = `<h2>📝 Record kheti work</h2>
     <div class="grid2">
       <button class="btn big green" data-act="kWork">👷 Work day</button><button class="btn big" data-act="kMachine">🚜 Machine & fuel</button>
@@ -511,7 +511,7 @@ function renderKWork() {
       <button class="btn big" data-act="goMachines">🚜 My machines</button><button class="btn big" data-act="mmService">🔧 Servicing</button>
       <button class="btn big ghost" data-act="kNewKheti">🌱 New kheti</button><button class="btn big ghost" data-act="kParmaOut">🤝 Parma tirne</button></div>
     <p class="small muted" style="text-align:center">Or tap 🎤: “Purbe khet ropai 6 khetala 3 parma”, “tractor 3 ghanta 1500”, “DAP 2 bora 9000”, “dhaan 20 muri”</p>
-    <h2>Recent</h2>${html || '<p class="muted">Nothing yet.</p>'}`;
+    <h2>🕒 Recent entries <span class="small muted">· tap to edit</span></h2>${html || '<p class="muted">Nothing yet.</p>'}`;
 }
 function kItemHtml(r) {
   let ic = '•', t = '', s = '', amt = '';
@@ -525,7 +525,7 @@ function kItemHtml(r) {
   else if (r.kind === 'kheti') { ic = '🌱'; t = `New kheti: ${khetiTitle(r)}`; s = seasonLabel(r.season); }
   else if (r.kind === 'mservice') { const m = myMachineById(r.machineId); ic = '🔧'; t = `Servicing ${m ? m.name : ''}`; s = (r.items || []).map(i => serviceItemName(i.item)).join(', '); amt = money(serviceTotal(r)); }
   return `<button class="item" data-act="editRec" data-id="${r.id}"><div class="ic" style="background:var(--green-l)">${ic}</div>
-    <div class="mid"><div class="t">${esc(t)}</div><div class="s">${s ? esc(s) + ' · ' : ''}${whoWhen(r)}</div></div><div class="amt">${amt}</div></button>`;
+    <div class="mid"><div class="t">${esc(t)}</div><div class="s">${r.date ? '📅 ' + fmtDate(r.date) + ' · ' : ''}${s ? esc(s) + ' · ' : ''}${whoWhen(r)}</div></div><div class="amt">${amt}</div></button>`;
 }
 // all entries of one kheti, optionally one kind
 function openKhetiEntries(khetiId, key) {

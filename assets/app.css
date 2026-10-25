@@ -346,3 +346,7 @@ svg.lic{width:1.15em;height:1.15em;vertical-align:-0.2em;flex:none;display:inlin
 .datechips{flex-wrap:nowrap}
 .datechips .chip{padding:8px 11px;font-size:15px;white-space:nowrap}
 .datechips .chip svg.lic{width:16px;height:16px}
+
+/* editable entries show a pencil at the right */
+.item[data-act=editRec],.item[data-act=editShop],.item[data-act=editShopFromDay],.item[data-act=millEdit],.item[data-act=crEdit]{position:relative;padding-right:30px}
+.item[data-act=editRec]::after,.item[data-act=editShop]::after,.item[data-act=editShopFromDay]::after,.item[data-act=millEdit]::after,.item[data-act=crEdit]::after{content:'✎';position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--muted);font-weight:900}

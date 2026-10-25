@@ -114,7 +114,7 @@ function renderHome() {
     <h2>Sales — last 7 days <span class="small muted" style="font-weight:600">· tap a bar</span></h2>
     <div class="card"><div class="bars">${days.map(x => `<div class="bar ${x.d === t ? 'today' : ''}" data-act="dayDetail" data-d="${x.d}" style="cursor:pointer"><em>${x.s.amount ? shortMoney(x.s.amount) : ''}</em><i style="height:${Math.round(x.s.amount / max * 100)}%"></i><small>${x.d === t ? 'Today' : adToBs(x.d).d}</small></div>`).join('')}</div></div>
 
-    <h2>Recent entries</h2>
+    <h2>🕒 Recent entries <span class="small muted" style="font-weight:600">· newest entered first · tap to edit</span></h2>
     ${recent.length ? recent.map(itemHtml).join('') : '<p class="muted">Nothing recorded yet. Tap 🎤 and say “sold 2 kg meat”.</p>'}
     ${recent.length ? '<button class="btn big ghost" data-act="go" data-view="records">See all records</button>' : ''}
   `;
@@ -183,9 +183,10 @@ function lotCard(l, s) {
 }
 
 // "6:42 PM · Roshan · ✎ edited by Hari"
+// when it was ENTERED (date + time) and by whom; the record's own date is shown separately
 function whoWhen(r) {
   const who = r.by || r.device || '';
-  return `🕒 ${fmtTime(r.createdAt)} · 👤 ${esc(who)}${r.editedBy ? ` · <span style="color:var(--amber-d)">✎ edited${r.editedBy !== who ? ' by ' + esc(r.editedBy) : ''}</span>` : ''}`;
+  return `🕒 entered ${r.createdAt ? fmtStamp(r.createdAt) : ''} · 👤 ${esc(who)}${r.editedBy ? ` · <span style="color:var(--amber-d)">✎ edited${r.editedBy !== who ? ' by ' + esc(r.editedBy) : ''}</span>` : ''}`;
 }
 function auditLine(a, showWhat) {
   const icon = { create: '➕', edit: '✎', delete: '🗑', restore: '↺', archive: '🗄', unarchive: '↺' }[a.action] || '•';
@@ -341,9 +342,9 @@ function openLotEntries(lotId, key) {
       <button class="btn redl" style="margin-bottom:6px;min-width:48px;padding:0 10px" data-act="deleteEntry" data-id="${r.id}" data-lot="${lotId}" data-v="${key}" aria-label="Delete">🗑</button></div>`).join('') : '<p class="muted">Nothing here yet.</p>'}
     <div style="height:10px"></div><button class="btn big primary" data-act="closeSheet">Close</button>`);
 }
-function recentRecords(n) {
-  return Object.values(db.records).filter(r => !hidden(r) && (r.kind === 'sale' || r.kind === 'event'))
-    .sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.createdAt - a.createdAt).slice(0, n);
+function recentRecords(n) {   // newest ENTERED first, even when the entry is for an older date
+  return Object.values(db.records).filter(r => !hidden(r) && ['sale', 'event', 'grainsale', 'purchase'].includes(r.kind))
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, n);
 }
 function itemHtml(r) {
   if (r.kind === 'sale') {
@@ -815,6 +816,7 @@ function renderRecords() {
 function editRec(id) {
   const r = db.records[id];
   if (!r) return;
+  if (r.kind === 'shop') { openShopEdit(r.id); return; }
   if (r.kind === 'credit') { creditClick('crEdit', { dataset: { id: r.id } }); return; }
   if (r.kind === 'mill') { millClick('millEdit', { dataset: { id: r.id } }); return; }
   if (r.kind === 'millcost') { openMillBill(Object.assign({}, r)); return; }
@@ -1097,6 +1099,7 @@ function setBsDraftDate(key, ad) {
   else if (key === 'lot' && lotDraft) { lotDraft.startDate = ad; updateLotAutoName(); }
   else if (key === 'buy' && buyDraft) buyDraft.date = ad;
   else if (key === 'credit' && creditDraft) { $$('#creditForm [data-cr]').forEach(el => { creditDraft[el.dataset.cr] = el.value; }); creditDraft.date = ad; renderCredit(); }
+  else if (key === 'shopedit' && shopEdit) { shopEditRead(); shopEdit.date = ad; }
   else if (key === 'cut' && cutDraft) { readCutForm(); cutDraft.date = ad; }
   else if (key === 'mill' && millDraft) { $$('#millForm [data-ml]').forEach(el => { millDraft[el.dataset.ml] = el.value; }); millDraft.date = ad; renderMill(); }
   else if (key === 'millbill') millBillDate = ad;
@@ -1461,7 +1464,7 @@ document.addEventListener('click', e => {
     case 'foldAll': db.meta.unfolded = openLotIds().some(x => activeLots().some(l => l.id === x)) ? [] : activeLots().slice(0, MAX_OPEN_LOTS).map(l => l.id); persist(); renderView(view); break;
     case 'dayDetail': case 'dayShift': openDay(b.dataset.d, id || null); break;
     case 'shopDay': openShopDay(b.dataset.d); break;
-    case 'editShopFromDay': closeSheet(); shopDraft = Object.assign({}, db.records[id]); go('shop'); setTimeout(() => window.scrollTo(0, $('#shopForm').offsetTop - 70), 50); break;
+    case 'editShopFromDay': { const fromSheet = $('#sheet h2') ? $('#sheet h2').textContent : ''; const d0 = (db.records[id] || {}).date; openShopEdit(id, /Shop|🏪/.test(fromSheet) ? () => openShopDay(d0) : null); break; }
     case 'restoreLot': { const l = db.records[id]; unarchiveLot(id); render(); openArchive(); toast(`Lot ${l.name} restored ✓`); break; }
     case 'openLot': openLot(id); break;
     case 'closeLot': closeLotFlow(id); break;
@@ -1514,10 +1517,11 @@ document.addEventListener('click', e => {
     case 'buyLot': readBuyForm(); buyDraft.lotId = buyDraft.lotId === id ? '' : id; renderBuy(); break;
     case 'saveBuy': saveBuyForm(); break;
     case 'saveShop': saveShopForm(); break;
-    case 'editShop': shopDraft = Object.assign({}, db.records[id]); renderShop(); window.scrollTo(0, $('#shopForm').offsetTop - 70); break;
+    case 'editShop': openShopEdit(id); break;
+    case 'shopEditSave': saveShopEdit(); break;
     case 'cancelShopEdit': shopDraft = newShopDraft(shopDraft.date); renderShop(); break;
     case 'deleteShop': ask({ title: 'Delete this shop entry?', buttons: [{ label: '🗑 Delete', value: 'yes', cls: 'red' }, { label: 'Keep', value: 'no' }],
-      onAnswer: a => { if (a === 'yes') { removeRec(id); shopDraft = newShopDraft(shopDraft.date); renderShop(); toast('Deleted', id, true); } } }); break;
+      onAnswer: a => { if (a === 'yes') { removeRec(id); shopEdit = null; if (shopDraft && shopDraft.id === id) shopDraft = newShopDraft(shopDraft.date); renderShop(); toast('Deleted', id, true); } else openShopEdit(id); } }); break;
     case 'shopTab': shopTab = v; renderShop(); break;
     case 'shopRange': openShopRange(b.dataset.from, b.dataset.to, b.dataset.label); break;
     case 'shopRangeDay': { const f = b.dataset.from, t2 = b.dataset.to, l = b.dataset.label; openShopDay(b.dataset.d); sheetBackFn = () => openShopRange(f, t2, l); break; }
