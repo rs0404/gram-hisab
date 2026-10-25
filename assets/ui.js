@@ -119,7 +119,7 @@ function renderHome() {
   `;
 }
 
-function shortMoney(n) { return n >= 100000 ? round(n / 100000, 1) + 'L' : n >= 1000 ? round(n / 1000, 1) + 'k' : String(Math.round(n)); }
+function shortMoney(n) { return n >= 10000000 ? round(n / 10000000, 1) + 'Cr' : n >= 100000 ? round(n / 100000, 1) + 'L' : n >= 1000 ? round(n / 1000, 1) + 'k' : String(Math.round(n)); }
 
 // Folding: at most 3 lot cards open; closed lots start folded. Remembered on this phone.
 const MAX_OPEN_LOTS = 3;
@@ -319,7 +319,7 @@ const ENTRY_VIEWS = {
   cut: { title: '🔪 Chickens cut (meat)', f: r => (r.kind === 'sale' && r.type === 'meat') || (r.kind === 'event' && r.type === 'cut') },
   dead: { title: '💀 Deaths', f: r => r.kind === 'event' && r.type === 'dead' },
   chicks: { title: '🐣 Chicks & count changes', f: r => r.kind === 'event' && ['restock', 'adjust', 'check', 'soldfix'].includes(r.type) },
-  buy: { title: '🛒 Everything bought', f: r => r.kind === 'purchase' || (r.kind === 'event' && r.type === 'restock') },
+  buy: { title: '🛒 Everything spent', f: r => r.kind === 'purchase' || (r.kind === 'event' && (r.type === 'restock' || r.type === 'expense' || USAGE_TYPES.includes(r.type))) },
   feed: { title: '🌾 Grain (bought & used)', f: r => (r.kind === 'purchase' && r.category === 'feed') || (r.kind === 'event' && r.type === 'feed') }
 };
 function openLotEntries(lotId, key) {
@@ -329,16 +329,19 @@ function openLotEntries(lotId, key) {
   const v = ENTRY_VIEWS[base] || ENTRY_VIEWS.sales;
   const list = Object.values(db.records).filter(r => !hidden(r) && r.lotId === lotId && v.f(r) && (!grade || (r.grade || 'Other') === grade))
     .sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.createdAt - a.createdAt);
-  const amt = list.reduce((a, r) => a + (Number(r.amount) || 0), 0);
+  const inv = computeInventory();
+  const cost = r => r.kind === 'event' && USAGE_TYPES.includes(r.type) ? usageCost(r, inv) : Number(r.amount) || 0;
+  const firstChicks = base === 'buy' ? Number(l.chickCost) || 0 : 0;
+  const amt = list.reduce((a, r) => a + cost(r), 0) + firstChicks;
   const kg = list.reduce((a, r) => a + (r.kind === 'sale' ? Number(r.kg) || 0 : (r.category === 'feed' || r.type === 'feed') ? stockQty('feed', r) : 0), 0);
   const birds = list.reduce((a, r) => a + (Number(r.count) || Number(r.birds) || 0), 0);
   const extra = base === 'chicks' ? `<div class="line"><span>First chicks (${fmtDate(l.startDate, true)})</span><b>${l.chicks}${lotMix(l).reduce((a, m) => a + (Number(m.free) || 0), 0) ? ' + 🎁' + lotMix(l).reduce((a, m) => a + (Number(m.free) || 0), 0) + ' free' : ''} · ${money(l.chickCost || 0)} <button class="btn sm ghost" data-act="editLot" data-id="${l.id}">✎</button></b></div>` : '';
   openSheet(`<button class="btn sm ghost" data-act="openLot" data-id="${l.id}">‹ ${esc(l.name)}</button>
     <h2>${v.title}${grade ? ' · ' + esc(grade) : ''}</h2>
-    <div class="summary small">${extra}
+    <div class="summary small">${extra}${firstChicks ? `<div class="line"><span>🐣 First chicks (${fmtDate(l.startDate, true)})</span><b>${money(firstChicks)}</b></div>` : ''}
       <div class="line"><span>${list.length} entr${list.length === 1 ? 'y' : 'ies'}</span><b>${amt ? money(amt) : ''}${kg && base !== 'dead' ? ' · ' + (base === 'feed' ? nfmt(round(kg / bagKg(), 2)) + ' bora (' + nfmt(round(kg, 1)) + ' kg)' : kgs(kg)) : ''}${birds && ['dead', 'cut', 'live', 'chicks'].includes(base) ? ' · ' + birds + ' birds' : ''}</b></div></div>
     <p class="small muted">Tap an entry to edit it, or 🗑 to delete a mistake. Every change is logged.</p>
-    ${list.length ? list.map(r => `<div class="row" style="gap:6px;align-items:stretch">${itemHtml(r).replace('class="item"', 'class="item" style="flex:1;min-width:0;width:auto;margin-bottom:6px"')}
+    ${list.length ? list.map(r => `<div class="row" style="gap:6px;align-items:stretch">${itemHtml(r, cost(r)).replace('class="item"', 'class="item" style="flex:1;min-width:0;width:auto;margin-bottom:6px"')}
       <button class="btn redl" style="margin-bottom:6px;min-width:48px;padding:0 10px" data-act="deleteEntry" data-id="${r.id}" data-lot="${lotId}" data-v="${key}" aria-label="Delete">🗑</button></div>`).join('') : '<p class="muted">Nothing here yet.</p>'}
     <div style="height:10px"></div><button class="btn big primary" data-act="closeSheet">Close</button>`);
 }
@@ -346,7 +349,7 @@ function recentRecords(n) {   // newest ENTERED first, even when the entry is fo
   return Object.values(db.records).filter(r => !hidden(r) && ['sale', 'event', 'grainsale', 'purchase'].includes(r.kind))
     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, n);
 }
-function itemHtml(r) {
+function itemHtml(r, cost) {
   if (r.kind === 'sale') {
     return `<button class="item" data-act="editRec" data-id="${r.id}">
       <div class="ic ${r.type}">${r.type === 'live' ? '🐔' : r.type === 'parts' ? '🍗' : '🔪'}</div>
@@ -373,8 +376,9 @@ function itemHtml(r) {
   return `<button class="item" data-act="editRec" data-id="${r.id}">
     <div class="ic">${t.icon}</div>
     <div class="mid"><div class="t">${esc(eventTitle(r))}${r.item ? ' · ' + esc(r.item) : ''}</div>
-    <div class="s">${fmtDate(r.date)} · ${esc(lotName(r.lotId))}${r.note ? ' · ' + esc(r.note).slice(0, 60) : ''} · ${whoWhen(r)}</div></div>
-    <div class="amt">${r.amount ? money(r.amount) : ''}</div></button>`;
+    <div class="s">${fmtDate(r.date)} · ${esc(lotName(r.lotId))}${r.note ? ' · ' + esc(r.note).slice(0, 60) : ''} · ${whoWhen(r)}</div>
+    ${bigFeedQty(r.qty, r.unit, r.type) ? `<div class="small" style="color:var(--red);font-weight:800">⚠️ ${nfmt(r.qty)} bora? Tap to fix — the amount may be in the bora box</div>` : ''}</div>
+    <div class="amt">${r.amount ? money(r.amount) : cost ? '≈ ' + money(Math.round(cost)) + '<small>from stock</small>' : ''}</div></button>`;
 }
 
 
@@ -573,10 +577,22 @@ function renderEventForm() {
 
 function readEventForm() { $$('#evForm [data-ef]').forEach(el => { eventDraft[el.dataset.ef] = el.value; }); }
 
-function saveEventForm() {
+// a feed entry of hundreds of bora is almost always a rupee amount typed into the quantity box
+const bigFeedQty = (qty, unit, type) => (type == null || type === 'feed') && (unit || 'bags') === 'bags' && Number(qty) > 50;
+function askBigFeedQty(q, fixRs, keep, back) {
+  ask({ title: `${nfmt(q)} bora of grain?`, sub: `That is ${nfmt(q * bagKg())} kg. Did you mean Rs ${nfmt(q)}?`,
+    buttons: [{ label: `Rs ${nfmt(q)} for 1 bora`, value: 'rs', cls: 'green' }, { label: `Yes, ${nfmt(q)} bora`, value: 'keep' }, { label: '✎ Fix it', value: 'back' }],
+    onAnswer: a => a === 'rs' ? fixRs() : a === 'keep' ? keep() : back(), onCancel: back });
+}
+function saveEventForm(okBig) {
   readEventForm();
   const e = eventDraft, t = EVENT_TYPES[e.type];
   if (!e.lotId) { toast('Pick a lot'); return; }
+  if (!okBig && e.type === 'feed' && bigFeedQty(num(e.qty), e.unit) && num(e.amount) == null) {
+    const q = num(e.qty), reopen = () => renderEventForm();
+    askBigFeedQty(q, () => { eventDraft.qty = '1'; eventDraft.amount = String(q); reopen(); setTimeout(() => saveEventForm(true), 50); }, () => { reopen(); setTimeout(() => saveEventForm(true), 50); }, reopen);
+    return;
+  }
   const rec = { kind: 'event', type: e.type, date: e.date || today(), lotId: e.lotId, count: t.count ? (num(e.count) != null ? Math.round(num(e.count)) : null) : null,
     qty: t.qty ? num(e.qty) : null, unit: t.qty ? (e.type === 'feed' ? e.unit || 'bags' : 'kg') : '', amount: t.amount ? num(e.amount) : null, note: (e.note || '').trim() };
   if (t.grade) rec.grade = e.grade || '';
@@ -1279,10 +1295,15 @@ function buyInput(el) {
   const amt = $('#buyForm [data-b=amount]');
   if (amt && !d.amountManual) amt.placeholder = round(c.amount);
 }
-function saveBuyForm() {
+function saveBuyForm(okBig) {
   readBuyForm();
   const d = buyDraft, c = buyCalc(d);
   if (!c.amount) { toast('Enter the rate or the total paid'); return; }
+  if (!okBig && d.category === 'feed' && bigFeedQty(c.qty, d.unit)) {
+    const q = c.qty, back = () => renderBuy();
+    askBigFeedQty(q, () => { Object.assign(buyDraft, { qty: '1', rate: '', amount: String(q), amountManual: true }); back(); setTimeout(() => saveBuyForm(true), 50); }, () => { back(); setTimeout(() => saveBuyForm(true), 50); }, back);
+    return;
+  }
   if (d.category !== 'feed' && d.category !== 'other' && d.category !== 'equipment' && !String(d.item || '').trim()) { toast('Enter the name, e.g. Amprolium'); return; }
   const rec = { kind: 'purchase', date: d.date || today(), category: d.category, grade: d.category === 'feed' ? (d.grade || '') : '', item: d.category === 'feed' ? '' : String(d.item || '').trim(),
     qty: c.qty || null, unit: d.unit, rate: c.rate != null ? c.rate : (c.qty ? round(c.amount / c.qty, 2) : null), amount: c.amount,
