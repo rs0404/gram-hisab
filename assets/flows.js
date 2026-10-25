@@ -811,11 +811,11 @@ function helpHtml(short) {
     ['📗 Paid back', 'Ram le 300 tiryo', 'Sita paid 500 qr']
   ];
   const mrows = [
-    ['⚙️ Mill', 'dhan 5 pathi kutani', 'makai 3 pathi pisani', 'गहुँ २ पाथी पिसानी', 'kodo 8 mana pisani qr'],
+    ['🏭 Mill', 'dhan 5 pathi kutani', 'makai 3 pathi pisani', 'गहुँ २ पाथी पिसानी', 'kodo 8 mana pisani qr'],
     ['Own grain (free)', 'aafno dhan 10 pathi kutani'],
     ['Other amount', 'makai 4 pathi pisani 250']
   ];
-  const all = [['🌾 Kheti', krows], ['🐔 Chicken', prows], ['🏪 Shop', srows], ['⚙️ Mill', mrows]];
+  const all = [['🌾 Kheti', krows], ['🐔 Chicken', prows], ['🏪 Shop', srows], ['🏭 Mill', mrows]];
   const sec = typeof section !== 'undefined' ? ({ kheti: 0, poultry: 1, shop: 2, mill: 3 })[section] || 0 : 1;
   const rows = all[sec][1];
   const others = all.filter((x, i) => i !== sec);

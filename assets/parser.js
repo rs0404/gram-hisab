@@ -13,22 +13,25 @@ function wordsToNumbers(str) {
   let i = 0;
   while (i < tk.length) {
     const t = tk[i];
-    const startsNum = isDigitTok(t) || t in SMALL || (t === 'a' && tk[i + 1] in SCALE) || (t === 'half' && !(tk[i - 1] === 'and'));
+    // a lone "सय" / "हजार" (said without a number) means 100 / 1000
+    const startsNum = isDigitTok(t) || t in SMALL || (t === 'a' && tk[i + 1] in SCALE) || (t === 'half' && !(tk[i - 1] === 'and')) || (t in SCALE && !isDigitTok(tk[i - 1] || ''));
     if (!startsNum) { out.push(t); i++; continue; }
-    let total = 0, cur = 0, has = false, j = i;
+    let total = 0, cur = 0, has = false, j = i, lastScale = 0;
+    if (t in SCALE) { cur = 1; has = true; }
     while (j < tk.length) {
       const w = tk[j];
       if (isDigitTok(w)) {
-        if (has && cur !== 0) break;
-        cur += parseFloat(w); has = true; j++;
+        // "दुई सय पचहत्तर" → 2 hundred 75: a smaller number right after a scale word is added
+        if (has && cur !== 0 && !(lastScale && parseFloat(w) < (lastScale === 100 ? 100 : 1000) && (lastScale !== 100 || cur % 100 === 0))) break;
+        cur += parseFloat(w); has = true; j++; lastScale = 0;
       } else if (w in SMALL) {
         const v = SMALL[w];
         if (has && cur !== 0 && !(cur % 100 === 0 || (cur >= 20 && cur % 10 === 0 && v < 10))) break;
-        cur += v; has = true; j++;
+        cur += v; has = true; j++; lastScale = 0;
       } else if (w in SCALE && has) {
         const sc = SCALE[w];
         if (sc === 100) cur = (cur || 1) * 100; else { total += (cur || 1) * sc; cur = 0; }
-        j++;
+        j++; lastScale = sc;
       } else if (w === 'a' && !has && tk[j + 1] in SCALE) {
         cur = 1; has = true; j++;
       } else if (w === 'half' && !has) {
@@ -136,8 +139,9 @@ const NP_NUM_DEV = [["एक", 1], ["दुई", 2], ["तीन", 3], ["चा�
 const NP_NUM_ROM = [["ek", 1], ["dui", 2], ["tin", 3], ["char", 4], ["panch", 5], ["saat", 7], ["aath", 8], ["nau", 9], ["das", 10], ["eghar", 11], ["bahra", 12], ["tehra", 13], ["chaudha", 14], ["pandhra", 15], ["sorha", 16], ["satra", 17], ["athara", 18], ["unnais", 19], ["bis", 20], ["ekkais", 21], ["bais", 22], ["teis", 23], ["chaubis", 24], ["pachchis", 25], ["chhabbis", 26], ["sattais", 27], ["aththais", 28], ["unantis", 29], ["tis", 30], ["ektis", 31], ["battis", 32], ["tettis", 33], ["chautis", 34], ["paitis", 35], ["chhattis", 36], ["saitis", 37], ["athtis", 38], ["unanchalis", 39], ["chalis", 40], ["ekchalis", 41], ["bayalis", 42], ["trichalis", 43], ["chawalis", 44], ["paintalis", 45], ["chhayalis", 46], ["satchalis", 47], ["athchalis", 48], ["unanpachas", 49], ["pachas", 50], ["ekaunna", 51], ["baunna", 52], ["tripanna", 53], ["chaunna", 54], ["pachpanna", 55], ["chhapanna", 56], ["santaunna", 57], ["anthaunna", 58], ["unansathi", 59], ["eksatthi", 61], ["bayasatthi", 62], ["trisatthi", 63], ["chausatthi", 64], ["painsatthi", 65], ["chhayasatthi", 66], ["satsatthi", 67], ["athsatthi", 68], ["unansattari", 69], ["sattari", 70], ["ekhattar", 71], ["bahattar", 72], ["trihattar", 73], ["chauhattar", 74], ["pachahattar", 75], ["chhayahattar", 76], ["satahattar", 77], ["athahattar", 78], ["unasi", 79], ["asi", 80], ["ekasi", 81], ["bayasi", 82], ["triyasi", 83], ["chaurasi", 84], ["pachasi", 85], ["chhayasi", 86], ["satasi", 87], ["athasi", 88], ["unannabbe", 89], ["nabbe", 90], ["ekanabbe", 91], ["bayanabbe", 92], ["triyanabbe", 93], ["chauranabbe", 94], ["panchanabbe", 95], ["chhayanabbe", 96], ["santanabbe", 97], ["anthanabbe", 98], ["unansaya", 99], ["ekk", 1], ["due", 2], ["duita", 2], ["teen", 3], ["chaar", 4], ["paanch", 5], ["pach", 5], ["sat", 7], ["aat", 8], ["dash", 10], ["baara", 12], ["pandra", 15], ["solah", 16], ["bees", 20], ["pachis", 25], ["tees", 30], ["pachaas", 50]];
 const NP_SCALE = [[/(^|\s)(सय|सये)(?=\s|$)/g, ' hundred '], [/(^|\s)(हजार)(?=\s|$)/g, ' thousand '], [/(^|\s)(लाख)(?=\s|$)/g, ' lakh '],
   [/\b(saya|sau|sae|shaya)\b/g, ' hundred '], [/\b(hajar|hazar|hajaar|hazaar)\b/g, ' thousand '], [/\b(lakh|lac)\b/g, ' lakh ']];
-const NP_SIX_RE = /(^|\s)(छ|chha|chhah)(?=\s+(?:kg|kilo|केजी|किलो|wota|ota|gota|वटा|ओटा|गोटा|bags?|bora|बोरा|hundred|thousand|सय|हजार|chickens?|kukhura|कुखुरा|birds?|\d))/g;
+const NP_SIX_RE = /(^|\s)(छ|chha|chhah)(?=\s+(?:kg|kilo|केजी|किलो|wota|ota|gota|वटा|ओटा|गोटा|bags?|bora|बोरा|hundred|thousand|सय|हजार|chickens?|kukhura|कुखुरा|birds?|जना|jana|खेताला|khetala|पाथी|pathi|माना|mana|मुरी|muri|घण्टा|घन्टा|ghanta|लिटर|litre|थुन्से|thunse|दिन|din|\d))/g;
 function nepaliNumbers(t) {
+  t = t.replace(/(^|\s)(दशमलव|दसमलव|प्वाइन्ट|पोइन्ट|पोइन्ट)(?=\s|$)/g, ' point ').replace(/\b(dasamalab|dashamlav|point)\b/g, ' point ');
   t = t.replace(/(^|\s)(साढे|साढ़े)\s+/g, ' sadhe ').replace(/(^|\s)सवा\s+/g, ' sawa ').replace(/(^|\s)पौने\s+/g, ' paune ');
   t = t.replace(/(^|\s)(डेढ|डेड)(?=\s|$)/g, ' 1.5 ').replace(/(^|\s)(अढाई|अढाइ|ढाई)(?=\s|$)/g, ' 2.5 ').replace(/(^|\s)(आधा)(?=\s|$)/g, ' 0.5 ');
   t = t.replace(/\b(dedh|derh|dedha)\b/g, ' 1.5 ').replace(/\b(adhai|adhaai|dhai|dhaai)\b/g, ' 2.5 ').replace(/\b(adha|aadha|aadhaa)\b/g, ' 0.5 ');
@@ -153,8 +157,18 @@ function nepaliNumbers(t) {
 }
 
 // Returns {s, refs:[{ids,label}], grades, breeds, bsDates, text}
+// Nepali voice typing adds invisible joiners (मर्‍यो) and writes English words in Nepali letters (बी टु = B2)
+function cleanNepali(t) {
+  t = String(t || '').replace(/[\u200b-\u200d\ufeff]/g, '')
+    .replace(/([^\s\d])(वटा|ओटा|गोटा|जना)(?=\s|$)/g, '$1 $2');          // तीनवटा → तीन वटा
+  return t
+    .replace(/(बी|बि|भी)\s*-?\s*(जिरो|जीरो|शून्य|०|0)(?=\s|$)/g, ' B0 ').replace(/(बी|बि|भी)\s*-?\s*(वान|वन|१|1)(?=\s|$)/g, ' B1 ')
+    .replace(/(बी|बि|भी)\s*-?\s*(टु|टू|२|2)(?=\s|$)/g, ' B2 ').replace(/(बी|बि|भी)\s*-?\s*(थ्री|थ्रि|३|3)(?=\s|$)/g, ' B3 ');
+}
 function normalize(text) {
-  let t = ' ' + String(text || '').toLowerCase() + ' ';
+  let t = ' ' + cleanNepali(text).toLowerCase() + ' ';
+  // chickens: काटेँ / काटेको without a selling word = birds cut (✂️), not a meat sale
+  if (/काट/.test(t) && !/बेच|बिक|sold|sell/i.test(t)) t = t.replace(/काटेँ|काटें|काटेको|काटियो|काट्यो|काट्यौं|काटे|काटिए/g, ' cut ');
   const refs = [], grades = [], breedsFound = [], bsDates = [];
   // a lot name typed in full, e.g. "ashar83_1_100"
   lots().forEach(l => {
@@ -177,6 +191,7 @@ function normalize(text) {
   t = t.replace(/\brs(?=\d)/g, 'rs ').replace(/\b(rupees|rupee|rupaiya|rupiya|rupaye|rupaiyan|npr|nrs|inr)\b/g, ' rs ');
   t = wordsToNumbers(t);
   t = ' ' + t + ' ';
+  t = t.replace(/(\d+(?:\.\d+)?)\s*(?:rs\s*)?(?:को|ko)(?=\s|$)/g, '$1 rs ');   // "एघार सय को मासु" = meat worth Rs 1100
   t = t.replace(/\b(a|an)\s+(kg|chicken|bird|bag|sack)\b/g, '1 $2');
   t = t.replace(/\b(to|too)\s+(kg|chickens?|birds?|bags?)\b/g, '2 $2');
 
@@ -331,7 +346,7 @@ function parseCommand(text) {
     else { const ns = numbersLeft(ctx); if (ns.length) p.qty = ns[0] > 20 ? ns[0] / 1000 : ns[0]; }
     if (p.qty != null) p.qty = round(p.qty, 3);
   }
-  else if (sold || has(/\d\s*kg\b/) || (has(/\bparts\b/) && has(/\d/))) parseSale(p, ctx, s);
+  else if (sold || has(/\d\s*kg\b/) || (has(/\bparts\b/) && has(/\d/)) || (has(/\b(live|meat)\b/) && has(/\d\s*rs\b|\brs\s*\d/))) parseSale(p, ctx, s);
   else if (has(/\d/) && has(/\b(left|remaining|remain|have|has|counted|count|there are|in stock|stock|alive)\b/)) {
     p.intent = 'stockcount'; const ns = numbersLeft(ctx); p.count = Math.round(ns[0]);
   }

@@ -156,10 +156,13 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
 - Reports: daily (31 days), weekly (12 weeks), monthly (12 Nepali months), with averages.
 - **−🐔 switch** (top right): chicken money is collected at the same counter, so a switch shows the shop's own amount (collected − chicken sales, only on days the shop was recorded).
 
+**Look**
+- Clean line icons (same on every phone, in the theme colour) instead of emoji — [Lucide](https://lucide.dev) icons, ISC licence, bundled in `assets/icons.js`.
+
 **Voice (English and Nepali)**
 - Tap 🎤 and speak. The app shows what it heard, asks "Save?", and you answer by voice or by tapping.
 - **📖 What can I say?** on the listening screen opens the voice guide for the section you are in (Kheti, Chicken or Shop).
-- It understands Nepali numbers, including डेढ, साढे दुई, आधा, सय and हजार, and Devanagari or romanized words such as masu, jiudo, mare, dana, kineko, nagad and gate.
+- It understands Nepali numbers, including डेढ, साढे दुई, आधा, सय, हजार, बाह्र सय, दुई सय पचहत्तर, दशमलव, तीनवटा, and Devanagari or romanized words such as masu, jiudo, mare, dana, kineko, nagad and gate.
 
 **Settings**
 - Settings has tabs: **🌾 Kheti · 🐔 Chicken · 🏪 Shop · ⚙️ Others** (open-the-app-in, voice, phones & sync, updates, full change log). It opens on the tab of the section you are in.
@@ -230,3 +233,4 @@ Needs the Android SDK command line tools (build-tools 35, platform 35) and a JDK
 | `assets/` | The app: `core.js` (data, stats, sync), `parser.js` (voice → command), `flows.js` (conversations), `ui.js` (screens), `kheti.js` / `kheti-ui.js` / `kheti-voice.js` (🌾 Kheti data, screens, voice), `landunits.js` (Ropani/Bigha), `calendar.js` (Nepali calendar), `machines.js` (my machines, servicing), `mill.js` (mill), `panchang.js` (tithi, festivals, holidays), `shop.js`, `updater.js`, `nepcal.js` (BS calendar from [yarsa/nepal-compliance](https://github.com/yarsa/nepal-compliance)) |
 | `google-sheet-sync/` | Google Apps Script for multi-phone sync |
 | `docs/screenshots/` | README images (demo data) |
+| `tests/` | Node tests for Nepali voice, numbers, kheti and the calendar |

@@ -330,3 +330,14 @@ u.dm{background:#7C3AED}
 .todaystats .stat b{font-size:17px;white-space:nowrap}
 .todaystats .stat span{font-size:10px;line-height:1.2}
 .todaystats .stat em{display:block;font-style:normal;font-weight:900;font-size:12px;margin-top:3px;white-space:nowrap}
+
+/* line icons (Lucide) */
+svg.lic{width:1.15em;height:1.15em;vertical-align:-0.2em;flex:none;display:inline-block}
+.navbtn span svg.lic{width:25px;height:25px;vertical-align:0}
+.navbtn span{display:block;height:28px}
+.mic .micicon svg.lic{width:34px;height:34px;vertical-align:0;stroke-width:2.2}
+.item .ic svg.lic{width:22px;height:22px;vertical-align:0}
+.iconbtn svg.lic{width:24px;height:24px;vertical-align:0}
+.secbar button svg.lic{width:18px;height:18px;margin-right:2px}
+.stat b svg.lic{width:18px;height:18px;vertical-align:-0.15em}
+.cal-legend svg.lic{width:12px;height:12px}

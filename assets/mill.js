@@ -1,4 +1,4 @@
-/* Gram Hisab — ⚙️ मिल (mill): कुटानी (धान → चामल) and पिसानी (मकै, गहुँ, कोदो → पिठो) for customers and for home.
+/* Gram Hisab — 🏭 मिल (mill): कुटानी (धान → चामल) and पिसानी (मकै, गहुँ, कोदो → पिठो) for customers and for home.
    kinds: mill     {date, item, qty, unit (pathi | mana | muri), pathi, rate, amount, pay (cash | qr), customer, own, note}
           millcost {date, type: 'electricity' | 'other', amount, units, note}
    Rates are per pathi for each item (synced setting 'millItems'). Servicing of the mill uses 🚜 My machines (type 'mill'). */
@@ -38,7 +38,7 @@ function millRange(from, to) {
 }
 const millMachines = () => (typeof myMachines === 'function' ? myMachines().filter(m => m.type === 'mill') : []);
 
-// ---------- ⚙️ Mill home ----------
+// ---------- 🏭 Mill home ----------
 let millDraft = null, millDateOpen = false;
 function newMillDraft(keep) {
   const k = keep || {};
@@ -59,7 +59,7 @@ function renderMill() {
       <div class="label">${esc(label)}</div><div class="v">${money(o.total)}</div><div class="small muted">${nfmt(round(o.pathi, 2))} पाथी ›</div></button>`;
   const noRate = !c.rate && !d.own;
   $('#v-mill').innerHTML = `
-    <h2 style="margin:2px 0 8px">⚙️ मिल · Mill</h2>
+    <h2 style="margin:2px 0 8px">🏭 मिल · Mill</h2>
     <div class="card today tight shoptoday" style="background:linear-gradient(135deg,#6D28D9,#4C1D95)">
       <div class="row between" style="align-items:flex-end;gap:8px">
         <div><div class="label">Today's income</div><div style="font-size:30px;font-weight:900;line-height:1.1">${money(td.total)}</div></div>
@@ -105,7 +105,7 @@ function millHint(d) {
 }
 function millItemHtml(r) {
   const it = millItem(r.item);
-  return `<button class="item" data-act="millEdit" data-id="${r.id}"><div class="ic" style="background:#EDE9FE">⚙️</div>
+  return `<button class="item" data-act="millEdit" data-id="${r.id}"><div class="ic" style="background:#EDE9FE">🏭</div>
     <div class="mid"><div class="t">${esc(it.ne)} · ${nfmt(r.qty)} ${MILL_UNITS[r.unit || 'pathi'].ne}${r.customer ? ' · ' + esc(r.customer) : ''}</div>
     <div class="s">${r.own ? '🏠 own · free' : (r.pay === 'qr' ? '📱 QR' : '💵 Cash')} · ${whoWhen(r)}</div></div><div class="amt">${r.own ? '—' : money(r.amount)}</div></button>`;
 }
@@ -117,7 +117,7 @@ function saveMill() {
     pay: d.own ? '' : (d.pay || 'cash'), customer: String(d.customer || '').trim(), own: !!d.own, note: '' };
   if (d.id) { rec.id = d.id; rec.createdAt = d.createdAt; }
   put(rec); db.meta.millLast = rec.item; persist();
-  toast(`⚙️ Saved ✓ ${millItem(rec.item).ne} ${nfmt(rec.qty)} ${MILL_UNITS[rec.unit].ne}${rec.own ? ' · own' : ' · ' + money(rec.amount)}`, d.id ? null : rec.id);
+  toast(`🏭 Saved ✓ ${millItem(rec.item).ne} ${nfmt(rec.qty)} ${MILL_UNITS[rec.unit].ne}${rec.own ? ' · own' : ' · ' + money(rec.amount)}`, d.id ? null : rec.id);
   millDraft = newMillDraft(d.id ? null : d); renderMill();
 }
 
@@ -167,7 +167,7 @@ function openMillRange(from, to, label) {
   const o = millRange(from, to), days = [];
   for (let d = to; d >= from; d = addDays(d, -1)) days.push(d);
   const items = Object.entries(o.byItem);
-  openSheet(`<h2>⚙️ ${esc(label)}</h2><div class="small muted" style="margin:-6px 0 10px">${fmtDate(from, true)}${from !== to ? ' – ' + fmtDate(to, true) : ''}</div>
+  openSheet(`<h2>🏭 ${esc(label)}</h2><div class="small muted" style="margin:-6px 0 10px">${fmtDate(from, true)}${from !== to ? ' – ' + fmtDate(to, true) : ''}</div>
     <div class="summary">
       <div class="line"><span>Income <span class="small muted">(💵 ${money(o.cash)} · 📱 ${money(o.qr)})</span></span><b style="color:var(--green);font-size:22px">${money(o.total)}</b></div>
       ${items.map(([k, x]) => `<div class="line"><span>${esc(millItem(k).ne)}</span><b>${nfmt(round(x.pathi, 2))} पाथी · ${money(x.amount)}${x.own ? ` <span class="small muted">· 🏠 ${nfmt(round(x.own, 2))}</span>` : ''}</b></div>`).join('')}
@@ -211,7 +211,7 @@ function renderMillReport() {
 }
 function millReportText() {
   const t = today(), td = millRange(t, t), mo = millRange(bsMonthStart(t), t);
-  return [`⚙️ Mill — ${fmtDate(t, true)}`, `Today: ${money(td.total)} (${nfmt(round(td.pathi, 2))} पाथी)`, `${BS_MONTHS[adToBs(t).m - 1]}: ${money(mo.total)} · ${nfmt(round(mo.pathi, 1))} पाथी · costs ${money(mo.cost)} · profit ${money(mo.profit)}`,
+  return [`🏭 Mill — ${fmtDate(t, true)}`, `Today: ${money(td.total)} (${nfmt(round(td.pathi, 2))} पाथी)`, `${BS_MONTHS[adToBs(t).m - 1]}: ${money(mo.total)} · ${nfmt(round(mo.pathi, 1))} पाथी · costs ${money(mo.cost)} · profit ${money(mo.profit)}`,
     ...Object.entries(mo.byItem).map(([k, x]) => `${millItem(k).ne}: ${nfmt(round(x.pathi, 2))} पाथी · ${money(x.amount)}`)].join('\n');
 }
 function millCsv() {
@@ -225,7 +225,7 @@ function millCsv() {
 
 // ---------- voice: "dhan 5 pathi kutani", "makai 3 pathi pisani qr", "गहुँ २ पाथी पिसानी", "kutani 4 pathi 200" ----------
 function parseMill(text) {
-  let t = ' ' + String(text || '').toLowerCase() + ' ';
+  let t = ' ' + cleanNepali(text).toLowerCase() + ' ';
   t = t.replace(/[०-९]/g, d => String('०१२३४५६७८९'.indexOf(d)));
   t = nepaliNumbers(t);
   [[/धान/g, ' dhaan '], [/मकै/g, ' makai '], [/गहुँ|गहु/g, ' gahun '], [/कोदो/g, ' kodo '], [/जौ/g, ' jau '], [/कुटानी|कुटाइ|कुट्ने/g, ' kutani '], [/पिसानी|पिसाइ|पिस्ने/g, ' pisani '],

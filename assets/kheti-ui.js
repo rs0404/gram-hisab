@@ -590,7 +590,7 @@ const SECTIONS = {
   kheti: { label: '🌾 खेती', home: 'kheti', nav: [['kheti', '🌾', 'Kheti'], ['kwork', '📝', 'Work'], null, ['workers', '👷', 'Workers'], ['kreports', '📊', 'Report']] },
   poultry: { label: '🐔 कुखुरा', home: 'home', nav: [['home', '🏠', 'Home'], ['sell', '💰', 'Sell'], null, ['buy', '🛒', 'Buy'], ['reports', '📊', 'Reports']] },
   shop: { label: '🏪 पसल', home: 'shop', nav: [['shop', '🏪', 'Shop'], ['credit', '📒', 'Udharo'], null, ['settings', '⚙️', 'Settings']] },
-  mill: { label: '⚙️ मिल', home: 'mill', nav: [['mill', '⚙️', 'Mill'], null, ['millreport', '📊', 'Report']] }
+  mill: { label: '🏭 मिल', home: 'mill', nav: [['mill', '🏭', 'Mill'], null, ['millreport', '📊', 'Report']] }
 };
 const VIEW_SECTION = { credit: 'shop', mill: 'mill', millreport: 'mill', kheti: 'kheti', kwork: 'kheti', kmachines: 'kheti', workers: 'kheti', kreports: 'kheti', home: 'poultry', sell: 'poultry', buy: 'poultry', reports: 'poultry', shop: 'shop' };
 let section = null;

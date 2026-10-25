@@ -13,7 +13,7 @@ const K_NE = [
   [/घण्टा|घन्टा/g, ' ghanta '], [/लिटर|लीटर/g, ' litre '], [/डिजेल|डीजेल/g, ' diesel '], [/पेट्रोल/g, ' petrol '], [/भाडा/g, ' bhada '],
   [/मुरी/g, ' muri '], [/पाथी/g, ' pathi '], [/माना/g, ' mana '], [/क्विन्टल|क्वीन्टल/g, ' quintal '], [/बोरा/g, ' bora '], [/केजी|किलो|के\.जी\.?/g, ' kg '],
   [/बीउ|बिउ|बिऊ/g, ' biu '], [/थुन्से|थुनसे|थुन्सा/g, ' thunse '], [/कुखुराको|कुखुरा/g, ' kukhura '], [/भैंसीको|भैंसी|भैसीको|भैसी/g, ' bhaisi '],
-  [/बाख्राको|बाख्रा|बाख्राको/g, ' bakhra '], [/गाईको|गाई|गाइ/g, ' gai '], [/गेडे|गेडा/g, ' gede '], [/युरिया/g, ' urea '], [/डीएपी|डिएपी|डि\s*ए\s*पि/g, ' dap '], [/पोटास|पोटाश/g, ' potash '], [/कम्पोस्ट|गोबर\s*मल|गोबर/g, ' compost '], [/मल/g, ' mal '],
+  [/बाख्राको|बाख्रा|बाख्राको/g, ' bakhra '], [/गाईको|गाई|गाइ/g, ' gai '], [/गेडे|गेडा/g, ' gede '], [/युरिया/g, ' urea '], [/डीएपी|डिएपी|डि\s*ए\s*पि/g, ' dap '], [/पोटास|पोटाश/g, ' potash '], [/कम्पोस्ट|गोबर\s*मल|गोबर/g, ' compost '], [/(^|\s)मल(को|लाई|ले)?(?=\s|$)/g, ' mal '],
   [/उत्पादन|फसल|भित्र्याएको|भित्र्यायो|फल्यो|फलेको/g, ' harvest '],
   [/पूरा|पुरा|दिनभरि|दिनभर/g, ' pura '], [/दिन/g, ' din '], [/घर/g, ' ghar '],
   [/तिरें|तिरेँ|तिरे|तिर्यो|तिरेको|दिएँ|दिए|दियो|भुक्तानी/g, ' paid '], [/तिर्ने|तिर्न/g, ' tirne '], [/गएको|गयो|गए|गाको/g, ' gaye '], [/आएको|आयो|आए/g, ' aaye '],
@@ -21,7 +21,7 @@ const K_NE = [
   [/सर्भिसिङ|सर्भिसिंग|सर्भिस|सर्विस/g, ' service '], [/मोबिल/g, ' mobil '], [/गियर/g, ' gear '], [/हाइड्रोलिक/g, ' hydraulic '], [/ग्रिज/g, ' grease '],
   [/फिल्टर/g, ' filter '], [/पार्टस्|पार्टस|पार्ट्स/g, ' parts '], [/मिस्त्री/g, ' mechanic '], [/टायर/g, ' tyre '], [/ब्याट्री/g, ' battery '],
   [/आज/g, ' today '], [/हिजो/g, ' yesterday '], [/अस्ति/g, ' day before yesterday '], [/रुपैयाँ|रुपैयां|रुपैया|रु\.?/g, ' rs '], [/आफ्नो|आफ्नै/g, ' own '],
-  [/धान/g, ' dhaan '], [/गहुँ|गहु/g, ' gahun '], [/मकै/g, ' makai '], [/कोदो/g, ' kodo '], [/मास/g, ' maas '], [/मसुरो/g, ' masuro '], [/आलु/g, ' aalu '], [/तोरी/g, ' tori '],
+  [/धान/g, ' dhaan '], [/गहुँ|गहु/g, ' gahun '], [/मकै/g, ' makai '], [/कोदो/g, ' kodo '], [/(^|\s)मास(को)?(?=\s|$)/g, ' maas '], [/मसुरो/g, ' masuro '], [/आलु/g, ' aalu '], [/तोरी/g, ' tori '],
   [/केराउ/g, ' kerau '], [/भटमास/g, ' bhatmas '], [/खेत|बारी/g, ' khet ']
 ];
 const K_ROMAN = [
@@ -51,7 +51,7 @@ const K_ROMAN = [
 const KHETI_WORD_RE = /\b(khetala|parma|ropai|godmel|jotne|goru|bause|lathe|tractor|tiller|pump|thresher|ghanta|muri|pathi|mana|quintal|biu|urea|dap|gede|potash|compost|mal|thunse|service|mobil|harvest|khet|dhaan|gahun|makai)\b/;
 
 function kNorm(text) {
-  let t = ' ' + String(text || '').toLowerCase() + ' ';
+  let t = ' ' + cleanNepali(text).toLowerCase() + ' ';
   t = t.replace(/[०-९]/g, d => String('०१२३४५६७८९'.indexOf(d)));
   // "आधा / aadha" next to a worker = half shift (not 0.5), unless a unit follows
   t = t.replace(/(^|\s)(आधा|aadha|adha|aadhaa)(?!\s*(?:kg|केजी|किलो|bora|बोरा|muri|मुरी|pathi|पाथी|litre|लिटर|ghanta|घण्टा))(?=\s|$)/g, ' halfshift ');

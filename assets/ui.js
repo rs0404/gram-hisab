@@ -718,7 +718,7 @@ function openDay(date, lotId, fromCal) {
       ${shop.length ? `<div class="line"><span>🏪 Shop collected</span><b>${money(sh.total)} <span class="small muted">(goods ${money(sh.goods)})</span></b></div>` : ''}
     </div>
     ${kh.list}
-    ${fromCal && all('mill').some(r => r.date === date) ? `<h3>⚙️ Mill · ${money(millRange(date, date).total)}</h3>${all('mill').filter(r => r.date === date).map(millItemHtml).join('')}` : ''}
+    ${fromCal && all('mill').some(r => r.date === date) ? `<h3>🏭 Mill · ${money(millRange(date, date).total)}</h3>${all('mill').filter(r => r.date === date).map(millItemHtml).join('')}` : ''}
     ${sales.length ? `<h3>💰 Sales</h3>${sales.sort((a, b) => a.createdAt - b.createdAt).map(itemHtml).join('')}` : lotId ? '<p class="muted">No sales this day.</p>' : ''}
     ${buys.length ? `<h3>🛒 Purchases</h3>${buys.map(itemHtml).join('')}` : ''}
     ${proc.length ? `<h3>📝 Process</h3>${proc.map(itemHtml).join('')}` : ''}
@@ -874,7 +874,7 @@ function openArchive() {
 
 // ---------- SETTINGS ----------
 let settingsTab = 'kheti';
-const SETTINGS_TABS = [['kheti', '🌾 Kheti'], ['poultry', '🐔 Chicken'], ['shop', '🏪 Shop'], ['mill', '⚙️ Mill'], ['other', '⋯ Others']];
+const SETTINGS_TABS = [['kheti', '🌾 Kheti'], ['poultry', '🐔 Chicken'], ['shop', '🏪 Shop'], ['mill', '🏭 Mill'], ['other', '⋯ Others']];
 function renderSettings() {
   const m = db.meta, pend = Object.keys(m.pending).length;
   const counts = { sale: all('sale').length, event: all('event').length, lot: all('lot').length };
@@ -918,7 +918,7 @@ function renderSettings() {
       <div class="btnrow" style="margin-bottom:8px"><button class="btn" data-act="go" data-view="credit">📒 Udharo</button><button class="btn" data-act="exportCsv" data-v="credit">📄 Udharo (CSV)</button></div>
       <div class="btnrow"><button class="btn" data-act="shareShop">💬 Share shop report</button><button class="btn ghost" data-act="section" data-v="shop">🏪 Open shop</button></div>
     </div>`,
-    mill: () => `<h2>⚙️ Mill rates <span class="small muted">per पाथी</span></h2>
+    mill: () => `<h2>🏭 Mill rates <span class="small muted">per पाथी</span></h2>
     <div class="card"><div class="summary">${millItems().filter(x => !x.hidden).map(x => `<div class="line"><span>${esc(x.ne)} <span class="small muted">${esc(x.en)}</span></span><b>${x.rate ? money(x.rate) : '—'}</b></div>`).join('')}</div>
       <div class="btnrow" style="margin-top:8px"><button class="btn primary" data-act="millRates">✎ Change rates</button><button class="btn ghost" data-act="listOpen" data-k="mill">✎ Edit / delete kinds</button><button class="btn ghost" data-act="exportCsv" data-v="mill">📄 Mill (CSV)</button></div>
       <p class="small muted">The mill's servicing is kept in 🚜 My machines (type “Mill”); electricity bills in ⚙️ Mill → ⚡ Bill.</p></div>`,

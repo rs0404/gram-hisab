@@ -129,7 +129,7 @@ function creditCsv() {
 
 // ---------- voice: "Ram udharo 500", "Ram le 300 tiryo", "उधारो राम ५००", "Sita paid 200 qr" ----------
 function parseCredit(text) {
-  let t = ' ' + String(text || '') + ' ';
+  let t = ' ' + cleanNepali(text) + ' ';
   t = t.replace(/[०-९]/g, d => String('०१२३४५६७८९'.indexOf(d)));
   const given = /उधारो|उधार|\b(udharo|udhaaro|udhar|udhaar|credit)\b/i.test(t), paid = /तिर्यो|तिरे|तिर्नुभयो|फिर्ता|\b(tiryo|tirey|tire|tirnu|paid|returned|pay ?back)\b/i.test(t);
   if (!given && !paid) return null;

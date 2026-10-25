@@ -78,7 +78,7 @@ function renderCalendar() {
       ${tot.sales ? `<div class="line"><span>🐔 Poultry sales</span><b style="color:var(--green)">${money(tot.sales)}</b></div>` : ''}
       ${tot.bought ? `<div class="line"><span>🛒 Poultry bought</span><b style="color:var(--red)">${money(tot.bought)}</b></div>` : ''}
       ${tot.shop ? `<div class="line"><span>🏪 Shop collected</span><b style="color:var(--green)">${money(tot.shop)}</b></div>` : ''}
-      ${tot.mill ? `<div class="line"><span>⚙️ Mill income</span><b style="color:var(--green)">${money(tot.mill)}</b></div>` : ''}
+      ${tot.mill ? `<div class="line"><span>🏭 Mill income</span><b style="color:var(--green)">${money(tot.mill)}</b></div>` : ''}
       ${tot.kheti || tot.sales || tot.bought || tot.shop || tot.mill ? '' : '<div class="line"><span class="muted">Nothing recorded this month</span></div>'}
     </div>
     <p class="small muted">Tap a day for its tithi, festivals, sunrise and everything recorded on it. Tithi and festivals are calculated (sunrise in Kathmandu); the government's official holiday list can differ by a day — add your own note or holiday on any day.</p>
