@@ -102,7 +102,7 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
 **📅 Nepali calendar (पात्रो)**
 - Tap the little calendar page at the top (it always shows today's Nepali date, e.g. कार्तिक ५), or say "patro". The month view shows BS dates in Nepali digits with the English date in small text, Saturdays in red, and today in green marked आज.
 - Coloured dots mark the days with Kheti, poultry or shop entries, and the month totals sit under the grid. Tap a day to see everything recorded on it, then go to the day before or after.
-- Every date field has a **📅 पात्रो** button that opens a calendar for picking the date.
+- Every date field is one row — **Today · Yesterday · 📅 (date)** — and the 📅 button opens the Nepali calendar to tap a day. No day / month / year boxes to fill.
 - **Tithi** under every date (🌕 पूर्णिमा, 🌑 औंसी), and **festivals and public holidays** in red: नयाँ वर्ष, गणतन्त्र दिवस, संविधान दिवस, Dashain, Tihar, Chhath, Teej, Janai Purnima, Janmashtami, Shivaratri, Holi, Buddha Jayanti, Lhosar, Christmas, Eid (approximate) and more. Each month lists its पर्व र बिदा.
 - **Tap a day** for its full tithi (e.g. कार्तिक कृष्ण चतुर्दशी, and when it changes), sunrise and sunset in Kathmandu, festivals with the kind of holiday (public / women / Kathmandu valley), your own notes, and everything recorded that day.
 - **Your own notes and holidays** on any day (kul puja, school holiday…). They are shared with all your phones.

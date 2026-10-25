@@ -48,8 +48,8 @@ function renderCredit() {
     <div class="card tight" id="creditForm">
       <div class="row between" style="gap:6px;flex-wrap:wrap">
         <span class="chips" style="gap:4px"><button class="chip ${d.type !== 'paid' ? 'on' : ''}" data-act="crType" data-v="given">📕 उधारो दियो</button><button class="chip ${d.type === 'paid' ? 'on' : ''}" data-act="crType" data-v="paid">📗 तिर्यो</button></span>
-        <span class="chips" style="gap:4px"><button class="chip sm ${d.date === t ? 'on' : ''}" data-act="bsQuick" data-key="credit" data-days="0">Today</button><button class="chip sm ${d.date === y ? 'on' : ''}" data-act="bsQuick" data-key="credit" data-days="-1">Yest.</button><button class="chip sm ${d.date !== t && d.date !== y ? 'on' : ''}" data-act="crDatePick" aria-label="Other date">${calTile()}</button></span></div>
-      <div id="creditDateBox" class="${creditDateOpen ? '' : 'hidden'}" style="margin-top:6px">${bsDateHtml('credit', d.date)}</div>
+        <span class="chips" style="gap:4px"><button class="chip sm ${d.date === t ? 'on' : ''}" data-act="bsQuick" data-key="credit" data-days="0">Today</button><button class="chip sm ${d.date === y ? 'on' : ''}" data-act="bsQuick" data-key="credit" data-days="-1">Yest.</button><button class="chip sm ${d.date !== t && d.date !== y ? 'on' : ''}" data-act="bsCalToggle" data-key="credit" aria-label="Other date">${calTile()}</button></span></div>
+      ${bsDateHtml('credit', d.date, { chips: false })}
       <div class="hshop" style="grid-template-columns:1.4fr 1fr">
         <label><span>👤 Person</span><input data-cr="person" list="crNames" value="${esc(d.person)}" placeholder="Name" autocomplete="off"></label>
         <label><span>💰 Rs</span><input data-cr="amount" ${calcAttrs()} value="${esc(d.amount)}" placeholder="0"></label></div>

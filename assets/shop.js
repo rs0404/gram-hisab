@@ -31,8 +31,8 @@ function shopFormHtml(d) {
       <span class="chips" style="gap:4px">
         <button class="chip sm ${d.date === t ? 'on' : ''}" data-act="bsQuick" data-key="shop" data-days="0">Today</button>
         <button class="chip sm ${d.date === y ? 'on' : ''}" data-act="bsQuick" data-key="shop" data-days="-1">Yesterday</button>
-        <button class="chip sm ${d.date !== t && d.date !== y ? 'on' : ''}" data-act="shopDatePick" aria-label="Other date">${calTile()}</button></span></div>
-    <div id="shopDateBox" class="${shopDateOpen ? '' : 'hidden'}" style="margin-top:6px">${bsDateHtml('shop', d.date)}</div>
+        <button class="chip sm ${d.date !== t && d.date !== y ? 'on' : ''}" data-act="bsCalToggle" data-key="shop" aria-label="Other date">${calTile()}</button></span></div>
+    ${bsDateHtml('shop', d.date, { chips: false })}
     <div class="hshop shopboxes">${box('cash', '💵 Cash')}${box('qr', '📱 QR')}${box('goods', '📦 Goods')}</div>
     <div class="row between" style="margin-top:8px;gap:8px">
       <span style="min-width:0"><span class="small muted">Collected</span> <b id="shopTotal" style="font-size:20px;color:var(--green)">${money((num(d.cash) || 0) + (num(d.qr) || 0))}</b><br><span class="small muted" id="shopNetTxt">${shopFormNet(d)}</span></span>

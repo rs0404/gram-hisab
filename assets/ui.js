@@ -1062,26 +1062,27 @@ function shareSummary() {
 }
 
 // ---------- Nepali date picker ----------
-function bsDateHtml(key, adIso) {
+// A date field: [Today] [Yesterday] [📅 Kartik 8] — the 📅 button opens the Nepali calendar to tap a day.
+// The day / month / year boxes are kept hidden (they hold the value). opts.chips === false: the screen draws its own buttons.
+function bsDateLabel(ad) { const b = adToBs(ad), tb = adToBs(today()); return b ? `${BS_MONTHS[b.m - 1]} ${b.d}${b.y !== tb.y ? ', ' + b.y : ''}` : ad; }
+function bsDateHtml(key, adIso, opts) {
   adIso = adIso || today();
-  const b = adToBs(adIso), tb = adToBs(today());
+  const b = adToBs(adIso), tb = adToBs(today()), t = today(), y = addDays(t, -1);
   const years = [];
-  for (let y = tb.y - 2; y <= tb.y + 1; y++) years.push(y);
+  for (let yy = tb.y - 2; yy <= tb.y + 1; yy++) years.push(yy);
   if (!years.includes(b.y)) years.unshift(b.y);
   const opt = (v, l, sel) => `<option value="${v}" ${sel ? 'selected' : ''}>${l}</option>`;
   let days = '';
   for (let d = 1; d <= bsDays(b.y, b.m); d++) days += opt(d, d, d === b.d);
-  return `<div class="bsdate" data-bsdate="${key}">
+  return `<div class="bsdate hidden" data-bsdate="${key}">
       <select data-bsp="d">${days}</select>
       <select data-bsp="m">${BS_MONTHS.map((m, i) => opt(i + 1, m, i + 1 === b.m)).join('')}</select>
-      <select data-bsp="y">${years.map(y => opt(y, y, y === b.y)).join('')}</select>
+      <select data-bsp="y">${years.map(yy => opt(yy, yy, yy === b.y)).join('')}</select>
     </div>
-    <div class="row between" style="margin-top:6px">
-      <div class="chips"><button class="chip sm ${adIso === today() ? 'on' : ''}" data-act="bsQuick" data-key="${key}" data-days="0">Today</button>
-      <button class="chip sm ${adIso === addDays(today(), -1) ? 'on' : ''}" data-act="bsQuick" data-key="${key}" data-days="-1">Yesterday</button>
-      <button class="chip sm" data-act="bsCalToggle" data-key="${key}">${calTile()} पात्रो</button></div>
-      <span class="hint" data-bshint="${key}">AD ${adIso}</span>
-    </div>
+    ${opts && opts.chips === false ? '' : `<div class="chips datechips">
+      <button class="chip ${adIso === t ? 'on' : ''}" data-act="bsQuick" data-key="${key}" data-days="0">Today</button>
+      <button class="chip ${adIso === y ? 'on' : ''}" data-act="bsQuick" data-key="${key}" data-days="-1">Yesterday</button>
+      <button class="chip ${adIso !== t && adIso !== y ? 'on' : ''}" data-act="bsCalToggle" data-key="${key}">📅 <span data-bshint="${key}">${esc(bsDateLabel(adIso))}</span> ▾</button></div>`}
     <div data-bscalbox="${key}"></div>`;
 }
 
@@ -1113,8 +1114,9 @@ function bsDateChanged(sel) {
   if (dSel.options.length !== max) { let h = ''; for (let d = 1; d <= max; d++) h += `<option value="${d}" ${d === cur ? 'selected' : ''}>${d}</option>`; dSel.innerHTML = h; }
   const ad = readBsDate(wrap);
   const hint = document.querySelector(`[data-bshint=${key}]`);
-  if (hint) hint.textContent = 'AD ' + ad;
+  if (hint) hint.textContent = bsDateLabel(ad);
   $$(`[data-act=bsQuick][data-key=${key}]`).forEach(c => c.classList.toggle('on', ad === addDays(today(), Number(c.dataset.days))));
+  $$(`[data-act=bsCalToggle][data-key=${key}]`).forEach(c => c.classList.toggle('on', ad !== today() && ad !== addDays(today(), -1)));
   setBsDraftDate(key, ad);
 }
 

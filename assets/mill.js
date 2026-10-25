@@ -71,8 +71,8 @@ function renderMill() {
         <span class="chips" style="gap:4px">
           <button class="chip sm ${d.date === t ? 'on' : ''}" data-act="bsQuick" data-key="mill" data-days="0">Today</button>
           <button class="chip sm ${d.date === y ? 'on' : ''}" data-act="bsQuick" data-key="mill" data-days="-1">Yesterday</button>
-          <button class="chip sm ${d.date !== t && d.date !== y ? 'on' : ''}" data-act="millDatePick" aria-label="Other date">${calTile()}</button></span></div>
-      <div id="millDateBox" class="${millDateOpen ? '' : 'hidden'}" style="margin-top:6px">${bsDateHtml('mill', d.date)}</div>
+          <button class="chip sm ${d.date !== t && d.date !== y ? 'on' : ''}" data-act="bsCalToggle" data-key="mill" aria-label="Other date">${calTile()}</button></span></div>
+      ${bsDateHtml('mill', d.date, { chips: false })}
       <div class="chips" style="margin:8px 0">${millItems().filter(x => !x.hidden || x.id === d.item).map(x => `<button class="chip ${d.item === x.id ? 'on' : ''}" data-act="millItem" data-v="${x.id}">${esc(x.ne)}${x.rate ? ` <span style="opacity:.75;font-size:12px">${nfmt(x.rate)}</span>` : ''}</button>`).join('')}</div>
       <div class="row" style="gap:4px;align-items:center"><span class="small muted">Unit</span>${Object.keys(MILL_UNITS).map(u => `<button class="chip sm ${d.unit === u ? 'on' : ''}" data-act="millUnit" data-v="${u}" style="padding:3px 10px">${MILL_UNITS[u].ne}</button>`).join('')}</div>
       <div class="hshop millboxes">
