@@ -402,3 +402,8 @@ body.kbd #top{position:relative}
 .hsale .hstypes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:5px}
 .hstypes .chip{display:flex;align-items:center;gap:3px;padding:6px 2px;justify-content:center;text-align:center;white-space:nowrap;font-size:14px}
 .hstypes .chip svg.lic{width:15px;height:15px}
+.stat em.split{display:block;font-style:normal;font-size:10px;font-weight:800;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.summary .splitrow{width:100%;text-align:left;cursor:pointer;border-radius:10px}
+.summary .splitrow.on{background:var(--amber-l)}
+.summary .splitrow>b{white-space:nowrap;flex:none;margin-left:8px}
+.summary .splitrow>span{flex:1;min-width:0}

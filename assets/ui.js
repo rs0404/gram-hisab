@@ -162,8 +162,8 @@ function lotCard(l, s) {
       <div class="stat" ${ent(l, 'dead')}><b>${s.dead}</b><span>Dead ${s.chicks ? '· ' + round(s.mortality, 1) + '%' : ''} ›</span></div>
       <div class="stat" ${ent(l, 'live')}><b>${s.soldBirds}</b><span>Sold live ›</span></div>
       <div class="stat" ${ent(l, 'cut')}><b>${s.cutBirds}</b><span>Cut ›</span></div>
-      <div class="stat" ${ent(l, 'sales')}><b>${nfmt(s.kg)}</b><span>Kg sold ›</span></div>
-      <div class="stat" ${ent(l, 'sales')}><b>${shortMoney(s.revenue)}</b><span>Sales Rs ›</span></div>
+      <div class="stat" ${ent(l, 'sales')}><b>${nfmt(round(s.kg, 1))}</b><span>Kg sold ›</span>${s.liveKg && s.meatKg ? `<em class="split">🐔 ${nfmt(round(s.liveKg, 1))} · 🔪 ${nfmt(round(s.meatKg, 1))}</em>` : s.kg ? `<em class="split">${s.meatKg ? '🔪 all meat' : '🐔 all live'}</em>` : ''}</div>
+      <div class="stat" ${ent(l, 'sales')}><b>${shortMoney(s.revenue)}</b><span>Sales Rs ›</span>${s.revenue && (s.liveRev ? 1 : 0) + (s.meatRev ? 1 : 0) + (s.partsRev ? 1 : 0) > 1 ? `<em class="split">🐔 ${shortMoney(s.liveRev)} · 🔪 ${shortMoney(s.meatRev + s.partsRev)}</em>` : s.revenue ? `<em class="split">${s.liveRev ? '🐔 all live' : '🔪 all meat'}</em>` : ''}</div>
       <div class="stat" ${ent(l, 'buy')} style="background:var(--red-l)"><b style="color:var(--red)">${shortMoney(s.expenses)}</b><span>🛒 Spent Rs ›</span></div>
       <div class="stat" ${ent(l, 'feed')} style="background:var(--blue-l)"><b>${shortMoney(s.costFeed)}</b><span>🌾 Grain Rs ›</span></div>
       <div class="stat" style="background:${s.profit >= 0 ? 'var(--green-l)' : 'var(--red-l)'}"><b style="color:${s.profit >= 0 ? 'var(--green)' : 'var(--red)'}">${s.profit < 0 ? '−' : ''}${shortMoney(Math.abs(s.profit))}</b><span>${s.profit >= 0 ? 'Profit' : 'Loss'} Rs</span></div>
@@ -345,12 +345,28 @@ const ent = (l, key) => `data-act="lotEntries" data-id="${l.id}" data-v="${key}"
 const ENTRY_VIEWS = {
   sales: { title: '💰 All sales', f: r => r.kind === 'sale' },
   live: { title: '🐔 Live sales', f: r => r.kind === 'sale' && r.type === 'live' },
+  meat: { title: '🔪 Meat sales', f: r => r.kind === 'sale' && r.type === 'meat' },
+  parts: { title: '🍗 Khutta-tauko sales', f: r => r.kind === 'sale' && r.type === 'parts' },
   cut: { title: '🔪 Chickens cut (meat)', f: r => (r.kind === 'sale' && r.type === 'meat') || (r.kind === 'event' && r.type === 'cut') },
   dead: { title: '💀 Deaths', f: r => r.kind === 'event' && r.type === 'dead' },
   chicks: { title: '🐣 Chicks & count changes', f: r => r.kind === 'event' && ['restock', 'adjust', 'check', 'soldfix'].includes(r.type) },
   buy: { title: '🛒 Everything spent', f: r => r.kind === 'purchase' || (r.kind === 'event' && (r.type === 'restock' || r.type === 'expense' || USAGE_TYPES.includes(r.type))) },
   feed: { title: '🌾 Grain (bought & used)', f: r => (r.kind === 'purchase' && r.category === 'feed') || (r.kind === 'event' && r.type === 'feed') }
 };
+// sales of a lot split into live / meat / khutta-tauko; each row filters the list below
+function lotSalesSplitHtml(l, base) {
+  const sales = all('sale').filter(r => r.lotId === l.id), sum = (t, k) => sales.filter(r => !t || r.type === t).reduce((a, r) => a + (Number(r[k]) || 0), 0);
+  const st = computeStats()[l.id] || {};
+  const row = (k, icon, label, extra) => { const n = sales.filter(r => !k || r.type === k).length; return `<button class="line splitrow ${base === (k || 'sales') ? 'on' : ''}" data-act="lotEntries" data-id="${l.id}" data-v="${k || 'sales'}">
+    <span>${icon} <b>${label}</b> <span class="muted">(${n})</span>${extra ? `<br><span class="small muted">${extra}</span>` : ''}</span>
+    <b style="text-align:right">${k === 'parts' || !k ? '' : kgs(sum(k, 'kg')) + '<br>'}${!k ? kgs(sum('live', 'kg') + sum('meat', 'kg')) + '<br>' : ''}<span style="color:var(--green)">${money(sum(k, 'amount'))}</span></b></button>`; };
+  const lv = sum('live', 'kg'), mt = sum('meat', 'kg'), lb = sum('live', 'birds');
+  return `<div class="summary small" style="margin-top:-4px">
+    ${row('live', '🐔', 'Live', `${lb} bird${lb === 1 ? '' : 's'}${lb && lv ? ' · ' + kgs(round(lv / lb, 2)) + ' each' : ''}${lv ? ' · ' + money(round(sum('live', 'amount') / lv)) + '/kg' : ''}`)}
+    ${row('meat', '🔪', 'Meat', `${st.cutBirds || 0} cut → ${kgs(round(st.cutKg || 0, 1))} meat${mt ? ' · ' + money(round(sum('meat', 'amount') / mt)) + '/kg' : ''}${st.meatStock ? ' · ' + kgs(st.meatStock) + ' on hand' : ''}`)}
+    ${sum('parts', 'amount') || sum('parts', 'kg') ? row('parts', '🍗', 'Khutta-tauko', kgs(sum('parts', 'kg'))) : ''}
+    ${row('', '💰', 'All sales', lv && mt ? `kg = ${kgs(round(lv, 1))} live + ${kgs(round(mt, 1))} meat` : '')}</div>`;
+}
 function openLotEntries(lotId, key) {
   const l = lotById(lotId);
   if (!l) return;
@@ -362,13 +378,14 @@ function openLotEntries(lotId, key) {
   const cost = r => r.kind === 'event' && USAGE_TYPES.includes(r.type) ? usageCost(r, inv) : Number(r.amount) || 0;
   const firstChicks = base === 'buy' ? Number(l.chickCost) || 0 : 0;
   const amt = list.reduce((a, r) => a + cost(r), 0) + firstChicks;
-  const kg = list.reduce((a, r) => a + (r.kind === 'sale' ? Number(r.kg) || 0 : (r.category === 'feed' || r.type === 'feed') ? stockQty('feed', r) : 0), 0);
+  const kg = list.reduce((a, r) => a + (r.kind === 'sale' ? (r.type === 'parts' && base !== 'parts' ? 0 : Number(r.kg) || 0) : (r.category === 'feed' || r.type === 'feed') ? stockQty('feed', r) : 0), 0);
   const birds = list.reduce((a, r) => a + (Number(r.count) || Number(r.birds) || 0), 0);
   const extra = base === 'chicks' ? `<div class="line"><span>First chicks (${fmtDate(l.startDate, true)})</span><b>${l.chicks}${lotMix(l).reduce((a, m) => a + (Number(m.free) || 0), 0) ? ' + 🎁' + lotMix(l).reduce((a, m) => a + (Number(m.free) || 0), 0) + ' free' : ''} · ${money(l.chickCost || 0)} <button class="btn sm ghost" data-act="editLot" data-id="${l.id}">✎</button></b></div>` : '';
   openSheet(`<button class="btn sm ghost" data-act="openLot" data-id="${l.id}">‹ ${esc(l.name)}</button>
     <h2>${v.title}${grade ? ' · ' + esc(grade) : ''}</h2>
     <div class="summary small">${extra}${firstChicks ? `<div class="line"><span>🐣 First chicks (${fmtDate(l.startDate, true)})</span><b>${money(firstChicks)}</b></div>` : ''}
       <div class="line"><span>${list.length} entr${list.length === 1 ? 'y' : 'ies'}</span><b>${amt ? money(amt) : ''}${kg && base !== 'dead' ? ' · ' + (base === 'feed' ? nfmt(round(kg / bagKg(), 2)) + ' bora (' + nfmt(round(kg, 1)) + ' kg)' : kgs(kg)) : ''}${birds && ['dead', 'cut', 'live', 'chicks'].includes(base) ? ' · ' + birds + ' birds' : ''}</b></div></div>
+    ${['sales', 'live', 'meat', 'parts'].includes(base) ? lotSalesSplitHtml(l, base) : ''}
     <p class="small muted">Tap an entry to edit it, or 🗑 to delete a mistake. Every change is logged.</p>
     ${list.length ? list.map(r => `<div class="row" style="gap:6px;align-items:stretch">${itemHtml(r, cost(r)).replace('class="item"', 'class="item" style="flex:1;min-width:0;width:auto;margin-bottom:6px"')}
       <button class="btn redl" style="margin-bottom:6px;min-width:48px;padding:0 10px" data-act="deleteEntry" data-id="${r.id}" data-lot="${lotId}" data-v="${key}" aria-label="Delete">🗑</button></div>`).join('') : '<p class="muted">Nothing here yet.</p>'}
