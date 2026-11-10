@@ -88,10 +88,10 @@ function renderHome() {
     <div class="card today">
       <div class="todayhead"><div class="label">🐔 Today · ${td.count} sale${td.count === 1 ? '' : 's'}</div><b class="todayamt">${money(td.amount)}</b></div>
       <div class="grid4 todaystats">
-        <div class="stat" data-act="dayDetail" data-d="${t}"><b>🐔 ${td.liveBirds}</b><span>Live · ${nfmt(round(td.liveKg, 1))} kg</span><em>${money(td.liveAmt)}</em></div>
-        <div class="stat" data-act="dayDetail" data-d="${t}"><b>✂️ ${td.cutBirds}</b><span>Cut · ${nfmt(round(td.meatKg, 1))} kg${td.partsAmt ? ' +🍗' : ''}</span><em>${money(td.meatAmt + td.partsAmt)}</em></div>
-        <div class="stat" data-act="dayDetail" data-d="${t}"><b>💀 ${td.dead}</b><span>Dead</span><em>&nbsp;</em></div>
-        <div class="stat" data-act="dayDetail" data-d="${t}"><b>🌾 ${td.grainKg ? grainQtyText(td.grainKg).split(' ')[0] : 0}</b><span>${td.grainKg ? grainQtyText(td.grainKg).split(' ')[1] + ' grain' : 'Grain'}</span><em>${money(td.grainAmount)}</em></div>
+        <div class="stat" data-act="dayKind" data-v="live" data-d="${t}"><b>🐔 ${td.liveBirds}</b><span>Live · ${nfmt(round(td.liveKg, 1))} kg</span><em>${money(td.liveAmt)}</em></div>
+        <div class="stat" data-act="dayKind" data-v="cut" data-d="${t}"><b>✂️ ${td.cutBirds}</b><span>Cut · ${nfmt(round(td.meatKg, 1))} kg${td.partsAmt ? ' +🍗' : ''}</span><em>${money(td.meatAmt + td.partsAmt)}</em></div>
+        <div class="stat" data-act="dayKind" data-v="dead" data-d="${t}"><b>💀 ${td.dead}</b><span>Dead</span><em>&nbsp;</em></div>
+        <div class="stat" data-act="dayKind" data-v="grain" data-d="${t}"><b>🌾 ${td.grainKg ? grainQtyText(td.grainKg).split(' ')[0] : 0}</b><span>${td.grainKg ? grainQtyText(td.grainKg).split(' ')[1] + ' grain' : 'Grain'}</span><em>${money(td.grainAmount)}</em></div>
       </div>
       ${homeSaleHtml()}
     </div>
@@ -730,6 +730,41 @@ function lotDailyHtml(l) {
       <div class="summary small" style="margin-top:6px">${list.map(d => `<div class="line" data-act="dayDetail" data-d="${d}" data-id="${l.id}" style="cursor:pointer"><span><b>${fmtDate(d, true)}</b><br><span class="muted">${byDay[d].n} sale${byDay[d].n > 1 ? 's' : ''} · ${kgs(byDay[d].kg)} · ${byDay[d].birds} birds</span></span><b style="color:var(--green)">${money(byDay[d].amount)} ›</b></div>`).join('')}</div></details>` : ''}`;
 }
 // everything recorded on one day (optionally for one lot)
+// one box of the Today card: only that kind of entry for the day (🐔 live · ✂️ cut · 💀 dead · 🌾 grain)
+const DAY_KINDS = {
+  live: { label: '🐔 Live sold', f: r => r.kind === 'sale' && r.type === 'live' },
+  cut: { label: '✂️ Cut & meat sold', f: r => (r.kind === 'event' && (r.type === 'cut' || r.type === 'meatloss')) || (r.kind === 'sale' && (r.type === 'meat' || r.type === 'parts')) },
+  dead: { label: '💀 Dead', f: r => r.kind === 'event' && r.type === 'dead' },
+  grain: { label: '🌾 Grain sold', f: r => r.kind === 'grainsale' }
+};
+function openDayKind(date, kind) {
+  const K = DAY_KINDS[kind] || DAY_KINDS.live, sum = (l, k) => l.reduce((a, r) => a + (Number(r[k]) || 0), 0);
+  const list = Object.values(db.records).filter(r => !hidden(r) && r.date === date && K.f(r)).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  const sales = list.filter(r => r.kind === 'sale'), cuts = list.filter(r => r.kind === 'event' && r.type === 'cut');
+  const lines = [];
+  if (kind === 'live') lines.push(['Birds', sum(sales, 'birds')], ['Weight', kgs(sum(sales, 'kg'))], ['Amount', money(sum(sales, 'amount')), 'var(--green)']);
+  if (kind === 'cut') {
+    const meat = sales.filter(r => r.type === 'meat'), parts = sales.filter(r => r.type === 'parts');
+    lines.push(['✂️ Birds cut', `${sum(cuts, 'count')} → ${kgs(sum(cuts, 'qty'))} meat`]);
+    if (meat.length) lines.push(['🔪 Meat sold', `${kgs(sum(meat, 'kg'))} · ${money(sum(meat, 'amount'))}`]);
+    if (parts.length) lines.push(['🍗 Khutta-tauko', `${kgs(sum(parts, 'kg'))} · ${money(sum(parts, 'amount'))}`]);
+    const m = typeof meatOnHand === 'function' ? meatOnHand().reduce((a, x) => a + x.kg, 0) : 0;
+    if (date === today()) lines.push(['Meat on hand now', kgs(m)]);
+  }
+  if (kind === 'dead') lines.push(['Birds died', sum(list, 'count'), 'var(--red)']);
+  if (kind === 'grain') { const kg = list.reduce((a, r) => a + (r.unit === 'kg' ? Number(r.qty) || 0 : (Number(r.qty) || 0) * bagKg()), 0); lines.push(['Sold', kg ? grainQtyText(kg) : '0'], ['Amount', money(sum(list, 'amount')), 'var(--green)']); }
+  const chip = (k, l) => `<button class="chip sm ${k === kind ? 'on' : ''}" data-act="dayKind" data-v="${k}" data-d="${date}">${l}</button>`;
+  const add = { live: ['sellLive', '+ Live sale'], cut: ['cutNew', '✂️ Cut chickens'], dead: ['addEventDead', '+ Dead'], grain: ['sellGrain', '+ Grain sale'] }[kind];
+  openSheet(`<h2 style="margin-bottom:2px">${K.label}</h2>
+    <div class="small muted" style="margin-bottom:8px">${fmtDate(date, true)} · ${list.length} entr${list.length === 1 ? 'y' : 'ies'}</div>
+    <div class="hstypes chips" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:8px">${chip('live', '🐔 Live')}${chip('cut', '✂️ Cut')}${chip('dead', '💀 Dead')}${chip('grain', '🌾 Grain')}</div>
+    <div class="summary">${lines.map(([a, b, c]) => `<div class="line"><span>${a}</span><b${c ? ` style="color:${c}"` : ''}>${b}</b></div>`).join('')}</div>
+    ${list.length ? list.map(r => itemHtml(r)).join('') : `<p class="muted">Nothing for ${esc(K.label.replace(/^\S+\s/, '').toLowerCase())} on this day.</p>`}
+    <div class="btnrow" style="margin-top:10px"><button class="btn ghost" data-act="dayKind" data-v="${kind}" data-d="${addDays(date, -1)}">‹ ${esc(fmtDate(addDays(date, -1)))}</button>
+      ${date < today() ? `<button class="btn ghost" data-act="dayKind" data-v="${kind}" data-d="${addDays(date, 1)}">${esc(fmtDate(addDays(date, 1)))} ›</button>` : ''}</div>
+    <div class="btnrow" style="margin-top:8px"><button class="btn ghost" data-act="dayDetail" data-d="${date}">📋 Everything this day</button>${date === today() && add ? `<button class="btn green" data-act="dayKindAdd" data-v="${kind}">${add[1]}</button>` : ''}</div>
+    <div style="height:10px"></div><button class="btn big primary" data-act="closeSheet">Close</button>`);
+}
 function openDay(date, lotId, fromCal) {
   const lot = lotId ? lotById(lotId) : null;
   const inLot = r => !lotId || r.lotId === lotId;
@@ -1514,6 +1549,10 @@ document.addEventListener('click', e => {
     case 'toggleLot': toggleLot(id); renderView(view); break;
     case 'foldAll': db.meta.unfolded = openLotIds().some(x => activeLots().some(l => l.id === x)) ? [] : activeLots().slice(0, MAX_OPEN_LOTS).map(l => l.id); persist(); renderView(view); break;
     case 'dayDetail': case 'dayShift': openDay(b.dataset.d, id || null); break;
+    case 'dayKind': openDayKind(b.dataset.d, v); break;
+    case 'dayKindAdd': closeSheet(); { const h = homeSaleState(); if (v === 'cut') { openCutForm(null); break; } if (v === 'dead') { openEventForm({ type: 'dead', lotId: h.lotId }); break; }
+      if (v === 'grain') { go('sell'); if (typeof sellDraft !== 'undefined' && sellDraft) { sellDraft.type = 'grain'; renderSell(); } break; }
+      h.type = 'live'; persist(); go('home'); renderHome(); window.scrollTo(0, 0); const k = $('#v-home [data-hsale=kg]'); if (k) k.focus(); } break;
     case 'shopDay': openShopDay(b.dataset.d); break;
     case 'editShopFromDay': { const fromSheet = $('#sheet h2') ? $('#sheet h2').textContent : ''; const d0 = (db.records[id] || {}).date; openShopEdit(id, /Shop|🏪/.test(fromSheet) ? () => openShopDay(d0) : null); break; }
     case 'restoreLot': { const l = db.records[id]; unarchiveLot(id); render(); openArchive(); toast(`Lot ${l.name} restored ✓`); break; }

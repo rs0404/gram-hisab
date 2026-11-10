@@ -400,5 +400,5 @@ body.kbd #top{position:relative}
 .crsug-bal{margin-left:auto;font-weight:900;font-size:14px}
 .sheet:has(.crsearch){height:92vh}
 .hsale .hstypes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:5px}
-.hsale .hstypes .chip{padding:6px 2px;justify-content:center;text-align:center;white-space:nowrap;font-size:14px}
-.hsale .hstypes .chip svg.lic{width:15px;height:15px}
+.hstypes .chip{display:flex;align-items:center;gap:3px;padding:6px 2px;justify-content:center;text-align:center;white-space:nowrap;font-size:14px}
+.hstypes .chip svg.lic{width:15px;height:15px}
