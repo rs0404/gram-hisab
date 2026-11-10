@@ -2,7 +2,7 @@
 'use strict';
 
 const HAS_ANDROID = typeof window.Android !== 'undefined';
-const APP_VERSION = '2.18.0';
+const APP_VERSION = '2.19.0';
 
 // ---------- small utils ----------
 const $ = (sel, el) => (el || document).querySelector(sel);
@@ -18,6 +18,12 @@ function daysBetween(a, b) { return Math.round((new Date(b + 'T12:00:00') - new 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 // Dates are stored in AD (YYYY-MM-DD) and always shown in Nepali BS.
+// " · 5 days ago" for dates before yesterday (Today / Yesterday already say it)
+function daysAgo(s) {
+  if (!s) return '';
+  const n = daysBetween(s, today());
+  return n >= 2 ? ` · ${n} days ago` : n <= -2 ? ` · in ${-n} days` : n === -1 ? ' · tomorrow' : '';
+}
 function fmtDate(s, long) {
   if (!s) return '';
   const t = today();
@@ -356,6 +362,7 @@ function computeInventory() {
       const it = get(r.category, r), q = stockQty(r.category, r);
       it.boughtAll += q; it.costAll += Number(r.amount) || 0;
       if (!r.lotId) { it.bought += q; it.cost += Number(r.amount) || 0; }
+      if (!it.lastBuy || r.date > it.lastBuy.date) it.lastBuy = { date: r.date, qty: r.qty, unit: r.unit, amount: Number(r.amount) || 0 };
     }
   }
   for (const id in db.records) {

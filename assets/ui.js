@@ -268,25 +268,54 @@ function homeSaleHtml() {
   const h = homeSaleState(), lot = lotById(h.lotId);
   const chip = (act_, v, on, label, extra) => `<button class="chip sm ${on ? 'on' : ''}" data-act="${act_}" data-v="${v}" ${extra || ''}>${label}</button>`;
   return `<div class="hsale">
-    <div class="chips hrow">${chip('hsType', 'live', h.type === 'live', '🐔 Live')}${chip('hsType', 'meat', h.type === 'meat', '🔪 Meat')}${chip('hsType', 'parts', h.type === 'parts', '🍗 Khutta')}</div>
+    <div class="chips hstypes">${chip('hsType', 'live', h.type === 'live', '🐔 Live')}${chip('hsType', 'meat', h.type === 'meat', '🔪 Meat')}${chip('hsType', 'parts', h.type === 'parts', '🍗 Khutta')}${chip('hsType', 'cut', h.type === 'cut', '✂️ Cut')}</div>
     ${act.length > 1 ? `<div class="chips hrow">${act.map(l => chip('hsLot', l.id, h.lotId === l.id, 'Lot ' + lotVoiceNo(l) + ' · ' + BS_MONTHS[lotBs(l).m - 1] + ' ' + lotBs(l).d)).join('')}</div>` : ''}
     ${lot && lotBreeds(lot).length > 1 && h.type !== 'parts' ? `<div class="chips hrow">${lotBreeds(lot).map(b => chip('hsBreed', b, h.breed === b, esc(breedName(b)))).join('')}</div>` : ''}
-    <form class="hshop" data-form="homeSale">
+    ${h.type === 'cut' ? `<form class="hshop" data-form="homeSale" style="grid-template-columns:1fr 1fr">
+      <label><span>✂️ Birds cut</span><input data-hsale="birds" type="number" inputmode="numeric" placeholder="1, 2…" enterkeyhint="done"></label>
+      <label><span>⚖️ Meat kg</span><input data-hsale="kg" type="number" inputmode="decimal" step="any" placeholder="auto" enterkeyhint="done"></label>
+    </form>` : `<form class="hshop" data-form="homeSale">
       <label><span>⚖️ Kg</span><input data-hsale="kg" type="number" inputmode="decimal" step="any" placeholder="0"></label>
       <label><span>💰 Rs total</span><input data-hsale="amount" ${calcAttrs('#v-home [data-hsale=kg]')} placeholder="auto"></label>
       <label><span>${h.type === 'meat' ? '🔪 Cut' : '🐔 Birds'}</span><input data-hsale="birds" type="number" inputmode="numeric" placeholder="${h.type === 'parts' ? '—' : 'auto'}" ${h.type === 'parts' ? 'disabled' : ''} enterkeyhint="done"></label>
-    </form>
+    </form>`}
     <div class="small hsale-hint" id="hsaleHint">${esc(homeSaleHint())}</div>
-    <button class="btn hsave" data-act="homeSaleSave">✔ Save sale</button>
+    <button class="btn hsave" data-act="homeSaleSave">${h.type === 'cut' ? '✂️ Save cut (not a sale)' : '✔ Save sale'}</button>
   </div>`;
 }
+// ---- quick cut typed on the Home card: just the count; the meat is estimated unless weighed ----
+function homeCutCalc() {
+  const h = homeSaleState(), lot = lotById(h.lotId), v = k => num(($(`#v-home [data-hsale=${k}]`) || {}).value);
+  const n = Math.round(v('birds') || 0), kg = v('kg');
+  const per = learnedMeatPerBird(h.breed) || (lot ? estBirdKg(lot, h.breed, today()).kg * dressYield(h.breed) : 0);
+  const st = lot ? computeStats()[lot.id] : null, left = st ? (st.byBreed[h.breed] || st).remaining : null;
+  return { h, lot, n, meat: kg || round(n * per, 2), est: !kg, per, left };
+}
+function homeCutHint() {
+  const c = homeCutCalc();
+  if (!c.n) return `${breedName(c.h.breed)} · type how many birds you cut${c.per ? ` (≈ ${kgs(round(c.per, 2))} meat each)` : ''}${c.left != null ? ` · ${c.left} left` : ''}`;
+  return `${c.n} bird${c.n > 1 ? 's' : ''} → ${c.est ? '≈ ' : ''}${kgs(c.meat)} meat${c.est ? ' (estimate — type kg if weighed)' : ''} · goes to meat on hand`;
+}
+function saveHomeCut() {
+  const c = homeCutCalc();
+  if (!c.lot) { toast('Add a lot first'); return; }
+  if (!(c.n > 0)) { toast('How many birds did you cut? Type 1, 2…'); return; }
+  if (c.left != null && c.n > c.left) { toast(`Only ${c.left} ${breedName(c.h.breed)} left in ${c.lot.name}`); return; }
+  if (document.activeElement) document.activeElement.blur();
+  const rec = { kind: 'event', type: 'cut', date: today(), lotId: c.lot.id, breed: c.h.breed, count: c.n, qty: round(c.meat, 3), note: '' };
+  if (c.est) rec.qtyEst = true;
+  put(rec); renderHome();
+  toast(`✂️ Cut saved ✓ ${c.n} bird${c.n > 1 ? 's' : ''} → ${c.est ? '≈ ' : ''}${kgs(rec.qty)} meat on hand`, rec.id);
+}
 function homeSaleHint() {
+  if (homeSaleState().type === 'cut') return homeCutHint();
   const c = homeSaleCalc();
   const what = c.h.type === 'parts' ? 'Khutta-tauko' : `${breedName(c.h.breed)} ${c.h.type}`;
   if (!c.kg && !c.amount) return `${what} · Rs ${nfmt(c.defRate)}/kg — type kg or the amount`;
   return `${c.kgEst ? '≈ ' : ''}${nfmt(c.kg || 0)} kg × Rs ${nfmt(c.rate)} = ${money(c.amount || 0)}${c.h.type === 'parts' ? '' : ` · ${c.birds || 0} ${c.h.type === 'meat' ? 'cut' : 'bird' + (c.birds === 1 ? '' : 's')}${c.est ? ' (auto)' : ''}`}`;
 }
 function saveHomeSale() {
+  if (homeSaleState().type === 'cut') { saveHomeCut(); return; }
   const c = homeSaleCalc();
   if (!c.lot) { toast('Add a lot first'); return; }
   if (!c.kg && !c.amount) { toast('Type the kg or the amount'); return; }
@@ -361,7 +390,7 @@ function itemHtml(r, cost) {
     return `<button class="item" data-act="editRec" data-id="${r.id}">
       <div class="ic" style="background:var(--amber-l)">🌾</div>
       <div class="mid"><div class="t">${r.flag ? '<span class="flagmark">⚑</span> ' : ''}Sold grain ${esc(r.grade)} · ${nfmt(r.qty)} ${r.unit === 'kg' ? 'kg' : 'bora'}</div>
-      <div class="s">${fmtDate(r.date)} · ${money(r.rate)}/${r.unit === 'kg' ? 'kg' : 'bora'}${r.note ? ' · ' + esc(r.note) : ''} · ${whoWhen(r)}</div></div>
+      <div class="s">${fmtDate(r.date)}${daysAgo(r.date)} · ${money(r.rate)}/${r.unit === 'kg' ? 'kg' : 'bora'}${r.note ? ' · ' + esc(r.note) : ''} · ${whoWhen(r)}</div></div>
       <div class="amt" style="color:var(--green)">${money(r.amount)}</div></button>`;
   }
   if (r.kind === 'purchase') {
@@ -369,14 +398,14 @@ function itemHtml(r, cost) {
     return `<button class="item" data-act="editRec" data-id="${r.id}">
       <div class="ic" style="background:var(--blue-l)">🛒</div>
       <div class="mid"><div class="t">${r.flag ? '<span class="flagmark">⚑</span> ' : ''}${c.icon} ${esc(purchaseTitle(r))}</div>
-      <div class="s">${fmtDate(r.date)} · bought${r.supplier ? ' from ' + esc(r.supplier) : ''}${r.lotId ? ' · for ' + esc(lotName(r.lotId)) : ''} · ${whoWhen(r)}</div></div>
+      <div class="s">${fmtDate(r.date)}${daysAgo(r.date)} · bought${r.supplier ? ' from ' + esc(r.supplier) : ''}${r.lotId ? ' · for ' + esc(lotName(r.lotId)) : ''} · ${whoWhen(r)}</div></div>
       <div class="amt" style="color:var(--red)">−${money(r.amount)}</div></button>`;
   }
   const t = EVENT_TYPES[r.type] || { icon: '•' };
   return `<button class="item" data-act="editRec" data-id="${r.id}">
     <div class="ic">${t.icon}</div>
     <div class="mid"><div class="t">${esc(eventTitle(r))}${r.item ? ' · ' + esc(r.item) : ''}</div>
-    <div class="s">${fmtDate(r.date)} · ${esc(lotName(r.lotId))}${r.note ? ' · ' + esc(r.note).slice(0, 60) : ''} · ${whoWhen(r)}</div>
+    <div class="s">${fmtDate(r.date)}${daysAgo(r.date)} · ${esc(lotName(r.lotId))}${r.note ? ' · ' + esc(r.note).slice(0, 60) : ''} · ${whoWhen(r)}</div>
     ${bigFeedQty(r.qty, r.unit, r.type) ? `<div class="small" style="color:var(--red);font-weight:800">⚠️ ${nfmt(r.qty)} bora? Tap to fix — the amount may be in the bora box</div>` : ''}</div>
     <div class="amt">${r.amount ? money(r.amount) : cost ? '≈ ' + money(Math.round(cost)) + '<small>from stock</small>' : ''}</div></button>`;
 }
@@ -1082,7 +1111,7 @@ function shareSummary() {
 // ---------- Nepali date picker ----------
 // A date field: [Today] [Yesterday] [📅 Kartik 8] — the 📅 button opens the Nepali calendar to tap a day.
 // The day / month / year boxes are kept hidden (they hold the value). opts.chips === false: the screen draws its own buttons.
-function bsDateLabel(ad) { const b = adToBs(ad), tb = adToBs(today()); return b ? `${BS_MONTHS[b.m - 1]} ${b.d}${b.y !== tb.y ? ', ' + b.y : ''}` : ad; }
+function bsDateLabel(ad) { const b = adToBs(ad), tb = adToBs(today()), n = daysBetween(ad, today()); return b ? `${BS_MONTHS[b.m - 1]} ${b.d}${b.y !== tb.y ? ', ' + b.y : ''}${n >= 2 ? ` · ${n}d ago` : n <= -2 ? ` · in ${-n}d` : ''}` : ad; }
 function bsDateHtml(key, adIso, opts) {
   adIso = adIso || today();
   const b = adToBs(adIso), tb = adToBs(today()), t = today(), y = addDays(t, -1);
@@ -1414,6 +1443,7 @@ function renderStock() {
     ${list.length ? STOCK_CATS.filter(c => group(c).length).map(c => `<h3>${PURCHASE_CATS[c].icon} ${PURCHASE_CATS[c].label}</h3>
       ${group(c).map(i => `<div class="card tight">
         <div class="row between"><b style="font-size:19px">${esc(i.label)}</b><b style="font-size:22px;color:${i.left <= 0 ? 'var(--red)' : 'var(--green)'}">${fmtStockQty(i)}</b></div>
+        ${i.lastBuy ? `<div class="small" style="margin-top:4px">🛒 Last bought <b>${fmtDate(i.lastBuy.date, true)}</b>${daysAgo(i.lastBuy.date) ? ' · <b>' + daysAgo(i.lastBuy.date).slice(3) + '</b>' : ''}${i.lastBuy.qty ? ' · ' + nfmt(i.lastBuy.qty) + ' ' + (i.cat === 'feed' && (i.lastBuy.unit || 'bags') === 'bags' ? 'bora' : esc(i.lastBuy.unit || '')) : ''}${i.lastBuy.amount ? ' · ' + money(i.lastBuy.amount) : ''}</div>` : ''}
         <div class="small muted" style="margin-top:4px">Bought ${fmtStockQty(i, i.bought)} · Used ${fmtStockQty(i, i.used)}${i.avg ? ' · Avg ' + money(i.cat === 'feed' ? i.avg * bagKg() : i.avg) + '/' + (i.cat === 'feed' ? 'bag' : i.unit || 'unit') : ''}${i.value ? ' · Worth ' + money(i.value) : ''}</div>
       </div>`).join('')}`).join('')
       : '<div class="card empty"><div class="e">📦</div><p>No purchases yet.<br>Say “bought 10 bags B2 feed for 34000”.</p></div>'}
