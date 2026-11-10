@@ -409,3 +409,26 @@ body.kbd #top{position:relative}
 .summary .splitrow>span{flex:1;min-width:0}
 .askprev{margin-top:6px;font-size:15px;min-height:20px;line-height:1.5}
 .askprev b{font-size:18px}
+/* compact open lot card */
+.lotopen{padding:10px 11px}
+.lotopen .lotname{font-size:18px}
+.lotmeta{margin-top:3px;line-height:1.5}
+.lotmeta .pill{font-size:11px;padding:1px 7px}
+.lotmeta .small{font-size:12px}
+.lotopen .remain .huge{font-size:30px}
+.lotopen .remain .label{font-size:10px}
+.lotopen .lotstats{gap:5px;margin-top:8px}
+.lotopen .lotstats .stat{padding:5px 7px;border-radius:10px}
+.lotopen .lotstats .stat b{font-size:17px;line-height:1.15}
+.lotopen .lotstats .stat span{font-size:10px;line-height:1.2}
+.lotopen .lotstats .stat em.split{font-size:9.5px;margin-top:1px}
+.grainrow{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;margin-top:6px}
+.grainrow::-webkit-scrollbar{display:none}
+.gchip{flex:none;background:var(--amber-l);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;white-space:nowrap;color:var(--ink)}
+.gchip.tot{background:var(--bg)}
+.gchip b{font-size:14px}
+.lotspent{margin-top:4px;font-size:12px}
+.lotopen .actions{margin-top:7px;gap:5px}
+.lotopen .actions .btn{padding:7px 2px;font-size:13px;min-height:0}
+.lotopen .actions .btn svg.lic{width:16px;height:16px}
+.lotmore{width:100%;margin-top:6px;padding:6px;font-size:13px}

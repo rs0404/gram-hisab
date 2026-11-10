@@ -146,18 +146,17 @@ function lotCard(l, s) {
       <span style="text-align:right"><b style="font-size:24px;color:${s.remaining <= low && !l.closed ? 'var(--red)' : 'var(--green)'}">${s.remaining}</b><span class="label" style="display:block;font-size:10px">left</span></span>
     </button>`;
   }
-  return `<div class="card lot ${lotColor(l)}">
-    <div class="row between" style="align-items:flex-start">
-      <button data-act="toggleLot" data-id="${l.id}" style="text-align:left;min-width:0">
-        <div class="lotname"><span style="font-size:18px;color:var(--muted)">▾</span> ${esc(l.name)}</div>
-        <div style="margin:4px 0">${no ? `<span class="pill blue">Lot ${no}</span> ` : ''}${lotBreeds(l).map(b => `<span class="pill purple">${esc(breedName(b))}</span>`).join(' ')}</div>
-        <div class="small muted">Day ${s.age} · from ${fmtDate(l.startDate)}</div>
-        <div class="small muted">≈ ${nfmt(estBirdKg(l, lotBreeds(l)[0], today()).kg)} kg per bird now</div>
+  return `<div class="card lot lotopen ${lotColor(l)}">
+    <div class="row between" style="align-items:flex-start;gap:8px">
+      <button data-act="toggleLot" data-id="${l.id}" style="text-align:left;min-width:0;flex:1">
+        <div class="lotname"><span style="font-size:14px;color:var(--muted)">▾</span> ${esc(l.name)}</div>
+        <div class="lotmeta">${no ? `<span class="pill blue">Lot ${no}</span> ` : ''}${lotBreeds(l).map(b => `<span class="pill purple">${esc(breedName(b))}</span>`).join(' ')}
+          <span class="small muted">Day ${s.age} · ${fmtDate(l.startDate)} · ≈ ${nfmt(estBirdKg(l, lotBreeds(l)[0], today()).kg)} kg/bird</span></div>
       </button>
       <div class="remain ${s.remaining <= low ? 'low' : ''}"><div class="huge">${s.remaining}</div><div class="label">left</div></div>
     </div>
     ${s.mixed ? `<div class="grid${Math.min(3, Object.keys(s.byBreed).length)}" style="margin-top:10px">${Object.keys(s.byBreed).map(b => `<div class="stat" style="background:var(--purple-l)"><b>${s.byBreed[b].remaining}</b><span>${esc(breedName(b))} left</span></div>`).join('')}</div>` : ''}
-    <div class="grid3 lotstats" style="margin-top:12px">
+    <div class="grid3 lotstats">
       <div class="stat" ${ent(l, 'chicks')}><b>${s.totalIn}</b><span>Chicks in ›</span></div>
       <div class="stat" ${ent(l, 'dead')}><b>${s.dead}</b><span>Dead ${s.chicks ? '· ' + round(s.mortality, 1) + '%' : ''} ›</span></div>
       <div class="stat" ${ent(l, 'live')}><b>${s.soldBirds}</b><span>Sold live ›</span></div>
@@ -169,15 +168,15 @@ function lotCard(l, s) {
       <div class="stat" style="background:${s.profit >= 0 ? 'var(--green-l)' : 'var(--red-l)'}"><b style="color:${s.profit >= 0 ? 'var(--green)' : 'var(--red)'}">${s.profit < 0 ? '−' : ''}${shortMoney(Math.abs(s.profit))}</b><span>${s.profit >= 0 ? 'Profit' : 'Loss'} Rs</span></div>
     </div>
     ${grainChips(s, l)}
-    <div class="small muted" style="margin-top:6px">Spent = chicks ${money(s.costChicks)} · grain ${money(s.costFeed)} · medicine ${money(s.costMed)}${s.costOther ? ' · other ' + money(s.costOther) : ''}</div>
-    ${s.meatStock ? `<div class="small" style="margin-top:8px">🔪 About <b>${kgs(s.meatStock)}</b> cut meat not sold yet</div>` : ''}
+    <div class="small muted lotspent">Spent = chicks ${money(s.costChicks)} · grain ${money(s.costFeed)} · medicine ${money(s.costMed)}${s.costOther ? ' · other ' + money(s.costOther) : ''}</div>
+    ${s.meatStock ? `<div class="small lotspent">🔪 About <b>${kgs(s.meatStock)}</b> cut meat not sold yet</div>` : ''}
     ${l.closed ? '' : `<div class="actions">
       <button class="btn sm primary" data-act="sellLot" data-id="${l.id}">+ Sale</button>
-      <button class="btn sm" data-act="addEvent" data-id="${l.id}" data-type="dead">💀<br>Dead</button>
-      <button class="btn sm" data-act="addEvent" data-id="${l.id}" data-type="feed">🌾<br>Feed</button>
-      <button class="btn sm" data-act="countCheck" data-id="${l.id}">🔢<br>Count</button>
+      <button class="btn sm" data-act="addEvent" data-id="${l.id}" data-type="dead">💀 Dead</button>
+      <button class="btn sm" data-act="addEvent" data-id="${l.id}" data-type="feed">🌾 Feed</button>
+      <button class="btn sm" data-act="countCheck" data-id="${l.id}">🔢 Count</button>
     </div>`}
-    <button class="btn ghost" style="width:100%;margin-top:8px" data-act="openLot" data-id="${l.id}">📋 Lot details, daily sales & history ›</button>
+    <button class="btn sm ghost lotmore" data-act="openLot" data-id="${l.id}">📋 Lot details, daily sales & history ›</button>
   </div>`;
 }
 
@@ -233,11 +232,8 @@ function grainChips(s, l) {
   if (!gs.length) return '';
   const bag = bagKg();
   const total = gs.reduce((a, g) => a + s.feedByGrade[g], 0);
-  return `<div class="row wrap" style="gap:6px;margin-top:10px">${gs.map(g => `<div class="stat" ${l ? ent(l, 'feed:' + g) : ''} style="padding:6px 10px;background:var(--amber-l);flex:1;min-width:76px;cursor:pointer">
-      <span style="font-size:12px">🌾 ${esc(g)}</span><b style="font-size:20px">${nfmt(round(s.feedByGrade[g] / bag, 2))} <span style="font-size:13px">bora</span></b>
-      <span style="font-size:11px;text-transform:none">${nfmt(round(s.feedByGrade[g], 1))} kg</span></div>`).join('')}
-    <div class="stat" ${l ? ent(l, 'feed') : ''} style="padding:6px 10px;flex:1;min-width:76px;cursor:pointer"><span style="font-size:12px">Total</span><b style="font-size:20px">${nfmt(round(total / bag, 2))} <span style="font-size:13px">bora</span></b>
-      <span style="font-size:11px;text-transform:none">${nfmt(round(total, 1))} kg</span></div></div>`;
+  return `<div class="grainrow">${gs.map(g => `<button class="gchip" ${l ? ent(l, 'feed:' + g) : ''}>🌾 ${esc(g)} <b>${nfmt(round(s.feedByGrade[g] / bag, 2))}</b> bora</button>`).join('')}
+    <button class="gchip tot" ${l ? ent(l, 'feed') : ''}>Total <b>${nfmt(round(total / bag, 2))}</b> bora · ${nfmt(round(total, 1))} kg</button></div>`;
 }
 // ---- quick chicken sale typed on the Home card ----
 function homeSaleState() {
