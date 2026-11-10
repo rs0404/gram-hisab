@@ -273,7 +273,7 @@ function homeSaleHtml() {
     </form>` : `<form class="hshop" data-form="homeSale">
       <label><span>⚖️ Kg</span><input data-hsale="kg" type="number" inputmode="decimal" step="any" placeholder="0"></label>
       <label><span>💰 Rs total</span><input data-hsale="amount" ${calcAttrs('#v-home [data-hsale=kg]')} placeholder="auto"></label>
-      <label><span>${h.type === 'meat' ? '🐔 Birds (sale)' : '🐔 Birds'}</span><input data-hsale="birds" type="number" inputmode="numeric" placeholder="${h.type === 'parts' ? '—' : 'auto'}" ${h.type === 'parts' ? 'disabled' : ''} enterkeyhint="done"></label>
+      <label><span>${h.type === 'meat' ? '✂️ Cut' : '🐔 Birds'}</span><input data-hsale="birds" type="number" inputmode="numeric" placeholder="${h.type === 'parts' ? '—' : 'auto'}" ${h.type === 'parts' ? 'disabled' : ''} enterkeyhint="done"></label>
     </form>`}
     <div class="small hsale-hint" id="hsaleHint">${esc(homeSaleHint())}</div>
     <button class="btn hsave" data-act="homeSaleSave">${h.type === 'cut' ? '✂️ Save cut (not a sale)' : '✔ Save sale'}</button>
