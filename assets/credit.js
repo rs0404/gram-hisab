@@ -203,7 +203,7 @@ function creditClick(act, b) {
     case 'crShare': shareText(creditPersonText(v)); return true;
     case 'crRename': crRename(v); return true;
     case 'crNeEdit': { const p = creditPeople()[v];
-      ask({ title: `नेपाली नाम · ${p.name}`, sub: `Now: ${p.ne || '—'}. Type how it is written in Nepali. Leave empty to spell it automatically.`, input: { text: true, placeholder: p.ne || 'राम बहादुर' },
+      ask({ title: `नेपाली नाम · ${p.name}`, sub: `Now: ${p.ne || '—'}. Type how it is written in Nepali. Leave empty to spell it automatically.`, input: { text: true, allowEmpty: true, placeholder: p.ne || 'राम बहादुर', value: p.ne || '', preview: t => !normPerson(t) ? `Empty → spelled automatically: <b lang="ne">${esc(romanToNe(p.name) || '—')}</b>` : /[\u0900-\u097F]/.test(t) ? '' : `Saved as <b lang="ne">${esc(romanToNe(t))}</b>` },
         onAnswer: t => { const ne = normPerson(t); crSaveProfile(p.name, null, p.name, ne && !/[\u0900-\u097F]/.test(ne) && typeof romanToNe === 'function' ? romanToNe(ne) : ne); render(); toast(`✓ ${p.name} · ${crNe(p.name) || '—'}`); openCreditPerson(v); },
         onCancel: () => openCreditPerson(v) });
       return true; }
@@ -224,6 +224,8 @@ document.addEventListener('input', e => {
 });
 
 // ---------- rename / nicknames ----------
+// shown under the name box while typing: the Nepali spelling of what is typed in Roman
+const crNePreview = t => { const ne = typeof romanToNe === 'function' ? romanToNe(t) : ''; return ne ? `नेपालीमा: <b lang="ne">${esc(ne)}</b> <span class="muted">(you can correct it later on their page)</span>` : ''; };
 function crSaveProfile(name, nicks, oldName, ne) {
   const pr = crProfileOf(oldName || name) || crProfileOf(name);
   if (ne !== undefined) return put(Object.assign({}, pr || { kind: 'cperson', nicks: [] }, { name, ne, nicks: nicks || (pr && pr.nicks) || [] }));
@@ -239,7 +241,7 @@ function crMoveRecs(keys, to, m) {
 function crRename(key) {
   const p = creditPeople()[key]; if (!p) return;
   const back = () => openCreditPerson(personKey(p.name));
-  ask({ title: `✎ ${p.name}'s name`, sub: 'Type the new name. Old entries move to it; the old name is kept as a nickname.', input: { text: true, placeholder: p.name },
+  ask({ title: `✎ ${p.name}'s name`, sub: 'Type the new name. Old entries move to it; the old name is kept as a nickname.', input: { text: true, placeholder: p.name, value: p.name, preview: crNePreview },
     onAnswer: t => {
       const nn = normPerson(t); if (!nn) { back(); return; }
       if (nn === p.name) { back(); return; }
@@ -264,7 +266,7 @@ function crRename(key) {
 function crNickAdd(key) {
   const p = creditPeople()[key]; if (!p) return;
   const back = () => openCreditPerson(key);
-  ask({ title: `+ Nickname for ${p.name}`, sub: 'Other names people use, e.g. Rame, Ram dai, राम. Separate several with commas.', input: { text: true, placeholder: 'Rame, Ram dai, राम' },
+  ask({ title: `+ Nickname for ${p.name}`, sub: 'Other names people use, e.g. Rame, Ram dai, राम. Separate several with commas.', input: { text: true, placeholder: 'Rame, Ram dai, राम', preview: t => splitNicks(t).length ? splitNicks(t).map(n => `<span class="chip sm">${esc(n)}${romanToNe(n) ? ' · <span lang="ne">' + esc(romanToNe(n)) + '</span>' : ''}</span>`).join(' ') : '' },
     onAnswer: t => {
       const want = splitNicks(t).filter(n => personKey(n) !== key && !p.nicks.some(x => personKey(x) === personKey(n)));
       if (!want.length) { back(); return; }

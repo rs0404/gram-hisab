@@ -3,17 +3,18 @@
 
 let pendingAsk = null;
 
-/* ask({title, sub, html, speech, buttons:[{label,value,cls}], voice: fn(text)->value, hint, input:{placeholder, decimal},
+/* ask({title, sub, html, speech, buttons:[{label,value,cls}], voice: fn(text)->value, hint, input:{placeholder, decimal, text, value, preview: fn(text)->html},
         onAnswer(value), onCancel(), voiceMode}) */
 function ask(o) {
   pendingAsk = o;
   o.hint = o.hint || 'Say “yes” or “no”';
-  const inputHtml = o.input ? `<div class="field">${o.input.text ? `<input id="askInput" type="text" autocomplete="off" placeholder="${esc(o.input.placeholder || '')}">` : `<input id="askInput" ${calcAttrs()} placeholder="${esc(o.input.placeholder || '')}">`}</div>
+  const inputHtml = o.input ? `<div class="field">${o.input.text ? `<input id="askInput" type="text" autocomplete="off" spellcheck="false" placeholder="${esc(o.input.placeholder || '')}" value="${esc(o.input.value || '')}">` : `<input id="askInput" ${calcAttrs()} placeholder="${esc(o.input.placeholder || '')}" value="${esc(o.input.value == null ? '' : o.input.value)}">`}
+      ${o.input.preview ? `<div id="askPreview" class="askprev">${o.input.preview(o.input.value || '') || ''}</div>` : ''}</div>
       <button class="btn big green" data-act="askInputOk">OK</button><div style="height:10px"></div>` : '';
   openSheet(`<div class="ask">${esc(o.title)}</div>${o.sub ? `<div class="heard">${esc(o.sub)}</div>` : ''}${o.html || ''}${inputHtml}
     <div class="choice">${(o.buttons || []).map((b, i) => `<button class="btn big ${b.cls || 'ghost'}" data-act="askBtn" data-i="${i}">${b.label}</button>`).join('')}</div>
     ${o.voiceMode ? `<div class="row" style="justify-content:center;margin-top:14px"><button class="btn ghost sm" data-act="mic">🎤 Answer by voice</button></div>` : ''}`, true);
-  if (o.input) setTimeout(() => { const el = $('#askInput'); if (el && !o.voiceMode) el.focus(); }, 200);
+  if (o.input) setTimeout(() => { const el = $('#askInput'); if (el && !o.voiceMode) { el.focus(); try { el.setSelectionRange(el.value.length, el.value.length); } catch (x) {} } }, 200);
   if (o.voiceMode && !o.silent) speak(o.speech || o.title, () => { if (pendingAsk === o && db.meta.autoListen) listen(); });
 }
 function resolveAsk(v) {
@@ -829,3 +830,9 @@ function helpHtml(short) {
     ${short ? '' : others.map(([t, rs]) => `<details><summary><b>${t}</b></summary>${list(rs)}</details>`).join('') + `<details><summary><b>📅 Patro</b></summary>${list([['Calendar', 'patro', 'calendar', 'पात्रो']])}</details>`}
     ${short ? '' : `<p class="small muted">Lots are named by Nepali date, e.g. <b>Ashar83_10_1_100</b> (Ashar 2083, day 10, 1st lot that month, 100 chicks). Say it as “Ashar lot 1”, or “lot 1” = the 1st lot on the Home screen, or by type (“the giriraj lot”). B0–B3 are feed grain sizes. Nepali works too: numbers (एक, डेढ, साढे दुई, आधा, सय, हजार), masu/मासु, jiudo/जिउँदो, mare/मरे, baki/बाँकी, dana/दाना, kineko/किनेको, gate/गते, hunchha/हजुर, hoina/पर्दैन. For Devanagari, set Voice language to नेपाली in Settings.</p>`}`;
 }
+
+// live preview under an ask() text box (e.g. the Nepali spelling of a name being typed)
+document.addEventListener('input', e => {
+  if (e.target.id !== 'askInput' || !pendingAsk || !pendingAsk.input || !pendingAsk.input.preview) return;
+  const p = $('#askPreview'); if (p) p.innerHTML = pendingAsk.input.preview(e.target.value) || '';
+});

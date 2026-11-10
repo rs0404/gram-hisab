@@ -1518,7 +1518,7 @@ document.addEventListener('click', e => {
     case 'askBtn': if (pendingAsk) resolveAsk(pendingAsk.buttons[+b.dataset.i].value); break;
     case 'askInputOk': {
       const raw = $('#askInput').value.trim();
-      if (pendingAsk && pendingAsk.input && pendingAsk.input.text) { if (!raw) { toast('Type a name'); return; } resolveAsk(raw); break; }
+      if (pendingAsk && pendingAsk.input && pendingAsk.input.text) { if (!raw && !pendingAsk.input.allowEmpty) { toast('Type a name'); return; } resolveAsk(raw); break; }
       const x = num(raw); if (x == null) { toast('Enter a number'); return; } resolveAsk(x); break;
     }
     case 'toastUndo': if (toastUndo) { (toastUndo.restore ? restoreRec : removeRec)(toastUndo.id); render(); $('#toast').classList.add('hidden'); toast(toastUndo.restore ? 'Restored' : 'Undone'); toastUndo = null; } break;

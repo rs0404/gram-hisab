@@ -52,7 +52,7 @@ function openListEditor(key) {
     <button class="btn big primary" data-act="listDone" data-k="${key}">Done</button>`);
 }
 function askNames(title, cur, two, done, back) {
-  ask({ title, sub: two ? 'Nepali name, then optionally “ / English”, e.g. मकै / Maize' : '', input: { text: true, placeholder: cur || (two ? 'नेपाली / English' : 'Name') },
+  ask({ title, sub: two ? 'Nepali name, then optionally “ / English”, e.g. मकै / Maize' : '', input: { text: true, placeholder: cur || (two ? 'नेपाली / English' : 'Name'), value: cur || '' },
     onAnswer: t => { const [ne, en] = String(t).split('/').map(s => s.trim()); if (!ne) { back(); return; } done(ne, en || ''); }, onCancel: back });
 }
 function listClick(act, b) {
