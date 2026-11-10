@@ -386,3 +386,5 @@ body.kbd #top{position:relative}
 .hsale{scroll-margin-bottom:10px} input,textarea{scroll-margin-top:60px;scroll-margin-bottom:12px}
 .item .dt{font-size:14px;font-weight:600;color:var(--muted)}
 .item .amt small{display:block;font-size:11px;font-weight:700;color:var(--muted)}
+.crne{font-weight:700;color:var(--muted);font-size:.92em}
+.crne-edit{display:inline-block;font-size:17px;font-weight:800;color:var(--amber-d);background:var(--amber-l);border-radius:10px;padding:3px 10px}

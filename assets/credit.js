@@ -13,10 +13,16 @@ const personKey = s => normPerson(s).toLowerCase();
 const crProfiles = () => all('cperson');
 function crNameMap() {   // any name or nickname (lower case) → main name
   const m = {}, ps = crProfiles();
+  // lowest first: Nepali spellings (so "राम बहादुर लाई उधारो ५००" finds Ram Bahadur), then nicknames, then main names
+  all('credit').forEach(r => { const ne = typeof romanToNe === 'function' ? romanToNe(r.person) : ''; if (ne && !m[personKey(ne)]) m[personKey(ne)] = normPerson(r.person); });
+  ps.forEach(p => { const ne = p.ne || (typeof romanToNe === 'function' ? romanToNe(p.name) : ''); if (ne) m[personKey(ne)] = p.name; });
   ps.forEach(p => (p.nicks || []).forEach(n => { m[personKey(n)] = p.name; }));
   ps.forEach(p => { m[personKey(p.name)] = p.name; });   // a main name wins over someone's nickname
   return m;
 }
+// Nepali spelling of a person's name: the one saved for them, else spelled from the Roman name
+const crNe = name => { const pr = crProfileOf(name); return (pr && pr.ne) || (typeof romanToNe === 'function' ? romanToNe(name) : ''); };
+const crNeHtml = (ne, cls) => ne ? ` <span class="${cls || 'crne'}" lang="ne">${esc(ne)}</span>` : '';
 const crCanon = (name, m) => (m || crNameMap())[personKey(name)] || normPerson(name);
 const crProfileOf = name => crProfiles().find(p => personKey(p.name) === personKey(name)) || null;
 function crRecsOf(key, m) { m = m || crNameMap(); return all('credit').filter(r => personKey(crCanon(r.person, m)) === key); }
@@ -32,7 +38,7 @@ function creditPeople() {
     if (r.type === 'paid') { p.paid += a; let left = a; while (left > 0 && p.open.length) { const o = p.open[0], take = Math.min(o.amt, left); o.amt -= take; left -= take; if (o.amt <= 0.001) p.open.shift(); } }
     else { p.given += a; p.open.push({ date: r.date, amt: a }); }
   });
-  Object.values(P).forEach(p => { const pr = crProfileOf(p.name); p.nicks = pr ? (pr.nicks || []) : []; p.balance = round(p.given - p.paid, 2); p.oldest = p.open.length ? p.open[0].date : ''; p.age = p.oldest ? daysBetween(p.oldest, today()) : 0; });
+  Object.values(P).forEach(p => { const pr = crProfileOf(p.name); p.nicks = pr ? (pr.nicks || []) : []; p.ne = (pr && pr.ne) || (typeof romanToNe === 'function' ? romanToNe(p.name) : ''); p.balance = round(p.given - p.paid, 2); p.oldest = p.open.length ? p.open[0].date : ''; p.age = p.oldest ? daysBetween(p.oldest, today()) : 0; });
   return P;
 }
 function creditRange(from, to) {
@@ -62,7 +68,7 @@ function renderCredit() {
     </div>
     <div class="card tight" id="creditForm">
       <div class="row between" style="gap:6px;flex-wrap:wrap">
-        <span class="chips" style="gap:4px"><button class="chip ${d.type !== 'paid' ? 'on' : ''}" data-act="crType" data-v="given">📕 उधारो दियो</button><button class="chip ${d.type === 'paid' ? 'on' : ''}" data-act="crType" data-v="paid">📗 तिर्यो</button></span>
+        <span class="chips" style="gap:4px"><button class="chip ${d.type !== 'paid' ? 'on' : ''}" data-act="crType" data-v="given">📕 उधारो लिग्यो</button><button class="chip ${d.type === 'paid' ? 'on' : ''}" data-act="crType" data-v="paid">📗 तिर्यो</button></span>
         <span class="chips" style="gap:4px"><button class="chip sm ${d.date === t ? 'on' : ''}" data-act="bsQuick" data-key="credit" data-days="0">Today</button><button class="chip sm ${d.date === y ? 'on' : ''}" data-act="bsQuick" data-key="credit" data-days="-1">Yest.</button><button class="chip sm ${d.date !== t && d.date !== y ? 'on' : ''}" data-act="bsCalToggle" data-key="credit" aria-label="Other date">${calTile()}</button></span></div>
       ${bsDateHtml('credit', d.date, { chips: false })}
       <div class="hshop" style="grid-template-columns:1.4fr 1fr">
@@ -81,14 +87,14 @@ function renderCredit() {
         <span style="flex:1;background:var(--line);border-radius:6px;height:12px;overflow:hidden"><i style="display:block;height:100%;width:${Math.round(v / maxAge * 100)}%;background:${c}"></i></span><b class="small" style="width:72px;text-align:right">${money(v)}</b></div>`).join('')}</div>` : ''}
     <div class="row between"><h3 style="margin:8px 0">👥 Who owes</h3><span class="small muted">${td.n ? `Today: 📕 ${money(td.given)} · 📗 ${money(td.paid)}` : ''}</span></div>
     ${owing.length ? owing.map(p => `<button class="item" data-act="crPerson" data-v="${esc(p.key)}">
-      <div class="ic" style="background:var(--red-l)">👤</div><div class="mid"><div class="t">${esc(p.name)}${p.nicks.length ? ` <span class="small muted" style="font-weight:600">(${esc(p.nicks.join(', '))})</span>` : ''}</div>
+      <div class="ic" style="background:var(--red-l)">👤</div><div class="mid"><div class="t">${esc(p.name)}${crNeHtml(p.ne)}${p.nicks.length ? ` <span class="small muted" style="font-weight:600">(${esc(p.nicks.join(', '))})</span>` : ''}</div>
       <div class="s">since ${fmtDate(p.oldest)}${p.age >= 30 ? ` · <b style="color:${p.age > 90 ? 'var(--red)' : 'var(--amber-d)'}">${p.age} days</b>` : ''} · last ${fmtDate(p.last)}</div></div>
       <div class="amt" style="color:var(--red)">${money(p.balance)}</div></button>`).join('') : '<p class="muted">Nobody owes anything 🎉</p>'}
-    ${adv.length ? `<h3>Paid extra (advance)</h3>${adv.map(p => `<button class="item" data-act="crPerson" data-v="${esc(p.key)}"><div class="ic">👤</div><div class="mid"><div class="t">${esc(p.name)}</div></div><div class="amt" style="color:var(--green)">${money(-p.balance)}</div></button>`).join('')}` : ''}
-    ${P.some(p => Math.abs(p.balance) <= 0.5) ? `<details style="margin-top:8px"><summary class="small muted" style="font-weight:800">✓ Settled (${P.filter(p => Math.abs(p.balance) <= 0.5).length})</summary>${P.filter(p => Math.abs(p.balance) <= 0.5).sort((a, b) => b.last.localeCompare(a.last)).map(p => `<button class="item" data-act="crPerson" data-v="${esc(p.key)}"><div class="ic">👤</div><div class="mid"><div class="t">${esc(p.name)}</div><div class="s">last ${fmtDate(p.last)}</div></div><div class="amt">✓</div></button>`).join('')}</details>` : ''}
+    ${adv.length ? `<h3>Paid extra (advance)</h3>${adv.map(p => `<button class="item" data-act="crPerson" data-v="${esc(p.key)}"><div class="ic">👤</div><div class="mid"><div class="t">${esc(p.name)}${crNeHtml(p.ne)}</div></div><div class="amt" style="color:var(--green)">${money(-p.balance)}</div></button>`).join('')}` : ''}
+    ${P.some(p => Math.abs(p.balance) <= 0.5) ? `<details style="margin-top:8px"><summary class="small muted" style="font-weight:800">✓ Settled (${P.filter(p => Math.abs(p.balance) <= 0.5).length})</summary>${P.filter(p => Math.abs(p.balance) <= 0.5).sort((a, b) => b.last.localeCompare(a.last)).map(p => `<button class="item" data-act="crPerson" data-v="${esc(p.key)}"><div class="ic">👤</div><div class="mid"><div class="t">${esc(p.name)}${crNeHtml(p.ne)}</div><div class="s">last ${fmtDate(p.last)}</div></div><div class="amt">✓</div></button>`).join('')}</details>` : ''}
     ${(() => { const rec = all('credit').sort((a, b) => b.createdAt - a.createdAt).slice(0, 15); return rec.length ? `<h3>🕒 Recent entries</h3>${rec.map(r => `<button class="item" data-act="crEdit" data-id="${r.id}">
       <div class="ic" style="background:${r.type === 'paid' ? 'var(--green-l)' : 'var(--red-l)'}">${r.type === 'paid' ? '📗' : '📕'}</div>
-      <div class="mid"><div class="t">${esc(r.person)} · ${r.type === 'paid' ? 'paid back' + (r.pay === 'qr' ? ' (QR)' : '') : 'udharo'}</div><div class="s">${fmtDate(r.date)}${r.note ? ' · ' + esc(r.note) : ''} · ${whoWhen(r)}</div></div>
+      <div class="mid"><div class="t">${esc(r.person)}${crNeHtml(crNe(r.person))} · ${r.type === 'paid' ? 'paid back' + (r.pay === 'qr' ? ' (QR)' : '') : 'udharo'}</div><div class="s">${fmtDate(r.date)}${r.note ? ' · ' + esc(r.note) : ''} · ${whoWhen(r)}</div></div>
       <div class="amt" style="color:${r.type === 'paid' ? 'var(--green)' : 'var(--red)'}">${r.type === 'paid' ? '−' : '+'}${money(r.amount)}</div></button>`).join('')}` : ''; })()}
     <div class="grid2" style="margin-top:12px"><button class="btn" data-act="crShareAll">💬 Share list</button><button class="btn" data-act="exportCsv" data-v="credit">📄 Udharo (CSV)</button></div>
     <p class="small muted" style="text-align:center">🎤 “Ram udharo 500” · “Ram le 300 tiryo” · “उधारो राम ५००”</p>`;
@@ -97,7 +103,8 @@ function creditHint(d) {
   const nm = crCanon(d.person), p = creditPeople()[personKey(nm)], a = num(d.amount) || 0;
   if (!normPerson(d.person)) return d.type === 'paid' ? 'Who paid back?' : 'Who took on credit?';
   const bal = p ? p.balance : 0, after = d.type === 'paid' ? bal - a : bal + a;
-  return `${personKey(nm) !== personKey(d.person) ? normPerson(d.person) + ' = ' : ''}${nm}${p ? '' : ' (new)'}: owes ${money(bal)}${a ? ` → after this ${money(after)}` : ''}`;
+  const ne = crNe(nm);
+  return `${personKey(nm) !== personKey(d.person) ? normPerson(d.person) + ' = ' : ''}${nm}${ne ? ' · ' + ne : ''}${p ? '' : ' (new)'}: owes ${money(bal)}${a ? ` → after this ${money(after)}` : ''}`;
 }
 function saveCredit() {
   $$('#creditForm [data-cr]').forEach(el => { creditDraft[el.dataset.cr] = el.value; });
@@ -118,8 +125,9 @@ function openCreditPerson(key) {
   const p = creditPeople()[key]; if (!p) return;
   const list = crRecsOf(key).sort((a, b) => (a.date || '').localeCompare(b.date || '') || a.createdAt - b.createdAt);
   let run = 0; const rows = list.map(r => { run += (r.type === 'paid' ? -1 : 1) * (Number(r.amount) || 0); return { r, run }; }).reverse();
-  openSheet(`<div class="row between" style="gap:8px"><h2 style="min-width:0;word-break:break-word">👤 ${esc(p.name)}</h2><button class="btn sm ghost" data-act="crRename" data-v="${esc(key)}" style="flex:none">✎ Name</button></div>
-    <div class="chips" style="gap:6px;margin:-4px 0 10px;flex-wrap:wrap"><span class="small muted" style="align-self:center">Also called:</span>
+  openSheet(`<div class="row between" style="gap:8px"><h2 style="min-width:0;word-break:break-word;margin-bottom:2px">👤 ${esc(p.name)}</h2><button class="btn sm ghost" data-act="crRename" data-v="${esc(key)}" style="flex:none">✎ Name</button></div>
+    <button class="crne-edit" data-act="crNeEdit" data-v="${esc(key)}"><span lang="ne">${esc(p.ne || 'नेपाली नाम')}</span> ✎</button>
+    <div class="chips" style="gap:6px;margin:4px 0 10px;flex-wrap:wrap"><span class="small muted" style="align-self:center">Also called:</span>
       ${p.nicks.map(n => `<button class="chip sm" data-act="crNickDel" data-v="${esc(key)}" data-n="${esc(n)}" aria-label="Remove ${esc(n)}">${esc(n)} ✕</button>`).join('')}
       <button class="chip sm on" data-act="crNickAdd" data-v="${esc(key)}">+ Nickname</button></div>
     <div class="summary">
@@ -137,7 +145,7 @@ function openCreditPerson(key) {
 function creditPersonText(key) {
   const p = creditPeople()[key];
   const list = crRecsOf(key).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-  return [`📒 ${p.name} — उधारो हिसाब`, ...list.map(r => `${fmtDate(r.date, true)} · ${r.type === 'paid' ? 'तिर्नुभयो' : 'उधारो'} ${money(r.amount)}${r.note ? ' (' + r.note + ')' : ''}`), '', `बाँकी / Due: ${money(p.balance)}`].join('\n');
+  return [`📒 ${p.ne ? p.ne + ' (' + p.name + ')' : p.name} — उधारो हिसाब`, ...list.map(r => `${fmtDate(r.date, true)} · ${r.type === 'paid' ? 'तिर्नुभयो' : 'उधारो'} ${money(r.amount)}${r.note ? ' (' + r.note + ')' : ''}`), '', `बाँकी / Due: ${money(p.balance)}`].join('\n');
 }
 function creditCsv() {
   const rows = [['Date (BS)', 'Date (AD)', 'Person', 'Type', 'Amount', 'Pay', 'Note', 'By']];
@@ -149,11 +157,11 @@ function creditCsv() {
 function parseCredit(text) {
   let t = ' ' + cleanNepali(text) + ' ';
   t = t.replace(/[०-९]/g, d => String('०१२३४५६७८९'.indexOf(d)));
-  const given = /उधारो|उधार|\b(udharo|udhaaro|udhar|udhaar|credit)\b/i.test(t), paid = /तिर्यो|तिरे|तिर्नुभयो|फिर्ता|\b(tiryo|tirey|tire|tirnu|paid|returned|pay ?back)\b/i.test(t);
+  const given = /उधारो|उधार|लिग्यो|लग्यो|\b(udharo|udhaaro|udhar|udhaar|credit|ligyo|lagyo)\b/i.test(t), paid = /तिर्यो|तिरे|तिर्नुभयो|फिर्ता|\b(tiryo|tirey|tire|tirnu|paid|returned|pay ?back)\b/i.test(t);
   if (!given && !paid) return null;
   let s = nepaliNumbers(t.toLowerCase());
-  s = wordsToNumbers(s.replace(/उधारो|उधार|तिर्यो|तिरे|तिर्नुभयो|फिर्ता|रुपैयाँ|रुपैया|रु\.?|ले\b|लाई\b|को\b|ले(?=\s)|लाई(?=\s)/g, ' ')
-    .replace(/\b(udharo|udhaaro|udhar|udhaar|credit|tiryo|tirey|tire|tirnu|paid|returned|pay back|payback|rs|rupees?|le|lai|ko|ne|gave|took|liyo|diyo|today|aaja|cash|qr|esewa|khalti)\b/g, ' '));
+  s = wordsToNumbers(s.replace(/उधारो|उधार|लिग्यो|लग्यो|तिर्यो|तिरे|तिर्नुभयो|फिर्ता|रुपैयाँ|रुपैया|रु\.?|ले\b|लाई\b|को\b|ले(?=\s)|लाई(?=\s)/g, ' ')
+    .replace(/\b(udharo|udhaaro|udhar|udhaar|credit|tiryo|tirey|tire|tirnu|paid|returned|pay back|payback|rs|rupees?|le|lai|ko|ne|gave|took|liyo|diyo|ligyo|lagyo|today|aaja|cash|qr|esewa|khalti)\b/g, ' '));
   const nums = (s.match(/\d+(?:\.\d+)?/g) || []).map(parseFloat);
   const words = s.replace(/[\d.+*x×/-]+/g, ' ').replace(/\s+/g, ' ').trim();
   // the person: a known name in the sentence, else the leftover words
@@ -167,7 +175,7 @@ function flowCredit(p, v) {
   renderCredit();
   if (!p.person || !p.amount) { toast(!p.person ? 'Type the person\'s name' : 'Type the amount'); return; }
   ask({ title: 'Save?', sub: `Heard: “${p.text}”`,
-    html: `<div class="summary"><div class="line"><span>${p.type === 'paid' ? '📗 Paid back' : '📕 Udharo'}</span><b>${esc(normPerson(p.person))}</b></div><div class="line"><span>Amount</span><b style="font-size:20px">${money(p.amount)}</b></div>
+    html: `<div class="summary"><div class="line"><span>${p.type === 'paid' ? '📗 Paid back' : '📕 Udharo'}</span><b>${esc(normPerson(p.person))}${crNeHtml(crNe(p.person))}</b></div><div class="line"><span>Amount</span><b style="font-size:20px">${money(p.amount)}</b></div>
       <div class="line"><span class="small muted">${esc(creditHint(creditDraft))}</span><b></b></div></div>`,
     speech: `${p.type === 'paid' ? 'Received from' : 'Udharo to'} ${normPerson(p.person)}, ${sayMoney(p.amount)}. Save?`,
     buttons: [{ label: '✔ Save', value: 'yes', cls: 'green' }, { label: '✎ Edit', value: 'edit' }, { label: '✕ Cancel', value: 'no', cls: 'redl' }], voice: yesNo, voiceMode: v,
@@ -190,13 +198,18 @@ function creditClick(act, b) {
       return true; }
     case 'crShare': shareText(creditPersonText(v)); return true;
     case 'crRename': crRename(v); return true;
+    case 'crNeEdit': { const p = creditPeople()[v];
+      ask({ title: `नेपाली नाम · ${p.name}`, sub: `Now: ${p.ne || '—'}. Type how it is written in Nepali. Leave empty to spell it automatically.`, input: { text: true, placeholder: p.ne || 'राम बहादुर' },
+        onAnswer: t => { const ne = normPerson(t); crSaveProfile(p.name, null, p.name, ne && !/[\u0900-\u097F]/.test(ne) && typeof romanToNe === 'function' ? romanToNe(ne) : ne); render(); toast(`✓ ${p.name} · ${crNe(p.name) || '—'}`); openCreditPerson(v); },
+        onCancel: () => openCreditPerson(v) });
+      return true; }
     case 'crNickAdd': crNickAdd(v); return true;
     case 'crNickDel': { const p = creditPeople()[v], n = b.dataset.n;
       ask({ title: `Remove nickname “${n}”?`, sub: `${p.name}'s entries stay as they are.`, buttons: [{ label: '✕ Remove', value: 'yes', cls: 'red' }, { label: 'Keep', value: 'no' }],
         onAnswer: a => { if (a === 'yes') { crSaveProfile(p.name, (p.nicks || []).filter(x => personKey(x) !== personKey(n))); toast(`Removed ${n}`); render(); } openCreditPerson(v); }, onCancel: () => openCreditPerson(v) });
       return true; }
     case 'crShareAll': { const P = Object.values(creditPeople()).filter(p => p.balance > 0.5).sort((a, c) => c.balance - a.balance);
-      shareText([`📒 उधारो — ${fmtDate(today(), true)}`, ...P.map(p => `${p.name}: ${money(p.balance)}${p.age >= 30 ? ' (' + p.age + ' days)' : ''}`), '', `Total: ${money(P.reduce((a, p) => a + p.balance, 0))}`].join('\n')); return true; }
+      shareText([`📒 उधारो — ${fmtDate(today(), true)}`, ...P.map(p => `${p.name}${p.ne ? ' ' + p.ne : ''}: ${money(p.balance)}${p.age >= 30 ? ' (' + p.age + ' days)' : ''}`), '', `Total: ${money(P.reduce((a, p) => a + p.balance, 0))}`].join('\n')); return true; }
     case 'crEdit': closeSheet(); creditDraft = Object.assign({}, db.records[b.dataset.id]); if (view !== 'credit') { setSection('shop'); go('credit'); } else renderCredit(); window.scrollTo(0, 0); return true;
   }
   return false;
@@ -207,8 +220,9 @@ document.addEventListener('input', e => {
 });
 
 // ---------- rename / nicknames ----------
-function crSaveProfile(name, nicks, oldName) {
+function crSaveProfile(name, nicks, oldName, ne) {
   const pr = crProfileOf(oldName || name) || crProfileOf(name);
+  if (ne !== undefined) return put(Object.assign({}, pr || { kind: 'cperson', nicks: [] }, { name, ne, nicks: nicks || (pr && pr.nicks) || [] }));
   const seen = {}, clean = nicks.map(normPerson).filter(n => n && personKey(n) !== personKey(name) && !seen[personKey(n)] && (seen[personKey(n)] = 1));
   return put(Object.assign({}, pr || { kind: 'cperson' }, { name, nicks: clean }));
 }
@@ -232,7 +246,8 @@ function crRename(key) {
         const moved = crMoveRecs([key], finalName, m);
         const own = crProfileOf(p.name);
         if (target && own && personKey(own.name) !== personKey(finalName)) removeRec(own.id);   // merged into the other person
-        crSaveProfile(finalName, nicks, target ? finalName : p.name);
+        const pr2 = crSaveProfile(finalName, nicks, target ? finalName : p.name);
+        if (!target && pr2.ne) put(Object.assign({}, pr2, { ne: '' }));   // new name → spell it again (correct with ✎)
         render(); toast(`${target ? 'Merged' : 'Renamed'} ✓ ${p.name} → ${finalName} · ${moved} entr${moved === 1 ? 'y' : 'ies'}`); openCreditPerson(personKey(finalName));
       };
       if (other && other.key !== key) {
