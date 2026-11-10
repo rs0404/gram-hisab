@@ -277,7 +277,7 @@ function homeSaleHtml() {
     </form>` : `<form class="hshop" data-form="homeSale">
       <label><span>⚖️ Kg</span><input data-hsale="kg" type="number" inputmode="decimal" step="any" placeholder="0"></label>
       <label><span>💰 Rs total</span><input data-hsale="amount" ${calcAttrs('#v-home [data-hsale=kg]')} placeholder="auto"></label>
-      <label><span>${h.type === 'meat' ? '🔪 Cut' : '🐔 Birds'}</span><input data-hsale="birds" type="number" inputmode="numeric" placeholder="${h.type === 'parts' ? '—' : 'auto'}" ${h.type === 'parts' ? 'disabled' : ''} enterkeyhint="done"></label>
+      <label><span>${h.type === 'meat' ? '🐔 Birds (sale)' : '🐔 Birds'}</span><input data-hsale="birds" type="number" inputmode="numeric" placeholder="${h.type === 'parts' ? '—' : 'auto'}" ${h.type === 'parts' ? 'disabled' : ''} enterkeyhint="done"></label>
     </form>`}
     <div class="small hsale-hint" id="hsaleHint">${esc(homeSaleHint())}</div>
     <button class="btn hsave" data-act="homeSaleSave">${h.type === 'cut' ? '✂️ Save cut (not a sale)' : '✔ Save sale'}</button>
@@ -318,7 +318,18 @@ function saveHomeSale() {
   if (homeSaleState().type === 'cut') { saveHomeCut(); return; }
   const c = homeSaleCalc();
   if (!c.lot) { toast('Add a lot first'); return; }
-  if (!c.kg && !c.amount) { toast('Type the kg or the amount'); return; }
+  if (!c.kg && !c.amount) {
+    // only a bird count typed in a sale → most likely a cut record
+    const n = Math.round(num(($('#v-home [data-hsale=birds]') || {}).value) || 0);
+    if (n > 0 && c.h.type !== 'parts') {
+      ask({ title: `${n} bird${n > 1 ? 's' : ''} cut?`, sub: 'You typed only the birds, no kg or amount. A cut is not a sale — the meat goes to meat on hand.',
+        buttons: [{ label: `✂️ Save ${n} cut (not a sale)`, value: 'cut', cls: 'green' }, { label: '💰 It is a sale — I will type the kg', value: 'sale' }],
+        onAnswer: a => { if (a !== 'cut') { const k = $('#v-home [data-hsale=kg]'); if (k) k.focus(); return; }
+          const h = homeSaleState(); h.type = 'cut'; persist(); renderHome(); const b = $('#v-home [data-hsale=birds]'); if (b) b.value = String(n); saveHomeCut(); } });
+      return;
+    }
+    toast('Type the kg or the amount'); return;
+  }
   if (!c.rate && !c.amount) { toast('Set the price first (💰 Prices)'); return; }
   if (c.h.type === 'live' && !(c.birds > 0)) { toast('How many birds? Type at least 1'); return; }
   if (document.activeElement) document.activeElement.blur();
