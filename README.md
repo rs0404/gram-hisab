@@ -141,13 +141,13 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
 **Selling**
 - **Quick sale on the chicken home:** pick Live / Meat / Khutta and the lot, then type the kg *or* the amount. The price and the bird count fill in by themselves. Pick **✂️ Cut** to record a cut (not a sale) by just typing the bird count — the meat is estimated from your past cuts (or type the kg) and goes to meat on hand.
 - Grain dates show how long ago they were: purchases and feed entries say "Kartik 19 · 5 days ago", and the Stock page shows when each grain was last bought.
-- Sale types: **live**, **cut meat**, **khutta-tauko** (own rate, default Rs 150/kg) and **grain** (B0–B3, by bora or kg).
+- Sale types: **live**, **cut meat**, **khutta-tauko** (own rate, default Rs 150/kg) and **grain** (B0, B1, B2, by bora or kg).
 - Default prices per chicken type, and buy/sell rates per grain size. If you give a different price, the app asks whether to save it as the new default.
 - If you give only the amount, the app works out the kg from the rate (and the other way round).
 - Credit (udharo) flag and invoice number.
 
 **Buying and stock**
-- Buy feed by grain size (B0, B1, B2, B3; 1 bora = 50 kg, or by kg), plus medicine, vitamins, vaccines and equipment, with supplier and credit.
+- Buy feed by grain size (B0, B1, B2; 1 bora = 50 kg, or by kg), plus medicine, vitamins, vaccines and equipment, with supplier and credit.
 - Stock left = bought − used − sold, for each grain size and each medicine.
 
 **Profit and reports**

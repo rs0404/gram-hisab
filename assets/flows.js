@@ -828,7 +828,7 @@ function helpHtml(short) {
   return `<p class="small muted" style="margin-top:0">Tap 🎤 and say it in English, roman Nepali or नेपाली. You can also type it.</p>
     <h3 style="margin-top:4px">${all[sec][0]}</h3>${list(short ? rows.slice(0, 6) : rows)}
     ${short ? '' : others.map(([t, rs]) => `<details><summary><b>${t}</b></summary>${list(rs)}</details>`).join('') + `<details><summary><b>📅 Patro</b></summary>${list([['Calendar', 'patro', 'calendar', 'पात्रो']])}</details>`}
-    ${short ? '' : `<p class="small muted">Lots are named by Nepali date, e.g. <b>Ashar83_10_1_100</b> (Ashar 2083, day 10, 1st lot that month, 100 chicks). Say it as “Ashar lot 1”, or “lot 1” = the 1st lot on the Home screen, or by type (“the giriraj lot”). B0–B3 are feed grain sizes. Nepali works too: numbers (एक, डेढ, साढे दुई, आधा, सय, हजार), masu/मासु, jiudo/जिउँदो, mare/मरे, baki/बाँकी, dana/दाना, kineko/किनेको, gate/गते, hunchha/हजुर, hoina/पर्दैन. For Devanagari, set Voice language to नेपाली in Settings.</p>`}`;
+    ${short ? '' : `<p class="small muted">Lots are named by Nepali date, e.g. <b>Ashar83_10_1_100</b> (Ashar 2083, day 10, 1st lot that month, 100 chicks). Say it as “Ashar lot 1”, or “lot 1” = the 1st lot on the Home screen, or by type (“the giriraj lot”). B0, B1, B2 are feed grain sizes. Nepali works too: numbers (एक, डेढ, साढे दुई, आधा, सय, हजार), masu/मासु, jiudo/जिउँदो, mare/मरे, baki/बाँकी, dana/दाना, kineko/किनेको, gate/गते, hunchha/हजुर, hoina/पर्दैन. For Devanagari, set Voice language to नेपाली in Settings.</p>`}`;
 }
 
 // live preview under an ask() text box (e.g. the Nepali spelling of a name being typed)

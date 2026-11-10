@@ -2,7 +2,7 @@
 'use strict';
 
 const HAS_ANDROID = typeof window.Android !== 'undefined';
-const APP_VERSION = '2.19.6';
+const APP_VERSION = '2.19.7';
 
 // ---------- small utils ----------
 const $ = (sel, el) => (el || document).querySelector(sel);
@@ -283,7 +283,7 @@ function lotSpeak(l) { // how the app says a lot name out loud
 }
 function lotColor(lot) { const i = lots().findIndex(x => x.id === lot.id); return 'c' + ((i < 0 ? 0 : i + 1) % 5); }
 
-const FEED_GRADES = ['B0', 'B1', 'B2', 'B3'];
+const FEED_GRADES = ['B0', 'B1', 'B2'];
 
 const EVENT_TYPES = {
   dead: { label: 'Dead', icon: '💀', count: true },
