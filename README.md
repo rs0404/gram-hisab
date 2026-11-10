@@ -92,6 +92,7 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
 - Record 📕 **udharo given** or 📗 **paid back** (cash / QR) with person, amount and note; names are remembered.
 - Dashboard: total to receive and how many people, this month given vs received, how old the unpaid udharo is (under 1 month · 1–3 months · over 3 months), and who owes most.
 - Each person: ledger with running balance, + Udharo, Received, ✔ Settle, 📤 share their statement. Voice: "Ram udharo 500", "Ram le 300 tiryo", "उधारो राम ५००".
+- ✎ **Rename** a person (all their old entries move to the new name; the old name stays as a nickname) and add **nicknames** (Rame, Ram dai, राम…). A nickname typed or spoken saves under the main name. Giving the name or nickname of someone already in the book offers to ⇄ **merge** the two.
 
 **⚙️ मिल (Mill)**
 - Its own section in the top bar. **कुटानी** (धान → चामल) and **पिसानी** (मकै, गहुँ, कोदो → पिठो) for customers, each with its **rate per पाथी** (add more kinds in ⚙️ Rates).
