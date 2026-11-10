@@ -94,6 +94,8 @@ The top bar switches between **🌾 खेती Kheti · 🐔 कुखुर�
 - Each person: ledger with running balance, + Udharo, Received, ✔ Settle, 📤 share their statement. Voice: "Ram udharo 500", "Ram le 300 tiryo", "उधारो राम ५००".
 - ✎ **Rename** a person (all their old entries move to the new name; the old name stays as a nickname) and add **nicknames** (Rame, Ram dai, राम…). A nickname typed or spoken saves under the main name. Giving the name or nickname of someone already in the book offers to ⇄ **merge** the two.
 - Names typed in Roman also show in **नेपाली** (Ram Bahadur Thapa · राम बहादुर थापा), spelled automatically from common names and by sound; tap it on the person's page to correct the spelling. Voice in Nepali finds them by that spelling.
+- 👤 Typing a name shows the matching people right under the box (with the count and what they owe); tapping one keeps the keyboard up and moves to the amount.
+- 🔍 **Udharo book**: every person with their number of entries, when they were added and by whom, and what they owe — sort by most owed, name A–Z, newest added or last entry; tap for the 📜 ledger. Search entries by name, nickname, Nepali name, item or amount (fuzzy: Rami ≈ Rame, Visal ≈ Bishal, सीता ≈ सिता), filter by 📕/📗 and by who entered them.
 
 **⚙️ मिल (Mill)**
 - Its own section in the top bar. **कुटानी** (धान → चामल) and **पिसानी** (मकै, गहुँ, कोदो → पिठो) for customers, each with its **rate per पाथी** (add more kinds in ⚙️ Rates).

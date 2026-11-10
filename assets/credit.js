@@ -58,7 +58,6 @@ function renderCredit() {
   const ages = [0, 0, 0];
   owing.forEach(p => p.open.forEach(o => { const dd = daysBetween(o.date, t); ages[dd < 30 ? 0 : dd <= 90 ? 1 : 2] += o.amt; }));
   const maxAge = Math.max(1, ...ages);
-  const names = P.map(p => p.name).sort(), nickOpts = P.flatMap(p => p.nicks.map(n => [n, p.name]));
   $('#v-credit').innerHTML = `
     <h2 style="margin:2px 0 8px">📒 उधारो · Udharo</h2>
     <div class="card today tight shoptoday" style="background:linear-gradient(135deg,#B91C1C,#7F1D1D)">
@@ -72,9 +71,9 @@ function renderCredit() {
         <span class="chips" style="gap:4px"><button class="chip sm ${d.date === t ? 'on' : ''}" data-act="bsQuick" data-key="credit" data-days="0">Today</button><button class="chip sm ${d.date === y ? 'on' : ''}" data-act="bsQuick" data-key="credit" data-days="-1">Yest.</button><button class="chip sm ${d.date !== t && d.date !== y ? 'on' : ''}" data-act="bsCalToggle" data-key="credit" aria-label="Other date">${calTile()}</button></span></div>
       ${bsDateHtml('credit', d.date, { chips: false })}
       <div class="hshop" style="grid-template-columns:1.4fr 1fr">
-        <label><span>👤 Person</span><input data-cr="person" list="crNames" value="${esc(d.person)}" placeholder="Name" autocomplete="off"></label>
+        <label><span>👤 Person</span><input data-cr="person" value="${esc(d.person)}" placeholder="Name or nickname" autocomplete="off" autocapitalize="words" spellcheck="false"></label>
         <label><span>💰 Rs</span><input data-cr="amount" ${calcAttrs()} value="${esc(d.amount)}" placeholder="0"></label></div>
-      <datalist id="crNames">${names.map(n => `<option value="${esc(n)}">`).join('')}${nickOpts.map(([n, of]) => `<option value="${esc(n)}">${esc(of)}</option>`).join('')}</datalist>
+      <div id="crSug" class="crsug hidden"></div>
       <div class="row" style="gap:6px;margin-top:8px">
         <input data-cr="note" value="${esc(d.note || '')}" placeholder="${d.type === 'paid' ? 'Note (optional)' : 'What they took (optional)'}" autocomplete="off" style="flex:1;min-width:0;border:2px solid var(--line);border-radius:12px;padding:10px;font-size:16px;font-weight:700">
         <button class="btn green" data-act="crSave" style="padding:12px 18px;flex:none">✔ ${d.id ? 'Update' : 'Save'}</button></div>
@@ -85,6 +84,7 @@ function renderCredit() {
     ${total ? `<div class="card tight"><div class="label">How old is the udharo</div>
       ${[['Under 1 month', ages[0], 'var(--green)'], ['1 – 3 months', ages[1], 'var(--amber)'], ['Over 3 months', ages[2], 'var(--red)']].map(([l, v, c]) => `<div class="row" style="gap:8px;margin-top:6px"><span class="small" style="width:96px">${l}</span>
         <span style="flex:1;background:var(--line);border-radius:6px;height:12px;overflow:hidden"><i style="display:block;height:100%;width:${Math.round(v / maxAge * 100)}%;background:${c}"></i></span><b class="small" style="width:72px;text-align:right">${money(v)}</b></div>`).join('')}</div>` : ''}
+    <button class="btn crbookbtn" data-act="crBook">🔍 Search udharo · 👥 All ${P.length} ${P.length === 1 ? 'person' : 'people'} · ${all('credit').length} entries</button>
     <div class="row between"><h3 style="margin:8px 0">👥 Who owes</h3><span class="small muted">${td.n ? `Today: 📕 ${money(td.given)} · 📗 ${money(td.paid)}` : ''}</span></div>
     ${owing.length ? owing.map(p => `<button class="item" data-act="crPerson" data-v="${esc(p.key)}">
       <div class="ic" style="background:var(--red-l)">👤</div><div class="mid"><div class="t">${esc(p.name)}${crNeHtml(p.ne)}${p.nicks.length ? ` <span class="small muted" style="font-weight:600">(${esc(p.nicks.join(', '))})</span>` : ''}</div>
@@ -121,11 +121,13 @@ function saveCredit() {
   toast(`${rec.type === 'paid' ? '📗 Received' : '📕 Udharo'} ✓ ${rec.person} ${money(rec.amount)} · owes ${money(bal)}`, d.id ? null : rec.id);
   creditDraft = newCreditDraft(d.id ? null : { type: d.type }); renderCredit();
 }
-function openCreditPerson(key) {
+function openCreditPerson(key, back) {
   const p = creditPeople()[key]; if (!p) return;
+  if (back === undefined && crBookBack && crBookBack.key === key) back = crBookBack.fn;   // reopened after rename / nickname
+  crBookBack = back ? { key, fn: back } : null;
   const list = crRecsOf(key).sort((a, b) => (a.date || '').localeCompare(b.date || '') || a.createdAt - b.createdAt);
   let run = 0; const rows = list.map(r => { run += (r.type === 'paid' ? -1 : 1) * (Number(r.amount) || 0); return { r, run }; }).reverse();
-  openSheet(`<div class="row between" style="gap:8px"><h2 style="min-width:0;word-break:break-word;margin-bottom:2px">👤 ${esc(p.name)}</h2><button class="btn sm ghost" data-act="crRename" data-v="${esc(key)}" style="flex:none">✎ Name</button></div>
+  openSheet(`${back ? '<button class="btn sm ghost" data-act="sheetBack">‹ Udharo book</button>' : ''}<div class="row between" style="gap:8px"><h2 style="min-width:0;word-break:break-word;margin-bottom:2px">👤 ${esc(p.name)}</h2><button class="btn sm ghost" data-act="crRename" data-v="${esc(key)}" style="flex:none">✎ Name</button></div>
     <button class="crne-edit" data-act="crNeEdit" data-v="${esc(key)}"><span lang="ne">${esc(p.ne || 'नेपाली नाम')}</span> ✎</button>
     <div class="chips" style="gap:6px;margin:4px 0 10px;flex-wrap:wrap"><span class="small muted" style="align-self:center">Also called:</span>
       ${p.nicks.map(n => `<button class="chip sm" data-act="crNickDel" data-v="${esc(key)}" data-n="${esc(n)}" aria-label="Remove ${esc(n)}">${esc(n)} ✕</button>`).join('')}
@@ -141,6 +143,7 @@ function openCreditPerson(key) {
       <span>${fmtDate(r.date, true)} · ${r.type === 'paid' ? '📗 paid' + (r.pay === 'qr' ? ' (QR)' : '') : '📕 udharo'}${r.note ? '<br><span class="muted">' + esc(r.note) + '</span>' : ''}<br><span class="muted" style="font-size:11px">${whoWhen(r)}</span></span>
       <b style="text-align:right;white-space:nowrap;color:${r.type === 'paid' ? 'var(--green)' : 'inherit'}">${r.type === 'paid' ? '−' : '+'}${money(r.amount)}<br><span class="small muted">= ${money(run)}</span></b></div>`).join('')}</div>
     <div style="height:10px"></div><button class="btn big primary" data-act="closeSheet">Close</button>`);
+  if (back) sheetBackFn = back;
 }
 function creditPersonText(key) {
   const p = creditPeople()[key];
@@ -183,6 +186,7 @@ function flowCredit(p, v) {
 }
 
 function creditClick(act, b) {
+  if (crBookClick(act, b)) return true;
   const v = b.dataset.v, keep = () => $$('#creditForm [data-cr]').forEach(el => { creditDraft[el.dataset.cr] = el.value; });
   switch (act) {
     case 'crType': keep(); creditDraft.type = v; renderCredit(); return true;
@@ -287,3 +291,161 @@ function crNickAdd(key) {
       } else finish(false);
     }, onCancel: back });
 }
+
+// ---------- 🔍 fuzzy search: Rame ≈ Raame ≈ Rami, Bishal ≈ Visal, Sita ≈ Seeta, सीता ≈ सिता ----------
+const crDigits = s => String(s || '').replace(/[०-९]/g, d => '०१२३४५६७८९'.indexOf(d));
+function crSound(s) {
+  s = crDigits(s).toLowerCase().normalize('NFC');
+  if (/[ऀ-ॿ]/.test(s)) return s.replace(/[़ँंः्‌‍]/g, '').replace(/ी/g, 'ि').replace(/ू/g, 'ु').replace(/ई/g, 'इ').replace(/ऊ/g, 'उ')
+    .replace(/[शष]/g, 'स').replace(/व/g, 'ब').replace(/ण/g, 'न').replace(/[ङञ]/g, 'न').replace(/[^ऀ-ॿ0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return s.replace(/[^a-z0-9 ]+/g, ' ').replace(/chh/g, 'ch').replace(/ph/g, 'f').replace(/([kgcjtdpb])h/g, '$1').replace(/sh|ss|z/g, 's').replace(/[vw]/g, 'b')
+    .replace(/ee|ii|y(?=[^aeiou]|$)/g, 'i').replace(/oo|uu/g, 'u').replace(/aa/g, 'a').replace(/(.)\1+/g, '$1').replace(/\s+/g, ' ').trim();
+}
+function crLev(a, b, max) {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i]; let best = i;
+    for (let j = 1; j <= b.length; j++) { cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); best = Math.min(best, cur[j]); }
+    if (best > max) return max + 1;
+    prev = cur;
+  }
+  return prev[b.length];
+}
+// 0 = no match … 100 = exact. Every word of the query has to match some word of the text.
+function crFuzzy(q, text) {
+  const qs = crSound(q), ts = crSound(text);
+  if (!qs) return 1; if (!ts) return 0;
+  if (ts === qs) return 100;
+  if (ts.startsWith(qs)) return 95;
+  if (qs.length <= 2) return (' ' + ts).includes(' ' + qs) ? 90 : 0;   // 1–2 letters: only the start of a word
+  if (ts.includes(qs)) return 85;
+  const tw = ts.split(' ');
+  let score = 100;
+  for (const w of qs.split(' ')) {
+    const tol = w.length <= 3 ? 0 : w.length <= 6 ? 1 : 2;
+    let best = 0;
+    for (const t of tw) {
+      if (t.startsWith(w)) best = Math.max(best, 90);
+      else if (t.includes(w)) best = Math.max(best, 70);
+      else if (tol && crLev(w, t, tol) <= tol) best = Math.max(best, 65);
+      else if (tol && t.length > w.length && crLev(w, t.slice(0, w.length), tol) <= tol) best = Math.max(best, 55);
+    }
+    if (!best) return 0;
+    score = Math.min(score, best);
+  }
+  return score;
+}
+// best match of the query against a person's name, nicknames and Nepali name → { score, via }
+function crPersonMatch(q, p) {
+  if (!normPerson(q)) return { score: 1, via: '' };
+  const neQ = typeof romanToNe === 'function' && normPerson(q).length >= 3 ? romanToNe(q) : '';
+  let best = { score: 0, via: '' };
+  const tryOne = (t, via) => { if (!t) return; const sc = Math.max(crFuzzy(q, t), neQ && /[ऀ-ॿ]/.test(t) ? crFuzzy(neQ, t) - 5 : 0); if (sc > best.score) best = { score: sc, via }; };
+  tryOne(p.name, ''); tryOne(p.ne, ''); (p.nicks || []).forEach(n => tryOne(n, n));
+  return best;
+}
+// amount typed as the search ("500", "Rs 1,500", "५००")
+function crAmountQ(q) { const t = crDigits(q).replace(/rs\.?|रु\.?|,|\s/gi, ''); return /^\d+(\.\d+)?$/.test(t) ? t : ''; }
+function crEntryMatch(q, r, personScore) {
+  if (!normPerson(q)) return 1;
+  const aq = crAmountQ(q);
+  if (aq) { const a = String(Math.round((Number(r.amount) || 0) * 100) / 100); return a === aq ? 100 : a.includes(aq) ? 60 : 0; }
+  return Math.max(personScore || 0, crFuzzy(q, r.note || '') - (r.note ? 0 : 100));
+}
+
+// ---------- 👤 suggestions under the Person box (tap keeps the keyboard open) ----------
+function crSuggest() {
+  const box = $('#crSug'), el = $('#creditForm [data-cr=person]');
+  if (!box || !el) return;
+  const q = el.value, P = Object.values(creditPeople());
+  if (!normPerson(q) || document.activeElement !== el) { box.classList.add('hidden'); return; }
+  const hits = P.map(p => ({ p, m: crPersonMatch(q, p) })).filter(x => x.m.score >= 50).sort((a, b) => b.m.score - a.m.score || Math.abs(b.p.balance) - Math.abs(a.p.balance));
+  const exact = hits.length === 1 && hits[0].m.score === 100 && personKey(hits[0].p.name) === personKey(q);
+  if (!hits.length || exact) { box.innerHTML = hits.length ? '' : `<span class="small muted">No match · “${esc(normPerson(q))}” will be a new person</span>`; box.classList.toggle('hidden', exact); return; }
+  box.innerHTML = `<span class="small muted crsug-n">${hits.length} match${hits.length === 1 ? '' : 'es'}</span>` + hits.slice(0, 8).map(({ p, m }) => `<button type="button" class="crsug-i" data-keepkb data-act="crSugPick" data-v="${esc(p.name)}">
+    <b>${esc(p.name)}</b>${crNeHtml(p.ne)}${m.via ? ` <span class="small muted">(${esc(m.via)})</span>` : ''}<span class="crsug-bal" style="color:${p.balance > 0.5 ? 'var(--red)' : 'var(--green)'}">${money(p.balance)}</span></button>`).join('')
+    + (hits.length > 8 ? `<span class="small muted">+${hits.length - 8} more — keep typing</span>` : '');
+  box.classList.remove('hidden');
+}
+
+// ---------- 📒 Udharo book: all people + search all entries ----------
+let crBook = { q: '', tab: 'people', sort: 'owe', esort: 'new', by: '', type: '' }, crBookBack = null;
+function crBookData() {
+  const m = crNameMap(), P = creditPeople(), st = crBook, q = st.q;
+  const recs = all('credit').filter(r => (!st.by || (r.by || '') === st.by) && (!st.type || (r.type === 'paid' ? 'paid' : 'given') === st.type));
+  const info = {};   // per person: entries passing the filters, first added
+  recs.forEach(r => { const k = personKey(crCanon(r.person, m)); const o = info[k] || (info[k] = { n: 0, first: Infinity, firstBy: '' }); o.n++; if ((r.createdAt || 0) < o.first) { o.first = r.createdAt || 0; o.firstBy = r.by || ''; } });
+  const pm = {};
+  Object.values(P).forEach(p => { pm[p.key] = crPersonMatch(q, p); });
+  const aq = crAmountQ(q);
+  const people = Object.values(P).filter(p => info[p.key] && (!normPerson(q) || (aq ? recs.some(r => personKey(crCanon(r.person, m)) === p.key && crEntryMatch(q, r) > 0) : pm[p.key].score >= 50 || recs.some(r => personKey(crCanon(r.person, m)) === p.key && crEntryMatch(q, r, 0) >= 50))))
+    .map(p => Object.assign({}, p, { f: info[p.key], via: pm[p.key].via, score: pm[p.key].score }));
+  const cmp = { name: (a, b) => a.name.localeCompare(b.name), new: (a, b) => b.f.first - a.f.first, owe: (a, b) => b.balance - a.balance, recent: (a, b) => (b.last || '').localeCompare(a.last || '') }[st.sort] || (() => 0);
+  people.sort((a, b) => (q && !aq ? (b.score >= 90) - (a.score >= 90) : 0) || cmp(a, b));
+  const entries = recs.map(r => ({ r, sc: crEntryMatch(q, r, (pm[personKey(crCanon(r.person, m))] || {}).score) })).filter(x => x.sc >= 50 || (!normPerson(q)))
+    .sort((a, b) => ({ new: () => (b.r.createdAt || 0) - (a.r.createdAt || 0), date: () => (b.r.date || '').localeCompare(a.r.date || '') || b.r.createdAt - a.r.createdAt,
+      amount: () => (Number(b.r.amount) || 0) - (Number(a.r.amount) || 0), name: () => crCanon(a.r.person, m).localeCompare(crCanon(b.r.person, m)) }[st.esort] || (() => 0))());
+  const byList = [...new Set(all('credit').map(r => r.by || '').filter(Boolean))].sort();
+  return { people, entries: entries.map(x => x.r), byList, m };
+}
+function openCreditBook() {
+  openSheet(`<h2 style="margin-bottom:6px">📒 Udharo book</h2>
+    <div class="crsearch"><input id="crQ" value="${esc(crBook.q)}" placeholder="🔍 Name, nickname, item or amount" autocomplete="off" spellcheck="false" enterkeyhint="search">
+      <button type="button" class="crq-x ${crBook.q ? '' : 'hidden'}" data-keepkb data-act="crBookClear" aria-label="Clear">✕</button></div>
+    <div id="crBookBody"></div>
+    <div style="height:10px"></div><button class="btn big primary" data-act="closeSheet">Close</button>`);
+  crBookRender();
+}
+function crBookRender() {
+  const body = $('#crBookBody'); if (!body) return;
+  const st = crBook, d = crBookData(), q = normPerson(st.q);
+  const chip = (act, v, on, label) => `<button type="button" class="chip sm ${on ? 'on' : ''}" data-keepkb data-act="${act}" data-v="${esc(v)}">${label}</button>`;
+  const people = st.tab === 'people';
+  const sorts = people ? [['owe', 'Most owed'], ['name', 'Name A–Z'], ['new', 'Newest added'], ['recent', 'Last entry']] : [['new', 'Newest entered'], ['date', 'Date'], ['amount', 'Amount'], ['name', 'Name']];
+  const owe = d.people.reduce((a, p) => a + Math.max(0, p.balance), 0);
+  body.innerHTML = `
+    <div class="chips hrow" style="margin:8px 0 4px">${chip('crbTab', 'people', people, `👥 People <b>${d.people.length}</b>`)}${chip('crbTab', 'entries', !people, `📜 Entries <b>${d.entries.length}</b>`)}</div>
+    <div class="chips hrow"><span class="small muted crlab">Type</span>${chip('crbType', '', !st.type, 'All')}${chip('crbType', 'given', st.type === 'given', '📕 लिग्यो')}${chip('crbType', 'paid', st.type === 'paid', '📗 तिर्यो')}</div>
+    ${d.byList.length > 1 ? `<div class="chips hrow"><span class="small muted crlab">Entered by</span>${chip('crbBy', '', !st.by, 'Everyone')}${d.byList.map(b => chip('crbBy', b, st.by === b, '👤 ' + esc(b))).join('')}</div>` : ''}
+    <div class="chips hrow"><span class="small muted crlab">Sort</span>${sorts.map(([k, l]) => chip(people ? 'crbSort' : 'crbESort', k, (people ? st.sort : st.esort) === k, l)).join('')}</div>
+    <div class="small muted" style="margin:6px 2px">${q ? `“${esc(q)}”: ` : ''}<b>${d.people.length}</b> ${d.people.length === 1 ? 'person' : 'people'} · <b>${d.entries.length}</b> entr${d.entries.length === 1 ? 'y' : 'ies'}${people && owe ? ` · to receive <b style="color:var(--red)">${money(owe)}</b>` : ''}${st.by ? ' · by ' + esc(st.by) : ''}</div>
+    ${people ? (d.people.length ? d.people.map(p => `<button class="item" data-act="crBookPerson" data-v="${esc(p.key)}">
+        <div class="ic" style="background:${p.balance > 0.5 ? 'var(--red-l)' : 'var(--green-l)'}">👤</div>
+        <div class="mid"><div class="t">${esc(p.name)}${crNeHtml(p.ne)}</div>
+          <div class="s">${p.via ? `matched <b>${esc(p.via)}</b> · ` : p.nicks.length ? esc(p.nicks.join(', ')) + ' · ' : ''}<b>${p.f.n}</b> entr${p.f.n === 1 ? 'y' : 'ies'}${st.by || st.type ? '' : ''} · added ${p.f.first < Infinity ? fmtDate(iso(new Date(p.f.first))) : '—'}${p.f.firstBy ? ' by ' + esc(p.f.firstBy) : ''}</div>
+          <div class="s">📜 Ledger ›${p.last ? ' · last ' + fmtDate(p.last) : ''}</div></div>
+        <div class="amt" style="color:${p.balance > 0.5 ? 'var(--red)' : p.balance < -0.5 ? 'var(--green)' : 'var(--muted)'}">${Math.abs(p.balance) <= 0.5 ? '✓ 0' : money(Math.abs(p.balance))}<small>${p.balance > 0.5 ? 'owes' : p.balance < -0.5 ? 'advance' : 'settled'}</small></div></button>`).join('')
+      : '<p class="muted">No one matches.</p>')
+    : (d.entries.length ? d.entries.slice(0, 200).map(r => `<button class="item" data-act="crEdit" data-id="${r.id}">
+        <div class="ic" style="background:${r.type === 'paid' ? 'var(--green-l)' : 'var(--red-l)'}">${r.type === 'paid' ? '📗' : '📕'}</div>
+        <div class="mid"><div class="t">${esc(crCanon(r.person, d.m))}${crNeHtml(crNe(crCanon(r.person, d.m)))}${personKey(r.person) !== personKey(crCanon(r.person, d.m)) ? ` <span class="small muted">(${esc(r.person)})</span>` : ''}</div>
+          <div class="dt">📅 ${fmtDate(r.date)} · ${r.type === 'paid' ? 'paid back' + (r.pay === 'qr' ? ' (QR)' : '') : 'udharo'}${r.note ? ' · ' + esc(r.note) : ''}</div><div class="s">${whoWhen(r)}</div></div>
+        <div class="amt" style="color:${r.type === 'paid' ? 'var(--green)' : 'var(--red)'}">${r.type === 'paid' ? '−' : '+'}${money(r.amount)}</div></button>`).join('') + (d.entries.length > 200 ? `<p class="small muted">Showing 200 of ${d.entries.length} — search to narrow down.</p>` : '')
+      : '<p class="muted">No entries match.</p>')}`;
+  const x = $('#sheet .crq-x'); if (x) x.classList.toggle('hidden', !st.q);
+}
+function crBookClick(act, b) {
+  const v = b.dataset.v;
+  switch (act) {
+    case 'crBook': crBook.q = ''; openCreditBook(); setTimeout(() => { const q = $('#crQ'); if (q) q.focus(); }, 250); return true;
+    case 'crBookClear': crBook.q = ''; { const q = $('#crQ'); if (q) { q.value = ''; q.focus(); } } crBookRender(); return true;
+    case 'crbTab': crBook.tab = v; crBookRender(); return true;
+    case 'crbType': crBook.type = v; crBookRender(); return true;
+    case 'crbBy': crBook.by = v; crBookRender(); return true;
+    case 'crbSort': crBook.sort = v; crBookRender(); return true;
+    case 'crbESort': crBook.esort = v; crBookRender(); return true;
+    case 'crBookPerson': { if (document.activeElement) document.activeElement.blur(); const sc = $('#sheet').scrollTop; openCreditPerson(v, () => { openCreditBook(); $('#sheet').scrollTop = sc; }); return true; }
+    case 'crSugPick': { const el = $('#creditForm [data-cr=person]'); if (!el) return true; el.value = v; creditDraft.person = v; const h = $('#crHint'); if (h) h.textContent = creditHint(creditDraft);
+      $('#crSug').classList.add('hidden'); const a = $('#creditForm [data-cr=amount]'); if (a) a.focus(); return true; }
+  }
+  return false;
+}
+document.addEventListener('input', e => {
+  if (e.target.id === 'crQ') { crBook.q = e.target.value; crBookRender(); }
+  else if (e.target.dataset && e.target.dataset.cr === 'person') crSuggest();
+});
+document.addEventListener('focusin', e => { if (e.target.dataset && e.target.dataset.cr === 'person') crSuggest(); });
+document.addEventListener('focusout', e => { if (e.target.dataset && e.target.dataset.cr === 'person') setTimeout(() => { if (document.activeElement !== e.target) { const b = $('#crSug'); if (b) b.classList.add('hidden'); } }, 150); });
+// buttons marked data-keepkb act without taking the focus away from the field being typed in → the keyboard stays up
+document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('[data-keepkb]') && typeof isField === 'function' && isField(document.activeElement)) e.preventDefault(); }, true);
