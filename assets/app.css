@@ -435,3 +435,11 @@ body.kbd #top{position:relative}
 .hsale .hlots{flex-wrap:wrap;gap:5px;margin-bottom:5px}
 .hsale .hlots .chip{white-space:nowrap}
 .todaystats .stat b small{font-size:11px;margin-left:1px}
+
+.cutdays{margin:10px 0 4px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
+.cutdays>.label{padding:6px 10px;border-bottom:1px solid var(--line)}
+.cutday{display:grid;grid-template-columns:1fr auto 64px;gap:8px;align-items:center;width:100%;padding:8px 10px;border:0;border-bottom:1px solid var(--line);background:none;color:inherit;font:inherit;text-align:left}
+.cutday small{color:var(--muted);font-size:11px}
+.cutday em{font-style:normal;font-size:12px;color:var(--muted);text-align:right}
+.cutday.on{background:var(--soft,rgba(0,0,0,.05));font-weight:700}
+.cutday.tot{border-bottom:0;border-top:2px solid var(--line);font-weight:800}
