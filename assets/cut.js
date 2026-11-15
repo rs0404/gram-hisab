@@ -157,7 +157,7 @@ function chickRangeSum(from, to) {
   for (const id in db.records) {
     const r = db.records[id];
     if (hidden(r) || !r.date || r.date < from || r.date > to) continue;
-    if (r.kind === 'sale') { o.sales++; o.amount += Number(r.amount) || 0; o[r.type === 'live' ? 'liveKg' : r.type === 'parts' ? 'partsKg' : 'meatKg'] += Number(r.kg) || 0; if (r.type === 'live') o.birds += Number(r.birds) || 0; else if (r.type === 'meat') o.cutBirds += Number(r.birds) || 0; }
+    if (r.kind === 'sale') { o.sales++; o.amount += Number(r.amount) || 0; if (r.type === 'meat' || r.type === 'parts') o.meatAmt = (o.meatAmt || 0) + (Number(r.amount) || 0); o[r.type === 'live' ? 'liveKg' : r.type === 'parts' ? 'partsKg' : 'meatKg'] += Number(r.kg) || 0; if (r.type === 'live') o.birds += Number(r.birds) || 0; else if (r.type === 'meat') o.cutBirds += Number(r.birds) || 0; }
     else if (r.kind === 'grainsale') { o.sales++; o.amount += Number(r.amount) || 0; o.grainAmount = (o.grainAmount || 0) + (Number(r.amount) || 0); o.grainKg = (o.grainKg || 0) + (r.unit === 'kg' ? Number(r.qty) || 0 : (Number(r.qty) || 0) * bagKg()); }
     else if (r.kind === 'event' && r.type === 'dead') o.dead += Number(r.count) || 0;
     else if (r.kind === 'event' && r.type === 'cut') { o.cutBirds += Number(r.count) || 0; o.cutMeat = (o.cutMeat || 0) + (Number(r.qty) || 0); }
@@ -174,7 +174,8 @@ function openChickRange(from, to, label) {
       <div class="line"><span><b>Sales</b> (${o.sales})</span><b style="color:var(--green);font-size:22px">${money(o.amount)}</b></div>
       <div class="line"><span>🐔 Live · 🔪 Meat · 🍗 Khutta</span><b>${nfmt(round(o.liveKg, 1))} · ${nfmt(round(o.meatKg, 1))} · ${nfmt(round(o.partsKg, 1))} kg</b></div>
       <div class="line"><span>🐔 Live sold</span><b>${o.birds} birds · ${kgs(o.liveKg)}</b></div>
-      <div class="line"><span>✂️ Cut</span><b>${o.cutBirds} birds${o.cutMeat ? ' → ' + kgs(o.cutMeat) + ' meat' : ''} · sold ${kgs(o.meatKg)}</b></div>
+      <div class="line"><span>✂️ Cut</span><b>${o.cutBirds} birds${o.cutMeat ? ' → ' + kgs(o.cutMeat) + ' meat' : ''}</b></div>
+      <div class="line"><span>🔪 Meat sold</span><b>${kgs(o.meatKg)}${o.meatAmt ? ' · ' + money(o.meatAmt) : ''}</b></div>
       <div class="line"><span>💀 Dead</span><b>${o.dead}</b></div>
       ${o.grainKg ? `<div class="line"><span>🌾 Grain sold</span><b>${grainQtyText(o.grainKg)} · ${money(o.grainAmount)}</b></div>` : ''}
       ${o.bought ? `<div class="line"><span>🛒 Bought</span><b style="color:var(--red)">${money(o.bought)}</b></div>` : ''}</div>
@@ -187,7 +188,7 @@ function openChickRange(from, to, label) {
 function chickMiniCards() {
   const t = today(), y = addDays(t, -1), ws = typeof weekStart === 'function' ? weekStart(t) : addDays(t, -6);
   const card = (from, to, label) => { const o = chickRangeSum(from, to); return `<button class="card tight shopmini" data-act="chickRange" data-from="${from}" data-to="${to}" data-label="${esc(label)}">
-    <div class="label">${esc(label)}</div><div class="v">${money(o.amount)}</div><div class="small muted">🐔${o.birds} ✂️${o.cutBirds} 💀${o.dead}${o.grainKg ? ' 🌾' + nfmt(round(o.grainKg / bagKg(), 1)) : ''} ›</div></button>`; };
+    <div class="label">${esc(label)}</div><div class="v">${money(o.amount)}</div><div class="small muted">🐔${o.birds} ✂️${o.cutBirds} 🔪${nfmt(round(o.meatKg, 1))}${o.grainKg ? ' 🌾' + nfmt(round(o.grainKg / bagKg(), 1)) : ''} ›</div></button>`; };
   return `<div class="grid3" style="margin-bottom:12px">${card(y, y, 'Yesterday')}${card(ws, t, 'This week')}${card(bsMonthStart(t), t, BS_MONTHS[adToBs(t).m - 1])}</div>`;
 }
 

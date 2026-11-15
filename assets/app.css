@@ -432,3 +432,6 @@ body.kbd #top{position:relative}
 .lotopen .actions .btn{padding:7px 2px;font-size:13px;min-height:0}
 .lotopen .actions .btn svg.lic{width:16px;height:16px}
 .lotmore{width:100%;margin-top:6px;padding:6px;font-size:13px}
+.hsale .hlots{flex-wrap:wrap;gap:5px;margin-bottom:5px}
+.hsale .hlots .chip{white-space:nowrap}
+.todaystats .stat b small{font-size:11px;margin-left:1px}
