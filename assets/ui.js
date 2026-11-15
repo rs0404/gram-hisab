@@ -354,7 +354,7 @@ const ENTRY_VIEWS = {
   live: { title: '🐔 Live sales', f: r => r.kind === 'sale' && r.type === 'live' },
   meat: { title: '🔪 Meat sales', f: r => r.kind === 'sale' && r.type === 'meat' },
   parts: { title: '🍗 Khutta-tauko sales', f: r => r.kind === 'sale' && r.type === 'parts' },
-  cut: { title: '🔪 Chickens cut (meat)', f: r => (r.kind === 'sale' && r.type === 'meat') || (r.kind === 'event' && r.type === 'cut') },
+  cut: { title: '✂️ Chickens cut', f: r => (r.kind === 'sale' && r.type === 'meat' && Number(r.birds) > 0) || (r.kind === 'event' && r.type === 'cut') },
   dead: { title: '💀 Deaths', f: r => r.kind === 'event' && r.type === 'dead' },
   chicks: { title: '🐣 Chicks & count changes', f: r => r.kind === 'event' && ['restock', 'adjust', 'check', 'soldfix'].includes(r.type) },
   buy: { title: '🛒 Everything spent', f: r => r.kind === 'purchase' || (r.kind === 'event' && (r.type === 'restock' || r.type === 'expense' || USAGE_TYPES.includes(r.type))) },
@@ -384,8 +384,8 @@ function openLotEntries(lotId, key) {
   const inv = computeInventory();
   const cost = r => r.kind === 'event' && USAGE_TYPES.includes(r.type) ? usageCost(r, inv) : Number(r.amount) || 0;
   const firstChicks = base === 'buy' ? Number(l.chickCost) || 0 : 0;
-  const amt = list.reduce((a, r) => a + cost(r), 0) + firstChicks;
-  const kg = list.reduce((a, r) => a + (r.kind === 'sale' ? (r.type === 'parts' && base !== 'parts' ? 0 : Number(r.kg) || 0) : (r.category === 'feed' || r.type === 'feed') ? stockQty('feed', r) : 0), 0);
+  const amt = base === 'cut' ? 0 : list.reduce((a, r) => a + cost(r), 0) + firstChicks;   // cut view: birds + meat from them, not sale money
+  const kg = base === 'cut' ? round(list.reduce((a, r) => a + (Number(r.kind === 'sale' ? r.cutKg : r.qty) || 0), 0), 2) : list.reduce((a, r) => a + (r.kind === 'sale' ? (r.type === 'parts' && base !== 'parts' ? 0 : Number(r.kg) || 0) : (r.category === 'feed' || r.type === 'feed') ? stockQty('feed', r) : 0), 0);
   const birds = list.reduce((a, r) => a + (Number(r.count) || Number(r.birds) || 0), 0);
   const extra = base === 'chicks' ? `<div class="line"><span>First chicks (${fmtDate(l.startDate, true)})</span><b>${l.chicks}${lotMix(l).reduce((a, m) => a + (Number(m.free) || 0), 0) ? ' + 🎁' + lotMix(l).reduce((a, m) => a + (Number(m.free) || 0), 0) + ' free' : ''} · ${money(l.chickCost || 0)} <button class="btn sm ghost" data-act="editLot" data-id="${l.id}">✎</button></b></div>` : '';
   openSheet(`<button class="btn sm ghost" data-act="openLot" data-id="${l.id}">‹ ${esc(l.name)}</button>
@@ -407,7 +407,7 @@ function itemHtml(r, cost) {
     return `<button class="item" data-act="editRec" data-id="${r.id}">
       <div class="ic ${r.type}">${r.type === 'live' ? '🐔' : r.type === 'parts' ? '🍗' : '🔪'}</div>
       <div class="mid"><div class="t">${r.flag ? '<span class="flagmark">⚑</span> ' : ''}${kgs(r.kg)} ${SALE_LABEL[r.type] || r.type}${r.type === 'parts' ? '' : ' · ' + esc(breedName(r.breed || lotBreed(lotById(r.lotId))))}</div>
-      <div class="s">${fmtDate(r.date)} · ${esc(lotName(r.lotId))} · ${money(r.rate)}/kg${r.birds ? ' · ' + r.birds + ' birds' : ''}${r.invoice ? ' · Inv ' + esc(r.invoice) : ''} · ${whoWhen(r)}</div></div>
+      <div class="s">${fmtDate(r.date)} · ${esc(lotName(r.lotId))} · ${money(r.rate)}/kg${r.birds ? (r.type === 'meat' ? ' · ✂️ ' + r.birds + ' cut' : ' · ' + r.birds + ' birds') : ''}${r.invoice ? ' · Inv ' + esc(r.invoice) : ''} · ${whoWhen(r)}</div></div>
       <div class="amt">${money(r.amount)}</div></button>`;
   }
   if (r.kind === 'grainsale') {
@@ -757,7 +757,7 @@ function lotDailyHtml(l) {
 // one box of the Today card: only that kind of entry for the day (🐔 live · ✂️ cut · 💀 dead · 🌾 grain)
 const DAY_KINDS = {
   live: { label: '🐔 Live sold', f: r => r.kind === 'sale' && r.type === 'live' },
-  cut: { label: '✂️ Cut', f: r => r.kind === 'event' && (r.type === 'cut' || r.type === 'meatloss') },
+  cut: { label: '✂️ Cut', f: r => (r.kind === 'event' && (r.type === 'cut' || r.type === 'meatloss')) || (r.kind === 'sale' && r.type === 'meat' && Number(r.birds) > 0) },
   meat: { label: '🔪 Meat sold', f: r => r.kind === 'sale' && (r.type === 'meat' || r.type === 'parts') },
   dead: { label: '💀 Dead', f: r => r.kind === 'event' && r.type === 'dead' },
   grain: { label: '🌾 Grain sold', f: r => r.kind === 'grainsale' }
@@ -770,8 +770,11 @@ function openDayKind(date, kind) {
   if (kind === 'live') lines.push(['Birds', sum(sales, 'birds')], ['Weight', kgs(sum(sales, 'kg'))], ['Amount', money(sum(sales, 'amount')), 'var(--green)']);
   const onHand = () => typeof meatOnHand === 'function' ? meatOnHand().reduce((a, x) => a + x.kg, 0) : 0;
   if (kind === 'cut') {
-    const n = sum(cuts, 'count'), kg = sum(cuts, 'qty'), loss = list.filter(r => r.type === 'meatloss');
-    lines.push(['✂️ Birds cut', n], ['Meat from them', kgs(kg)]);
+    const atSale = sales.filter(r => r.type === 'meat'), sb = sum(atSale, 'birds'), skg = sum(atSale, 'cutKg');
+    const n = sum(cuts, 'count') + sb, kg = sum(cuts, 'qty') + skg, loss = list.filter(r => r.type === 'meatloss');
+    lines.push(['✂️ Birds cut', n]);
+    if (sb) lines.push(['· cut while selling meat', sb]);
+    lines.push(['Meat from them', (skg ? '≈ ' : '') + kgs(round(kg, 2))]);
     if (n) lines.push(['Per bird', kgs(round(kg / n, 2))]);
     if (loss.length) lines.push(['Meat loss', kgs(sum(loss, 'qty')), 'var(--red)']);
     const sold = Object.values(db.records).filter(r => !hidden(r) && r.date === date && r.kind === 'sale' && r.type === 'meat');

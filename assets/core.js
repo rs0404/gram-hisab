@@ -2,7 +2,7 @@
 'use strict';
 
 const HAS_ANDROID = typeof window.Android !== 'undefined';
-const APP_VERSION = '2.20.1';
+const APP_VERSION = '2.20.2';
 
 // ---------- small utils ----------
 const $ = (sel, el) => (el || document).querySelector(sel);
@@ -604,7 +604,7 @@ function periodStats(from, to) {
     if (hidden(r) || !r.date || r.date < from || r.date > to) continue;
     if (r.kind === 'sale') {
       out.count++; out.kg += Number(r.kg) || 0; out.amount += Number(r.amount) || 0; out.birds += Number(r.birds) || 0;
-      if (r.type === 'live') out.liveBirds += Number(r.birds) || 0; else if (r.type === 'meat') out.cutBirds += Number(r.birds) || 0;   // old-style meat sales with birds cut
+      if (r.type === 'live') out.liveBirds += Number(r.birds) || 0; else if (r.type === 'meat' && Number(r.birds) > 0) { out.cutBirds += Number(r.birds); out.cutMeat += Number(r.cutKg) || 0; }   // birds cut while selling meat
       out[r.type === 'live' ? 'liveAmt' : r.type === 'parts' ? 'partsAmt' : 'meatAmt'] += Number(r.amount) || 0;
       if (r.type === 'live') out.liveKg += Number(r.kg) || 0; else if (r.type === 'parts') out.partsKg = (out.partsKg || 0) + (Number(r.kg) || 0); else out.meatKg += Number(r.kg) || 0;
     } else if (r.kind === 'event') {

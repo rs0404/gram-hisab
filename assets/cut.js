@@ -157,7 +157,7 @@ function chickRangeSum(from, to) {
   for (const id in db.records) {
     const r = db.records[id];
     if (hidden(r) || !r.date || r.date < from || r.date > to) continue;
-    if (r.kind === 'sale') { o.sales++; o.amount += Number(r.amount) || 0; if (r.type === 'meat' || r.type === 'parts') o.meatAmt = (o.meatAmt || 0) + (Number(r.amount) || 0); o[r.type === 'live' ? 'liveKg' : r.type === 'parts' ? 'partsKg' : 'meatKg'] += Number(r.kg) || 0; if (r.type === 'live') o.birds += Number(r.birds) || 0; else if (r.type === 'meat') o.cutBirds += Number(r.birds) || 0; }
+    if (r.kind === 'sale') { o.sales++; o.amount += Number(r.amount) || 0; if (r.type === 'meat' || r.type === 'parts') o.meatAmt = (o.meatAmt || 0) + (Number(r.amount) || 0); o[r.type === 'live' ? 'liveKg' : r.type === 'parts' ? 'partsKg' : 'meatKg'] += Number(r.kg) || 0; if (r.type === 'live') o.birds += Number(r.birds) || 0; else if (r.type === 'meat' && Number(r.birds) > 0) { o.cutBirds += Number(r.birds); o.cutMeat = (o.cutMeat || 0) + (Number(r.cutKg) || 0); } }
     else if (r.kind === 'grainsale') { o.sales++; o.amount += Number(r.amount) || 0; o.grainAmount = (o.grainAmount || 0) + (Number(r.amount) || 0); o.grainKg = (o.grainKg || 0) + (r.unit === 'kg' ? Number(r.qty) || 0 : (Number(r.qty) || 0) * bagKg()); }
     else if (r.kind === 'event' && r.type === 'dead') o.dead += Number(r.count) || 0;
     else if (r.kind === 'event' && r.type === 'cut') { o.cutBirds += Number(r.count) || 0; o.cutMeat = (o.cutMeat || 0) + (Number(r.qty) || 0); }
