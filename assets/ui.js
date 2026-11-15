@@ -762,14 +762,21 @@ const DAY_KINDS = {
   dead: { label: '💀 Dead', f: r => r.kind === 'event' && r.type === 'dead' },
   grain: { label: '🌾 Grain sold', f: r => r.kind === 'grainsale' }
 };
-// ✂️ cut view: the chosen day and the 3 days before it, side by side for quick reference
-function cutRecentDaysHtml(date) {
+// day views (🐔 live · 🔪 meat · ✂️ cut): the chosen day and the 3 days before it, for quick reference
+const RECENT_DAYS = {
+  live: { label: '🐔 Live sold', row: p => [p.liveBirds ? '🐔 ' + p.liveBirds + ' bird' + (p.liveBirds === 1 ? '' : 's') : '', p.liveKg ? kgs(round(p.liveKg, 1)) : '', p.liveAmt ? money(p.liveAmt) : ''], tot: ['liveBirds', 'liveKg', 'liveAmt'] },
+  meat: { label: '🔪 Meat sold', row: p => [p.meatKg ? '🔪 ' + kgs(round(p.meatKg, 1)) : '', '', p.meatAmt + p.partsAmt ? money(p.meatAmt + p.partsAmt) : ''], tot: ['meatKg', null, 'meatAmt', 'partsAmt'] },
+  cut: { label: '✂️ Cut', row: p => [p.cutBirds ? '✂️ ' + p.cutBirds + ' bird' + (p.cutBirds === 1 ? '' : 's') : '', '', p.cutMeat ? '≈ ' + kgs(round(p.cutMeat, 1)) : ''], tot: ['cutBirds', null, 'cutMeat'] }
+};
+function recentDaysHtml(date, kind) {
+  const R = RECENT_DAYS[kind]; if (!R) return '';
   const days = [0, 1, 2, 3].map(n => addDays(date, -n));
-  const rows = days.map(d => { const p = periodStats(d, d); return { d, n: p.cutBirds, kg: p.cutMeat }; });
-  const tot = rows.reduce((a, r) => ({ n: a.n + r.n, kg: a.kg + r.kg }), { n: 0, kg: 0 });
-  return `<div class="cutdays"><div class="label">✂️ Cut · last 4 days</div>
-    ${rows.map(r => `<button class="cutday ${r.d === date ? 'on' : ''}" data-act="dayKind" data-v="cut" data-d="${r.d}"><span>${esc(fmtDate(r.d))}<small> · ${WEEK_NE[weekday(r.d)]}</small></span><b>${r.n ? '✂️ ' + r.n + ' bird' + (r.n === 1 ? '' : 's') : '—'}</b><em>${r.kg ? '≈ ' + kgs(round(r.kg, 1)) : ''}</em></button>`).join('')}
-    <div class="cutday tot"><span>4 days</span><b>✂️ ${tot.n} birds</b><em>${tot.kg ? '≈ ' + kgs(round(tot.kg, 1)) : ''}</em></div></div>`;
+  const ps = days.map(d => periodStats(d, d)), t = {};
+  ps.forEach(p => ['liveBirds', 'liveKg', 'liveAmt', 'meatKg', 'meatAmt', 'partsAmt', 'cutBirds', 'cutMeat'].forEach(k => { t[k] = (t[k] || 0) + (Number(p[k]) || 0); }));
+  const cells = ([a, b, c]) => `<b>${a || '—'}${b ? `<small> · ${b}</small>` : ''}</b><em>${c}</em>`;
+  return `<div class="cutdays"><div class="label">${R.label} · last 4 days</div>
+    ${days.map((d, i) => `<button class="cutday ${d === date ? 'on' : ''}" data-act="dayKind" data-v="${kind}" data-d="${d}"><span>${esc(fmtDate(d))}<small> · ${WEEK_NE[weekday(d)]}</small></span>${cells(R.row(ps[i]))}</button>`).join('')}
+    <div class="cutday tot"><span>4 days</span>${cells(R.row(t))}</div></div>`;
 }
 function openDayKind(date, kind) {
   const K = DAY_KINDS[kind] || DAY_KINDS.live, sum = (l, k) => l.reduce((a, r) => a + (Number(r[k]) || 0), 0);
@@ -806,7 +813,7 @@ function openDayKind(date, kind) {
     <div class="small muted" style="margin-bottom:8px">${fmtDate(date, true)} · ${list.length} entr${list.length === 1 ? 'y' : 'ies'}</div>
     <div class="hstypes chips" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:8px">${chip('live', '🐔 Live')}${chip('meat', '🔪 Meat')}${chip('cut', '✂️ Cut')}${chip('grain', '🌾 Grain')}</div>
     <div class="summary">${lines.map(([a, b, c]) => `<div class="line"><span>${a}</span><b${c ? ` style="color:${c}"` : ''}>${b}</b></div>`).join('')}</div>
-    ${kind === 'cut' ? cutRecentDaysHtml(date) : ''}
+    ${recentDaysHtml(date, kind)}
     ${list.length ? `<div class="label" style="margin:10px 0 4px">${fmtDate(date)} · entries</div>` : ''}
     ${list.length ? list.map(r => itemHtml(r)).join('') : `<p class="muted">Nothing for ${esc(K.label.replace(/^\S+\s/, '').toLowerCase())} on this day.</p>`}
     <div class="btnrow" style="margin-top:10px"><button class="btn ghost" data-act="dayKind" data-v="${kind}" data-d="${addDays(date, -1)}">‹ ${esc(fmtDate(addDays(date, -1)))}</button>
