@@ -199,7 +199,7 @@ function flowSaleBreed(p, v, lot, breed) {
       invoice: p.invoice || '', flag: !!p.flag, note: '', heard: p.text || '' };
     if (kgEst) sale.kgEst = true;
     if (type === 'parts') sale.birds = 0;
-    else if (sale.birds == null) { sale.birds = saleBirdEstimate(sale).birds; sale.birdsEst = true; }
+    else if (sale.birds == null) { sale.birds = saleBirdEstimate(sale).birds; sale.birdsEst = type === 'live'; }
     if (db.meta.confirmVoice) confirmSale(sale, told, v);
     else saveSale(sale, told, v);
   }
@@ -212,8 +212,9 @@ function saleBirdEstimate(sale) {
     const e = estLiveBirds(sale.kg, lot, sale.breed, sale.date);
     return { birds: e.birds, note: `≈ ${nfmt(e.est.kg)} kg per bird (from ${e.est.source})` };
   }
+  // meat: never guess a cut — birds cut count only when typed (or saved as a ✂️ Cut)
   const e = estMeatCut(sale.kg, lot, sale.breed, sale.date);
-  return { birds: e.birds, note: `Cut meat in stock: ${kgs(e.stock)} · 1 chicken ≈ ${kgs(e.perBird)} meat (${e.est.source})`, perBird: e.perBird };
+  return { birds: 0, note: `Cut meat in stock: ${kgs(e.stock)}${e.stock + 0.05 < sale.kg ? ' — less than sold; save a ✂️ Cut if you cut more' : ''}`, perBird: e.perBird, stock: e.stock };
 }
 
 function saleSummaryHtml(sale) {
@@ -237,7 +238,7 @@ function saleBirdsRow(sale) {
   return `<div class="line" style="align-items:center"><span>${sale.type === 'live' ? '🐔 Birds sold' : '🔪 Chickens cut now'}</span>
       <span class="row" style="gap:6px"><button class="btn sm ghost" data-act="saleBirds" data-d="-1">−</button><b style="font-size:24px;min-width:30px;text-align:center">${sale.birds || 0}</b><button class="btn sm ghost" data-act="saleBirds" data-d="1">+</button></span></div>
     ${sale.type === 'meat' ? `<div class="chips" style="padding:6px 0">${[0, 1, 2, 3, 4].map(n => `<button class="chip sm ${Number(sale.birds) === n ? 'on' : ''}" data-act="saleBirdsSet" data-n="${n}">${n}</button>`).join('')}</div>` : ''}
-    <div class="small muted" style="padding:2px 0 6px">${sale.birdsEst ? 'Estimated — change if different. ' : ''}${esc(est.note)}${left != null ? ` · ${esc(breedName(sale.breed))} left now: ${left}` : ''}${over ? ' <b class="flagmark">⚠ more than left!</b>' : ''}</div>`;
+    <div class="small muted" style="padding:2px 0 6px">${sale.birdsEst && sale.type === 'live' ? 'Estimated — change if different. ' : ''}${esc(est.note)}${left != null ? ` · ${esc(breedName(sale.breed))} left now: ${left}` : ''}${over ? ' <b class="flagmark">⚠ more than left!</b>' : ''}</div>`;
 }
 let curSaleCtx = null;
 function confirmSale(sale, told, v, silent) {

@@ -272,7 +272,7 @@ function homeSaleHtml() {
     </form>` : `<form class="hshop" data-form="homeSale">
       <label><span>⚖️ Kg</span><input data-hsale="kg" type="number" inputmode="decimal" step="any" placeholder="0"></label>
       <label><span>💰 Rs total</span><input data-hsale="amount" ${calcAttrs('#v-home [data-hsale=kg]')} placeholder="auto"></label>
-      <label><span>${h.type === 'meat' ? '✂️ Cut' : '🐔 Birds'}</span><input data-hsale="birds" type="number" inputmode="numeric" placeholder="${h.type === 'parts' ? '—' : 'auto'}" ${h.type === 'parts' ? 'disabled' : ''} enterkeyhint="done"></label>
+      <label><span>${h.type === 'meat' ? '✂️ Cut' : '🐔 Birds'}</span><input data-hsale="birds" type="number" inputmode="numeric" placeholder="${h.type === 'parts' ? '—' : h.type === 'meat' ? '0' : 'auto'}" ${h.type === 'parts' ? 'disabled' : ''} enterkeyhint="done"></label>
     </form>`}
     <div class="small hsale-hint" id="hsaleHint">${esc(homeSaleHint())}</div>
     <button class="btn hsave" data-act="homeSaleSave">${h.type === 'cut' ? '✂️ Save cut (not a sale)' : '✔ Save sale'}</button>
@@ -307,7 +307,8 @@ function homeSaleHint() {
   const c = homeSaleCalc();
   const what = c.h.type === 'parts' ? 'Khutta-tauko' : `${breedName(c.h.breed)} ${c.h.type}`;
   if (!c.kg && !c.amount) return `${what} · Rs ${nfmt(c.defRate)}/kg — type kg or the amount`;
-  return `${c.kgEst ? '≈ ' : ''}${nfmt(c.kg || 0)} kg × Rs ${nfmt(c.rate)} = ${money(c.amount || 0)}${c.h.type === 'parts' ? '' : ` · ${c.birds || 0} ${c.h.type === 'meat' ? 'cut' : 'bird' + (c.birds === 1 ? '' : 's')}${c.est ? ' (auto)' : ''}`}`;
+  const meatNote = c.h.type === 'meat' ? (c.birds ? ` · ✂️ ${c.birds} cut` : c.est && c.est.stock != null ? ` · ${nfmt(round(c.est.stock, 1))} kg cut meat in stock${c.est.stock + 0.05 < c.kg ? ' ⚠' : ''}` : '') : '';
+  return `${c.kgEst ? '≈ ' : ''}${nfmt(c.kg || 0)} kg × Rs ${nfmt(c.rate)} = ${money(c.amount || 0)}${c.h.type === 'parts' ? '' : c.h.type === 'meat' ? meatNote : ` · ${c.birds || 0} bird${c.birds === 1 ? '' : 's'}${c.est ? ' (auto)' : ''}`}`;
 }
 function saveHomeSale() {
   if (homeSaleState().type === 'cut') { saveHomeCut(); return; }
@@ -503,10 +504,10 @@ function sellDraftSale(d) {
   return { lotId: d.lotId, breed: c.breed, type: d.type, kg: c.kg, date: d.date || today(), id: d.id };
 }
 function sellBirdsHint(d) {
-  if (!d.lotId || !num(d.kg)) return d.type === 'live' ? 'Enter the weight — the app fills in the birds' : 'Enter the weight — the app suggests how many to cut';
+  if (!d.lotId || !num(d.kg)) return d.type === 'live' ? 'Enter the weight — the app fills in the birds' : 'Birds cut: type only if you cut chickens for this sale';
   const e = saleBirdEstimate(sellDraftSale(d));
   const left = lotStats(d.lotId).byBreed[sellCalc(d).breed];
-  return (d.birdsManual ? '' : 'Estimated — change if different. ') + e.note + (left ? ` · left now: ${left.remaining}` : '');
+  return (d.birdsManual || d.type !== 'live' ? '' : 'Estimated — change if different. ') + e.note + (left ? ` · left now: ${left.remaining}` : '');
 }
 function sellAutoBirds(d) {
   if (d.birdsManual || !d.lotId) return;

@@ -2,7 +2,7 @@
 'use strict';
 
 const HAS_ANDROID = typeof window.Android !== 'undefined';
-const APP_VERSION = '2.20.0';
+const APP_VERSION = '2.20.1';
 
 // ---------- small utils ----------
 const $ = (sel, el) => (el || document).querySelector(sel);
