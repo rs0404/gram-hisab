@@ -472,3 +472,16 @@ body.kbd #top{position:relative}
 .lline svg.lic{width:14px;height:14px;vertical-align:-0.12em}
 .lottoday{display:block;color:var(--ink);margin-top:1px}
 .lottoday b{color:var(--green)}
+
+/* 🐔 Kukhura look: warm terracotta header + Today card on a soft peach-to-cream page */
+body.sec-poultry{background:linear-gradient(180deg,#FBE3C8 0,#FDF0DC 180px,#FFF8EC 420px,#FFF8EC 100%)}
+body.sec-poultry #top{background:linear-gradient(135deg,#A63A12,#7C2D12)}
+body.sec-poultry .navbtn.on{color:#B93E0E}
+body.sec-poultry .card{box-shadow:0 1px 0 #F0DFC6,0 3px 12px rgba(124,45,18,.07)}
+body.sec-poultry .card.today{background:linear-gradient(150deg,#D9520F 0%,#B93E0E 48%,#8A2F10 100%);box-shadow:0 8px 20px rgba(138,47,16,.30)}
+body.sec-poultry .today .stat{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.14)}
+body.sec-poultry .today .hsale{border-top-color:rgba(255,255,255,.25)}
+body.sec-poultry .today .hsale .chip{background:rgba(255,255,255,.92);color:#8A2F10}
+body.sec-poultry .today .hsale .chip.on{background:#FCD34D;color:#5F1F0A;box-shadow:0 1px 6px rgba(0,0,0,.2)}
+body.sec-poultry .today .hshop input:focus{border-color:#FCD34D}
+body.sec-poultry .today .hsave{color:#8A2F10}
