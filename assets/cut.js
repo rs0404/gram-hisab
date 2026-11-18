@@ -134,14 +134,18 @@ function askMeatLeftAfterSale(sale) {
 // ---------- cutting summary for a lot ----------
 function lotCutSummaryHtml(l) {
   const cuts = all('event').filter(r => r.type === 'cut' && r.lotId === l.id && Number(r.qty) > 0 && Number(r.count) > 0);
-  if (!cuts.length) return '';
+  // birds cut while selling meat (typed in the ✂️ Cut box of a meat sale) count as cut too
+  const atSale = all('sale').filter(r => r.type === 'meat' && r.lotId === l.id && Number(r.birds) > 0), saleBirds = atSale.reduce((a, r) => a + Number(r.birds), 0);
+  const saleLine = saleBirds ? `<div class="line"><span>✂️ Cut while selling meat</span><b>${saleBirds} bird${saleBirds === 1 ? '' : 's'} (${atSale.length} sale${atSale.length > 1 ? 's' : ''})</b></div>` : '';
+  if (!cuts.length) return saleBirds ? `<h3>✂️ Cutting</h3><div class="summary small">${saleLine}</div>` : '';
   const birds = cuts.reduce((a, r) => a + Number(r.count), 0), meat = cuts.reduce((a, r) => a + Number(r.qty), 0);
   const wl = cuts.filter(r => Number(r.liveKg) > 0), liveB = wl.reduce((a, r) => a + Number(r.count), 0), live = wl.reduce((a, r) => a + Number(r.liveKg), 0), meatW = wl.reduce((a, r) => a + Number(r.qty), 0);
   const parts = cuts.reduce((a, r) => a + (Number(r.partsKg) || 0), 0), partsB = cuts.filter(r => Number(r.partsKg) > 0).reduce((a, r) => a + Number(r.count), 0);
   const b = lotBreeds(l)[0], perMeat = meat / birds, perLive = liveB ? live / liveB : estBirdKg(l, b, today()).kg, perParts = partsB ? parts / partsB : 0;
   const cutValue = perMeat * priceFor('meat', b) + perParts * (Number(getSet('partsPrice')) || 0), liveValue = perLive * priceFor('live', b);
   return `<h3>✂️ Cutting</h3><div class="summary small">
-    <div class="line"><span>Cut</span><b>${birds} birds → ${kgs(meat)} meat (${cuts.length} cut${cuts.length > 1 ? 's' : ''})</b></div>
+    <div class="line"><span>✂️ Cut entries</span><b>${birds} birds → ${kgs(meat)} meat (${cuts.length} cut${cuts.length > 1 ? 's' : ''})</b></div>
+    ${saleLine}${saleBirds ? `<div class="line"><span>All birds cut</span><b>${birds + saleBirds} birds</b></div>` : ''}
     <div class="line"><span>Meat per bird</span><b>${kgs(perMeat)}</b></div>
     <div class="line"><span>Live per bird ${liveB ? '' : '<span class="muted">(estimate)</span>'}</span><b>${kgs(perLive)}</b></div>
     ${liveB ? `<div class="line"><span>Yield (meat ÷ live)</span><b>${round(meatW / live * 100)}%</b></div>` : ''}

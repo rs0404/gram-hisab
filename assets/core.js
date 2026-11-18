@@ -2,7 +2,7 @@
 'use strict';
 
 const HAS_ANDROID = typeof window.Android !== 'undefined';
-const APP_VERSION = '2.20.4';
+const APP_VERSION = '2.21.0';
 
 // ---------- small utils ----------
 const $ = (sel, el) => (el || document).querySelector(sel);
@@ -496,8 +496,7 @@ function estLiveBirds(kg, l, breed, date) {
   return { birds: kg > 0 ? Math.max(1, Math.round(kg / e.kg)) : 0, est: e };
 }
 function estMeatCut(kg, l, breed, date) {
-  const s = lotStats(l.id), b = s && s.byBreed[breed];
-  const stock = b ? b.meatStock : 0;
+  const stock = round(Object.values(computeStats()).reduce((a, s) => a + (!s.lot.closed && s.byBreed[breed] ? s.byBreed[breed].meatStock : 0), 0), 2);
   const e = estBirdKg(l, breed, date);
   const perBird = learnedMeatPerBird(breed) || e.kg * dressYield(breed);
   const need = kg - stock;
@@ -541,14 +540,14 @@ function computeStats() {
       else {
         s.meatKg += kg; s.meatRev += amt; b.meatKg += kg; b.cutBirds += birds;
         const ck = birds ? Number(r.cutKg) || birds * curveKg(daysBetween(s.lot.startDate, r.date)) * dressYield(r.breed) : 0;
-        b.cutKg += ck; b.moves.push([r.date, r.createdAt || 0, ck - kg]);
+        b.cutKg += ck; b.moves.push([r.date, r.createdAt || 0, ck, kg, false]);
       }
     } else if (r.kind === 'event') {
       const c = Number(r.count) || 0, a = Number(r.amount) || 0;
       if (r.type === 'dead') b.dead += c;
       else if (r.type === 'restock') { b.restock += restockIn(r); s.free += Number(r.free) || 0; s.costChicks += a; s.expenses += a; }
-      else if (r.type === 'cut') { const ck = Number(r.qty) || c * curveKg(daysBetween(s.lot.startDate, r.date)) * dressYield(r.breed); b.cutBirds += c; b.cutKg += ck; b.partsCut += Number(r.partsKg) || 0; b.moves.push([r.date, r.createdAt || 0, ck]); }
-      else if (r.type === 'meatloss') { b.meatLoss += Number(r.qty) || 0; b.moves.push([r.date, r.createdAt || 0, -(Number(r.qty) || 0)]); }
+      else if (r.type === 'cut') { const ck = Number(r.qty) || c * curveKg(daysBetween(s.lot.startDate, r.date)) * dressYield(r.breed); b.cutBirds += c; b.cutKg += ck; b.partsCut += Number(r.partsKg) || 0; b.moves.push([r.date, r.createdAt || 0, ck, 0, false]); }
+      else if (r.type === 'meatloss') { b.meatLoss += Number(r.qty) || 0; b.moves.push([r.date, r.createdAt || 0, 0, Number(r.qty) || 0, true]); }
       else if (r.type === 'soldfix') b.soldBirds += c;
       else if (r.type === 'adjust') b.adjust += c;
       else if (r.type === 'check') { if (r.date > s.lastCheck) s.lastCheck = r.date; }
@@ -566,14 +565,24 @@ function computeStats() {
       } else if (r.type === 'expense') { s.expenses += a; s.costOther += a; }
     }
   }
+  // cut meat not sold yet: one running balance in date order that never goes below 0
+  // (an old sale of more meat than the estimate must not swallow later cuts).
+  // The meat is one pile in the shop: a meat sale booked to one lot first uses that lot's cut meat,
+  // then the same chicken type's cut meat from the other lots — so "meat on hand" goes down whichever lot is picked.
+  const pile = [];
+  Object.values(L).forEach(s => Object.keys(s.byBreed).forEach(k => { const b = s.byBreed[k]; b.meatStock = 0; b.moves.forEach(m => pile.push({ m, b, k, s })); delete b.moves; }));
+  pile.sort((p, q) => String(p.m[0]).localeCompare(String(q.m[0])) || p.m[1] - q.m[1]);
+  pile.forEach(({ m, b, k, s }) => {
+    b.meatStock += m[2];
+    let need = m[3];
+    const own = Math.min(b.meatStock, need); b.meatStock -= own; need -= own;
+    if (need > 0.001 && !m[4]) Object.values(L).forEach(o => { const ob = o !== s && o.byBreed[k]; if (ob && ob.meatStock > 0 && need > 0) { const t = Math.min(ob.meatStock, need); ob.meatStock -= t; need -= t; } });
+  });
   Object.values(L).forEach(s => {
     Object.values(s.byBreed).forEach(b => {
+      b.meatStock = round(Math.max(0, b.meatStock), 2);
       b.totalIn = b.chicks + b.adjust;
       b.remaining = b.totalIn - b.dead - b.soldBirds - b.cutBirds;
-      // cut meat not sold yet: a running balance in date order that never goes below 0
-      // (an old sale of more meat than the estimate must not swallow later cuts)
-      b.meatStock = round(b.moves.sort((p, q) => String(p[0]).localeCompare(String(q[0])) || p[1] - q[1]).reduce((a, m) => Math.max(0, a + m[2]), 0), 2);
-      delete b.moves;
       b.totalIn = b.chicks + b.restock + b.adjust;
       b.remaining = b.totalIn - b.dead - b.soldBirds - b.cutBirds;
       ['restock', 'adjust', 'dead', 'soldBirds', 'cutBirds', 'cutKg'].forEach(k => { s[k] += b[k]; });

@@ -135,17 +135,43 @@ function toggleLot(id) {
   db.meta.unfolded = list;
   persist();
 }
+// exact rupees on lot cards (no "1L" / "95.5k": every sale must be seen to add up)
+const rs = n => NF0.format(Math.round(Number(n) || 0));
+// what happened in one lot on one day
+function lotDay(lotId, d) {
+  const o = { liveBirds: 0, liveKg: 0, cut: 0, meatKg: 0, dead: 0, amount: 0, n: 0 };
+  for (const id in db.records) {
+    const r = db.records[id];
+    if (hidden(r) || r.lotId !== lotId || r.date !== d) continue;
+    if (r.kind === 'sale') { o.n++; o.amount += Number(r.amount) || 0; if (r.type === 'live') { o.liveBirds += Number(r.birds) || 0; o.liveKg += Number(r.kg) || 0; } else if (r.type === 'meat') { o.meatKg += Number(r.kg) || 0; o.cut += Number(r.birds) || 0; } }
+    else if (r.kind === 'event' && r.type === 'cut') { o.cut += Number(r.count) || 0; o.n++; }
+    else if (r.kind === 'event' && r.type === 'dead') { o.dead += Number(r.count) || 0; o.n++; }
+  }
+  return o;
+}
+function lotDayText(o) {
+  return [o.liveBirds || o.liveKg ? `🐔 ${o.liveBirds} live` : '', o.cut ? `✂️ ${o.cut} cut` : '', o.meatKg ? `🔪 ${nfmt(round(o.meatKg, 2))} kg` : '', o.dead ? `💀 ${o.dead}` : ''].filter(Boolean).join(' · ');
+}
+// birds still in the lot: about how many kg and rupees if sold live at today's price
+function lotLeftValue(l, s) {
+  let kg = 0, v = 0;
+  Object.keys(s.byBreed).forEach(b => { const k = Math.max(0, s.byBreed[b].remaining) * estBirdKg(l, b, today()).kg; kg += k; v += k * priceFor('live', b); });
+  return { kg, rs: v };
+}
 function lotCard(l, s) {
   const low = Number(getSet('lowStock')) || 0;
-  const no = lotVoiceNo(l);
+  const no = lotVoiceNo(l), t = today(), td = lotDay(l.id, t), tdText = lotDayText(td);
   if (!isUnfolded(l.id)) {
     return `<button class="card lot tight ${lotColor(l)}" data-act="toggleLot" data-id="${l.id}" style="width:100%;text-align:left;display:flex;align-items:center;gap:10px;margin-bottom:8px">
       <span style="font-size:20px;color:var(--muted)">▸</span>
       <span style="min-width:0;flex:1"><b style="font-size:18px;word-break:break-all">${esc(l.name)}</b>
-        <span class="small muted" style="display:block">${no ? 'Lot ' + no + ' · ' : ''}${esc(mixLabel(l))} · Day ${s.age}${l.closed ? ' · Closed' : ''}${s.revenue ? ' · sales ' + shortMoney(s.revenue) : ''}</span></span>
+        <span class="small muted" style="display:block">${no ? 'Lot ' + no + ' · ' : ''}${esc(mixLabel(l))} · Day ${s.age}${l.closed ? ' · Closed' : ''}${s.revenue ? ' · sales Rs ' + rs(s.revenue) : ''}</span>
+        ${td.n && !l.closed ? `<span class="small lottoday">Today: ${tdText}${td.amount ? ' · <b>+Rs ' + rs(td.amount) + '</b>' : ''}</span>` : ''}</span>
       <span style="text-align:right"><b style="font-size:24px;color:${s.remaining <= low && !l.closed ? 'var(--red)' : 'var(--green)'}">${s.remaining}</b><span class="label" style="display:block;font-size:10px">left</span></span>
     </button>`;
   }
+  const lv = lotLeftValue(l, s);
+  const line = (attrs, label, detail, right, cls) => `<div class="lline ${cls || ''}" ${attrs}><span><b>${label}</b>${detail ? ` <i>${detail}</i>` : ''}</span><b class="r">${right}</b></div>`;
   return `<div class="card lot lotopen ${lotColor(l)}">
     <div class="row between" style="align-items:flex-start;gap:8px">
       <button data-act="toggleLot" data-id="${l.id}" style="text-align:left;min-width:0;flex:1">
@@ -155,21 +181,28 @@ function lotCard(l, s) {
       </button>
       <div class="remain ${s.remaining <= low ? 'low' : ''}"><div class="huge">${s.remaining}</div><div class="label">left</div></div>
     </div>
-    ${s.mixed ? `<div class="grid${Math.min(3, Object.keys(s.byBreed).length)}" style="margin-top:10px">${Object.keys(s.byBreed).map(b => `<div class="stat" style="background:var(--purple-l)"><b>${s.byBreed[b].remaining}</b><span>${esc(breedName(b))} left</span></div>`).join('')}</div>` : ''}
-    <div class="grid3 lotstats">
-      <div class="stat" ${ent(l, 'chicks')}><b>${s.totalIn}</b><span>Chicks in ›</span></div>
-      <div class="stat" ${ent(l, 'dead')}><b>${s.dead}</b><span>Dead ${s.chicks ? '· ' + round(s.mortality, 1) + '%' : ''} ›</span></div>
-      <div class="stat" ${ent(l, 'live')}><b>${s.soldBirds}</b><span>Sold live ›</span></div>
+    ${s.mixed ? `<div class="lotbreeds">${Object.keys(s.byBreed).map(b => `<span><b>${s.byBreed[b].remaining}</b> ${esc(breedName(b))}</span>`).join('')}</div>` : ''}
+    <div class="lotflow">
+      <div class="stat" ${ent(l, 'chicks')}><b>${s.totalIn}</b><span>In ›</span></div>
+      <div class="stat" ${ent(l, 'dead')}><b>${s.dead}</b><span>Dead${s.chicks ? ' ' + round(s.mortality, 1) + '%' : ''} ›</span></div>
+      <div class="stat" ${ent(l, 'live')}><b>${s.soldBirds}</b><span>Live ›</span></div>
       <div class="stat" ${ent(l, 'cut')}><b>${s.cutBirds}</b><span>Cut ›</span></div>
-      <div class="stat" ${ent(l, 'sales')}><b>${nfmt(round(s.kg, 1))}</b><span>Kg sold ›</span>${s.liveKg && s.meatKg ? `<em class="split">🐔 ${nfmt(round(s.liveKg, 1))} · 🔪 ${nfmt(round(s.meatKg, 1))}</em>` : s.kg ? `<em class="split">${s.meatKg ? '🔪 all meat' : '🐔 all live'}</em>` : ''}</div>
-      <div class="stat" ${ent(l, 'sales')}><b>${shortMoney(s.revenue)}</b><span>Sales Rs ›</span>${s.revenue && (s.liveRev ? 1 : 0) + (s.meatRev ? 1 : 0) + (s.partsRev ? 1 : 0) > 1 ? `<em class="split">🐔 ${shortMoney(s.liveRev)} · 🔪 ${shortMoney(s.meatRev + s.partsRev)}</em>` : s.revenue ? `<em class="split">${s.liveRev ? '🐔 all live' : '🔪 all meat'}</em>` : ''}</div>
-      <div class="stat" ${ent(l, 'buy')} style="background:var(--red-l)"><b style="color:var(--red)">${shortMoney(s.expenses)}</b><span>🛒 Spent Rs ›</span></div>
-      <div class="stat" ${ent(l, 'feed')} style="background:var(--blue-l)"><b>${shortMoney(s.costFeed)}</b><span>🌾 Grain Rs ›</span></div>
-      <div class="stat" style="background:${s.profit >= 0 ? 'var(--green-l)' : 'var(--red-l)'}"><b style="color:${s.profit >= 0 ? 'var(--green)' : 'var(--red)'}">${s.profit < 0 ? '−' : ''}${shortMoney(Math.abs(s.profit))}</b><span>${s.profit >= 0 ? 'Profit' : 'Loss'} Rs</span></div>
+    </div>
+    <div class="grid3 lotmoney">
+      <div class="stat" ${ent(l, 'sales')}><b>${rs(s.revenue)}</b><span>Sales Rs ›</span></div>
+      <div class="stat" ${ent(l, 'buy')} style="background:var(--red-l)"><b style="color:var(--red)">${rs(s.expenses)}</b><span>Spent Rs ›</span></div>
+      <div class="stat" style="background:${s.profit >= 0 ? 'var(--green-l)' : 'var(--red-l)'}"><b style="color:${s.profit >= 0 ? 'var(--green)' : 'var(--red)'}">${s.profit < 0 ? '−' : ''}${rs(Math.abs(s.profit))}</b><span>${s.profit >= 0 ? 'Profit' : 'Loss'} Rs</span></div>
+    </div>
+    <div class="lotlines">
+      ${line(`data-act="dayDetail" data-d="${t}" data-id="${l.id}"`, '📅 Today', td.n ? tdText : 'no entry yet', td.amount ? '+Rs ' + rs(td.amount) + ' ›' : '›', 'tday')}
+      ${s.liveKg || s.soldBirds ? line(ent(l, 'live'), '🐔 Live', `${kgs(round(s.liveKg, 1))}${s.soldBirds ? ' · ' + nfmt(round(s.liveKg / s.soldBirds, 2)) + ' kg/bird' : ''}`, 'Rs ' + rs(s.liveRev) + ' ›') : ''}
+      ${s.meatKg ? line(ent(l, 'meat'), '🔪 Meat', `${kgs(round(s.meatKg, 1))} · Rs ${rs(s.meatRev / s.meatKg)}/kg`, 'Rs ' + rs(s.meatRev) + ' ›') : ''}
+      ${s.partsKg ? line(ent(l, 'parts'), '🍗 Khutta-tauko', kgs(round(s.partsKg, 1)), 'Rs ' + rs(s.partsRev) + ' ›') : ''}
+      ${s.meatStock ? line('data-act="meatOpen"', '✂️ Cut meat on hand', 'not sold yet', kgs(s.meatStock) + ' ›') : ''}
+      ${!l.closed && s.remaining > 0 && lv.rs ? line('', `🐔 ${s.remaining} left`, `≈ ${rs(lv.kg)} kg if sold live`, '≈ Rs ' + rs(lv.rs), 'est') : ''}
     </div>
     ${grainChips(s, l)}
     <div class="small muted lotspent">Spent = chicks ${money(s.costChicks)} · grain ${money(s.costFeed)} · medicine ${money(s.costMed)}${s.costOther ? ' · other ' + money(s.costOther) : ''}</div>
-    ${s.meatStock ? `<div class="small lotspent">🔪 About <b>${kgs(s.meatStock)}</b> cut meat not sold yet</div>` : ''}
     ${l.closed ? '' : `<div class="actions">
       <button class="btn sm primary" data-act="sellLot" data-id="${l.id}">+ Sale</button>
       <button class="btn sm" data-act="addEvent" data-id="${l.id}" data-type="dead">💀 Dead</button>
@@ -260,11 +293,11 @@ function homeSaleCalc() {
 function homeSaleHtml() {
   const act = activeLots();
   if (!act.length) return `<button class="btn" style="margin-top:12px;width:100%" data-act="newLot">+ Add a lot to start selling</button>`;
-  const h = homeSaleState(), lot = lotById(h.lotId);
+  const h = homeSaleState(), lot = lotById(h.lotId), hsSt = computeStats();
   const chip = (act_, v, on, label, extra) => `<button class="chip sm ${on ? 'on' : ''}" data-act="${act_}" data-v="${v}" ${extra || ''}>${label}</button>`;
   return `<div class="hsale">
     <div class="chips hstypes">${chip('hsType', 'live', h.type === 'live', '🐔 Live')}${chip('hsType', 'meat', h.type === 'meat', '🔪 Meat')}${chip('hsType', 'parts', h.type === 'parts', '🍗 Khutta')}${chip('hsType', 'cut', h.type === 'cut', '✂️ Cut')}</div>
-    ${act.length > 1 ? `<div class="chips hlots">${act.map(l => chip('hsLot', l.id, h.lotId === l.id, 'Lot ' + lotVoiceNo(l) + ' · ' + BS_MONTHS[lotBs(l).m - 1] + ' ' + lotBs(l).d)).join('')}</div>` : ''}
+    ${act.length > 1 ? `<div class="chips hlots">${act.map(l => chip('hsLot', l.id, h.lotId === l.id, 'Lot ' + lotVoiceNo(l) + ' · ' + BS_MONTHS[lotBs(l).m - 1] + ' ' + lotBs(l).d + ' · 🐔' + ((hsSt[l.id] || {}).remaining || 0))).join('')}</div>` : ''}
     ${lot && lotBreeds(lot).length > 1 && h.type !== 'parts' ? `<div class="chips hrow">${lotBreeds(lot).map(b => chip('hsBreed', b, h.breed === b, esc(breedName(b)))).join('')}</div>` : ''}
     ${h.type === 'cut' ? `<form class="hshop" data-form="homeSale" style="grid-template-columns:1fr 1fr">
       <label><span>✂️ Birds cut</span><input data-hsale="birds" type="number" inputmode="numeric" placeholder="1, 2…" enterkeyhint="done"></label>
@@ -391,7 +424,7 @@ function openLotEntries(lotId, key) {
   openSheet(`<button class="btn sm ghost" data-act="openLot" data-id="${l.id}">‹ ${esc(l.name)}</button>
     <h2>${v.title}${grade ? ' · ' + esc(grade) : ''}</h2>
     <div class="summary small">${extra}${firstChicks ? `<div class="line"><span>🐣 First chicks (${fmtDate(l.startDate, true)})</span><b>${money(firstChicks)}</b></div>` : ''}
-      <div class="line"><span>${list.length} entr${list.length === 1 ? 'y' : 'ies'}</span><b>${amt ? money(amt) : ''}${kg && base !== 'dead' ? ' · ' + (base === 'feed' ? nfmt(round(kg / bagKg(), 2)) + ' bora (' + nfmt(round(kg, 1)) + ' kg)' : kgs(kg)) : ''}${birds && ['dead', 'cut', 'live', 'chicks'].includes(base) ? ' · ' + birds + ' birds' : ''}</b></div></div>
+      <div class="line"><span>${list.length} entr${list.length === 1 ? 'y' : 'ies'}</span><b>${amt ? money(amt) : ''}${kg && base !== 'dead' ? (amt ? ' · ' : '') + (base === 'feed' ? nfmt(round(kg / bagKg(), 2)) + ' bora (' + nfmt(round(kg, 1)) + ' kg)' : kgs(kg)) : ''}${birds && ['dead', 'cut', 'live', 'chicks'].includes(base) ? ' · ' + birds + ' bird' + (birds === 1 ? '' : 's') : ''}</b></div></div>
     ${['sales', 'live', 'meat', 'parts'].includes(base) ? lotSalesSplitHtml(l, base) : ''}
     <p class="small muted">Tap an entry to edit it, or 🗑 to delete a mistake. Every change is logged.</p>
     ${list.length ? list.map(r => `<div class="row" style="gap:6px;align-items:stretch">${itemHtml(r, cost(r)).replace('class="item"', 'class="item" style="flex:1;min-width:0;width:auto;margin-bottom:6px"')}
@@ -698,9 +731,9 @@ function openLot(id, tab) {
       <div class="stat"><b>${s.cutBirds}</b><span>Cut</span></div>
       <div class="stat"><b>${nfmt(s.liveKg)}</b><span>Live kg</span></div>
       <div class="stat"><b>${nfmt(s.meatKg)}</b><span>Meat kg</span></div>
-      <div class="stat"><b>${shortMoney(s.revenue)}</b><span>Sales Rs</span></div>
-      <div class="stat"><b>${shortMoney(s.expenses)}</b><span>Costs Rs</span></div>
-      <div class="stat"><b style="color:${s.profit >= 0 ? 'var(--green)' : 'var(--red)'}">${shortMoney(s.profit)}</b><span>${s.profit >= 0 ? 'Profit' : 'Loss'}</span></div>
+      <div class="stat"><b style="font-size:17px">${rs(s.revenue)}</b><span>Sales Rs</span></div>
+      <div class="stat"><b style="font-size:17px">${rs(s.expenses)}</b><span>Costs Rs</span></div>
+      <div class="stat"><b style="font-size:17px;color:${s.profit >= 0 ? 'var(--green)' : 'var(--red)'}">${s.profit < 0 ? '−' : ''}${rs(Math.abs(s.profit))}</b><span>${s.profit >= 0 ? 'Profit' : 'Loss'}</span></div>
     </div>
     <div class="summary small">
       <div class="line"><span><b>Chickens by type</b></span><b>in · dead · sold · cut · <span style="color:var(--green)">left</span></b></div>
@@ -1608,7 +1641,7 @@ document.addEventListener('click', e => {
     case 'dayKind': openDayKind(b.dataset.d, v); break;
     case 'dayKindAdd': closeSheet(); { const h = homeSaleState(); if (v === 'cut') { openCutForm(null); break; } if (v === 'dead') { openEventForm({ type: 'dead', lotId: h.lotId }); break; }
       if (v === 'grain') { go('sell'); if (typeof sellDraft !== 'undefined' && sellDraft) { sellDraft.type = 'grain'; renderSell(); } break; }
-      h.type = v === 'meat' ? 'meat' : 'live'; if (v === 'meat' && !hasMeatOn(h.lotId, h.breed)) { const m = meatLotFor(); if (m) { h.lotId = m.lot.id; h.breed = m.breed; } } persist(); go('home'); renderHome(); window.scrollTo(0, 0); const k = $('#v-home [data-hsale=kg]'); if (k) k.focus(); } break;
+      h.type = v === 'meat' ? 'meat' : 'live'; persist(); go('home'); renderHome(); window.scrollTo(0, 0); const k = $('#v-home [data-hsale=kg]'); if (k) k.focus(); } break;
     case 'shopDay': openShopDay(b.dataset.d); break;
     case 'editShopFromDay': { const fromSheet = $('#sheet h2') ? $('#sheet h2').textContent : ''; const d0 = (db.records[id] || {}).date; openShopEdit(id, /Shop|🏪/.test(fromSheet) ? () => openShopDay(d0) : null); break; }
     case 'restoreLot': { const l = db.records[id]; unarchiveLot(id); render(); openArchive(); toast(`Lot ${l.name} restored ✓`); break; }
@@ -1680,7 +1713,7 @@ document.addEventListener('click', e => {
     case 'shopMic': if (view !== 'shop') go('shop'); listen(); break;
     case 'homeShopSave': saveHomeShop(); break;
     case 'homeSaleSave': saveHomeSale(); break;
-    case 'hsType': { const h = homeSaleState(); h.type = v; if (v === 'meat' && !hasMeatOn(h.lotId, h.breed)) { const m = meatLotFor(); if (m) { h.lotId = m.lot.id; h.breed = m.breed; } } persist(); renderHome(); break; }
+    case 'hsType': { const h = homeSaleState(); h.type = v; persist(); renderHome(); break; }   // the lot stays as picked: meat on hand is one pile for all lots
     case 'hsLot': { const h = homeSaleState(); h.lotId = v; const l = lotById(v); if (l && !lotBreeds(l).includes(h.breed)) h.breed = lotBreeds(l)[0]; persist(); renderHome(); break; }
     case 'hsBreed': homeSaleState().breed = v; persist(); renderHome(); break;
     case 'cancelEditBuy': buyDraft = null; go('records'); break;

@@ -445,3 +445,30 @@ body.kbd #top{position:relative}
 .cutday.tot{border-bottom:0;border-top:2px solid var(--line);font-weight:800}
 .cutday b{white-space:nowrap}
 .cutday b small{font-weight:600;color:var(--muted)}
+
+/* lot card v2: bird flow · exact money · lines */
+.lotbreeds{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.lotbreeds span{background:var(--purple-l);border-radius:8px;padding:2px 8px;font-size:12px;font-weight:700}
+.lotbreeds b{font-size:14px}
+.lotflow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-top:8px}
+.lotflow .stat{padding:5px 6px;border-radius:10px;min-width:0}
+.lotflow .stat b{font-size:18px;line-height:1.15}
+.lotflow .stat span{font-size:9.5px;line-height:1.2;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lotopen .lotmoney{gap:5px;margin-top:5px}
+.lotopen .lotmoney .stat{padding:6px 7px;border-radius:10px;min-width:0}
+.lotopen .lotmoney .stat b{font-size:16px;line-height:1.2;white-space:nowrap;letter-spacing:-.2px}
+.lotopen .lotmoney .stat span{font-size:9.5px;line-height:1.2}
+.lotlines{margin-top:6px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.lline{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 9px;font-size:13px;border-bottom:1px dashed var(--line)}
+.lline:last-child{border-bottom:0}
+.lline[data-act]{cursor:pointer}
+.lline[data-act]:active{background:var(--bg)}
+.lline>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lline i{font-style:normal;color:var(--muted);font-size:12px;font-weight:600}
+.lline .r{white-space:nowrap;font-weight:900}
+.lline.tday{background:var(--bg)}
+.lline.tday .r{color:var(--green)}
+.lline.est .r{color:var(--muted);font-weight:800}
+.lline svg.lic{width:14px;height:14px;vertical-align:-0.12em}
+.lottoday{display:block;color:var(--ink);margin-top:1px}
+.lottoday b{color:var(--green)}
