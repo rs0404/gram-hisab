@@ -494,7 +494,8 @@ body.sec-poultry .today .hsave{color:#8A2F10}
 .item.ei .t{grid-area:1/2;min-width:0;font-size:16px;line-height:1.25}
 .item.ei .amt{grid-area:1/3;margin-left:0}
 .item.ei .s{grid-column:1/-1;grid-row:2;line-height:1.45}
-.item.ei .mid>.small{grid-column:1/-1;grid-row:3}
+.item.ei .s.w{grid-row:3;font-size:12px;border-top:1px dashed var(--line);padding-top:3px}
+.item.ei .mid>.small{grid-column:1/-1;grid-row:4}
 .item.ei[data-act=editRec]{padding-right:30px}
 /* lot entry lists: ✎ and 🗑 stacked in one narrow column beside the row */
 .erow{display:flex;gap:5px;align-items:stretch;margin-bottom:6px}
@@ -504,3 +505,5 @@ body.sec-poultry .today .hsave{color:#8A2F10}
 .eb{flex:1;min-height:30px;border-radius:10px;background:#fff;display:grid;place-items:center;font-size:16px;font-weight:800;color:var(--muted)}
 .eb.del{background:var(--red-l);color:var(--red)}
 .eb:active{transform:scale(.95)}
+.item.ei .s.w .edsep{display:none}
+.item.ei .s.w .edn{display:block}

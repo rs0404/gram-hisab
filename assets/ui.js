@@ -217,7 +217,7 @@ function lotCard(l, s) {
 // when it was ENTERED (date + time) and by whom; the record's own date is shown separately
 function whoWhen(r) {
   const who = r.by || r.device || '';
-  return `🕒 entered ${r.createdAt ? fmtStamp(r.createdAt) : ''} · 👤 ${esc(who)}${r.editedBy ? ` · <span style="color:var(--amber-d)">✎ edited${r.editedBy !== who ? ' by ' + esc(r.editedBy) : ''}</span>` : ''}`;
+  return `🕒 entered ${r.createdAt ? fmtStamp(r.createdAt) : ''} · 👤 ${esc(who)}${r.editedBy ? `<span class="edsep"> · </span><span class="edn" style="color:var(--amber-d)">✎ edited${r.editedAt ? ' ' + fmtStamp(r.editedAt) : ''}${r.editedBy !== who ? ' by ' + esc(r.editedBy) : ''}</span>` : ''}`;
 }
 function auditLine(a, showWhat) {
   const icon = { create: '➕', edit: '✎', delete: '🗑', restore: '↺', archive: '🗄', unarchive: '↺' }[a.action] || '•';
@@ -441,14 +441,14 @@ function itemHtml(r, cost) {
     return `<button class="item ei" data-act="editRec" data-id="${r.id}">
       <div class="ic ${r.type}">${r.type === 'live' ? '🐔' : r.type === 'parts' ? '🍗' : '🔪'}</div>
       <div class="mid"><div class="t">${r.flag ? '<span class="flagmark">⚑</span> ' : ''}${kgs(r.kg)} ${SALE_LABEL[r.type] || r.type}${r.type === 'parts' ? '' : ' · ' + esc(breedName(r.breed || lotBreed(lotById(r.lotId))))}</div>
-      <div class="s">${fmtDate(r.date)} · ${esc(lotName(r.lotId))} · ${money(r.rate)}/kg${r.birds ? (r.type === 'meat' ? ' · ✂️ ' + r.birds + ' cut' : ' · ' + r.birds + ' bird' + (Number(r.birds) === 1 ? '' : 's')) : ''}${r.invoice ? ' · Inv ' + esc(r.invoice) : ''} · ${whoWhen(r)}</div></div>
+      <div class="s">${fmtDate(r.date)} · ${esc(lotName(r.lotId))} · ${money(r.rate)}/kg${r.birds ? (r.type === 'meat' ? ' · ✂️ ' + r.birds + ' cut' : ' · ' + r.birds + ' bird' + (Number(r.birds) === 1 ? '' : 's')) : ''}${r.invoice ? ' · Inv ' + esc(r.invoice) : ''}</div><div class="s w">${whoWhen(r)}</div></div>
       <div class="amt">${money(r.amount)}</div></button>`;
   }
   if (r.kind === 'grainsale') {
     return `<button class="item ei" data-act="editRec" data-id="${r.id}">
       <div class="ic" style="background:var(--amber-l)">🌾</div>
       <div class="mid"><div class="t">${r.flag ? '<span class="flagmark">⚑</span> ' : ''}Sold grain ${esc(r.grade)} · ${nfmt(r.qty)} ${r.unit === 'kg' ? 'kg' : 'bora'}</div>
-      <div class="s">${fmtDate(r.date)}${daysAgo(r.date)} · ${money(r.rate)}/${r.unit === 'kg' ? 'kg' : 'bora'}${r.note ? ' · ' + esc(r.note) : ''} · ${whoWhen(r)}</div></div>
+      <div class="s">${fmtDate(r.date)}${daysAgo(r.date)} · ${money(r.rate)}/${r.unit === 'kg' ? 'kg' : 'bora'}${r.note ? ' · ' + esc(r.note) : ''}</div><div class="s w">${whoWhen(r)}</div></div>
       <div class="amt" style="color:var(--green)">${money(r.amount)}</div></button>`;
   }
   if (r.kind === 'purchase') {
@@ -456,14 +456,14 @@ function itemHtml(r, cost) {
     return `<button class="item ei" data-act="editRec" data-id="${r.id}">
       <div class="ic" style="background:var(--blue-l)">🛒</div>
       <div class="mid"><div class="t">${r.flag ? '<span class="flagmark">⚑</span> ' : ''}${c.icon} ${esc(purchaseTitle(r))}</div>
-      <div class="s">${fmtDate(r.date)}${daysAgo(r.date)} · bought${r.supplier ? ' from ' + esc(r.supplier) : ''}${r.lotId ? ' · for ' + esc(lotName(r.lotId)) : ''} · ${whoWhen(r)}</div></div>
+      <div class="s">${fmtDate(r.date)}${daysAgo(r.date)} · bought${r.supplier ? ' from ' + esc(r.supplier) : ''}${r.lotId ? ' · for ' + esc(lotName(r.lotId)) : ''}</div><div class="s w">${whoWhen(r)}</div></div>
       <div class="amt" style="color:var(--red)">−${money(r.amount)}</div></button>`;
   }
   const t = EVENT_TYPES[r.type] || { icon: '•' };
   return `<button class="item ei" data-act="editRec" data-id="${r.id}">
     <div class="ic">${t.icon}</div>
     <div class="mid"><div class="t">${esc(eventTitle(r))}${r.item ? ' · ' + esc(r.item) : ''}</div>
-    <div class="s">${fmtDate(r.date)}${daysAgo(r.date)} · ${esc(lotName(r.lotId))}${r.note ? ' · ' + esc(r.note).slice(0, 60) : ''} · ${whoWhen(r)}</div>
+    <div class="s">${fmtDate(r.date)}${daysAgo(r.date)} · ${esc(lotName(r.lotId))}${r.note ? ' · ' + esc(r.note).slice(0, 60) : ''}</div><div class="s w">${whoWhen(r)}</div>
     ${bigFeedQty(r.qty, r.unit, r.type) ? `<div class="small" style="color:var(--red);font-weight:800">⚠️ ${nfmt(r.qty)} bora? Tap to fix — the amount may be in the bora box</div>` : ''}</div>
     <div class="amt">${r.amount ? money(r.amount) : cost ? '≈ ' + money(Math.round(cost)) + '<small>from stock</small>' : ''}</div></button>`;
 }
