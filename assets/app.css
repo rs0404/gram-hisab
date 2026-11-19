@@ -507,3 +507,6 @@ body.sec-poultry .today .hsave{color:#8A2F10}
 .eb:active{transform:scale(.95)}
 .item.ei .s.w .edsep{display:none}
 .item.ei .s.w .edn{display:block}
+.summary .splitrow.gsub{padding:4px 0 4px 26px;font-size:15px}
+.summary .splitrow.gsub>span br{display:none}
+.summary .splitrow.gsub>span .small{margin-left:6px}

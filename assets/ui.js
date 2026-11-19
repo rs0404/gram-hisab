@@ -391,7 +391,9 @@ const ENTRY_VIEWS = {
   dead: { title: '💀 Deaths', f: r => r.kind === 'event' && r.type === 'dead' },
   chicks: { title: '🐣 Chicks & count changes', f: r => r.kind === 'event' && ['restock', 'adjust', 'check', 'soldfix'].includes(r.type) },
   buy: { title: '🛒 Everything spent', f: r => r.kind === 'purchase' || (r.kind === 'event' && (r.type === 'restock' || r.type === 'expense' || USAGE_TYPES.includes(r.type))) },
-  feed: { title: '🌾 Grain (bought & used)', f: r => (r.kind === 'purchase' && r.category === 'feed') || (r.kind === 'event' && r.type === 'feed') }
+  feed: { title: '🌾 Grain (bought & used)', f: r => (r.kind === 'purchase' && r.category === 'feed') || (r.kind === 'event' && r.type === 'feed') },
+  med: { title: '💊 Medicine, vitamin, vaccine', f: r => (r.kind === 'purchase' && ['medicine', 'vitamin', 'vaccine'].includes(r.category)) || (r.kind === 'event' && ['medicine', 'vitamin', 'vaccine'].includes(r.type)) },
+  other: { title: '🧾 Other spending', f: r => (r.kind === 'purchase' && !['feed', 'medicine', 'vitamin', 'vaccine'].includes(r.category)) || (r.kind === 'event' && r.type === 'expense') }
 };
 // sales of a lot split into live / meat / khutta-tauko; each row filters the list below
 function lotSalesSplitHtml(l, base) {
@@ -406,6 +408,27 @@ function lotSalesSplitHtml(l, base) {
     ${row('meat', '🔪', 'Meat', `${st.cutBirds || 0} cut → ${kgs(round(st.cutKg || 0, 1))} meat${mt ? ' · ' + money(round(sum('meat', 'amount') / mt)) + '/kg' : ''}${st.meatStock ? ' · ' + kgs(st.meatStock) + ' on hand' : ''}`)}
     ${sum('parts', 'amount') || sum('parts', 'kg') ? row('parts', '🍗', 'Khutta-tauko', kgs(sum('parts', 'kg'))) : ''}
     ${row('', '💰', 'All sales', lv && mt ? `kg = ${kgs(round(lv, 1))} live + ${kgs(round(mt, 1))} meat` : '')}</div>`;
+}
+// "Everything spent": the totals first — chicks, grain (and each size B0 / B1 / B2: bora + Rs), medicine, other
+function lotSpentSplitHtml(l, base, grade, cost) {
+  const st = computeStats()[l.id]; if (!st) return '';
+  const recs = Object.values(db.records).filter(r => !hidden(r) && r.lotId === l.id);
+  const of = k => recs.filter(ENTRY_VIEWS[k].f);
+  const grain = of('feed'), med = of('med'), other = of('other'), restocks = recs.filter(r => r.kind === 'event' && r.type === 'restock');
+  const total = list => list.reduce((a, r) => a + cost(r), 0), kgOf = list => list.reduce((a, r) => a + stockQty('feed', r), 0);
+  const bora = kg => `${nfmt(round(kg / bagKg(), 2))} bora`;
+  const grades = [...new Set(grain.map(r => r.grade || 'Other'))].sort();
+  const free = st.free || 0, first = st.chicks - lotMix(l).reduce((a, m) => a + (Number(m.free) || 0), 0);
+  const row = (key, icon, label, n, extra, amount, cls) => `<button class="line splitrow ${cls || ''} ${key === (grade ? base + ':' + grade : base) ? 'on' : ''}" data-act="lotEntries" data-id="${l.id}" data-v="${key}">
+    <span>${icon} <b>${label}</b>${n != null ? ` <span class="muted">(${n})</span>` : ''}${extra ? `<br><span class="small muted">${extra}</span>` : ''}</span>
+    <b style="text-align:right;color:var(--red)">${money(amount)}</b></button>`;
+  return `<div class="summary small" style="margin-top:-4px">
+    ${row('chicks', '🐣', 'Chicks', null, `${first} first${st.restock ? ' + ' + st.restock + ' added' : ''}${free ? ' + 🎁 ' + free + ' free' : ''} = ${st.chicks + st.restock} chicks`, st.costChicks)}
+    ${grain.length ? row('feed', '🌾', 'Grain', grain.length, `${bora(kgOf(grain))} · ${nfmt(round(kgOf(grain), 1))} kg`, total(grain)) : ''}
+    ${grades.length > 1 || (grades.length === 1 && grades[0] !== 'Other') ? grades.map(g => { const gl = grain.filter(r => (r.grade || 'Other') === g); return row('feed:' + g, '', g === 'Other' ? 'No size' : g, gl.length, bora(kgOf(gl)), total(gl), 'gsub'); }).join('') : ''}
+    ${med.length ? row('med', '💊', 'Medicine', med.length, '', total(med)) : ''}
+    ${other.length ? row('other', '🧾', 'Other', other.length, '', total(other)) : ''}
+    ${row('buy', '🛒', 'All spent', null, '', st.expenses)}</div>`;
 }
 function openLotEntries(lotId, key) {
   const l = lotById(lotId);
@@ -423,9 +446,10 @@ function openLotEntries(lotId, key) {
   const extra = base === 'chicks' ? `<div class="line"><span>First chicks (${fmtDate(l.startDate, true)})</span><b>${l.chicks}${lotMix(l).reduce((a, m) => a + (Number(m.free) || 0), 0) ? ' + 🎁' + lotMix(l).reduce((a, m) => a + (Number(m.free) || 0), 0) + ' free' : ''} · ${money(l.chickCost || 0)} <button class="btn sm ghost" data-act="editLot" data-id="${l.id}">✎</button></b></div>` : '';
   openSheet(`<button class="btn sm ghost" data-act="openLot" data-id="${l.id}">‹ ${esc(l.name)}</button>
     <h2>${v.title}${grade ? ' · ' + esc(grade) : ''}</h2>
-    <div class="summary small">${extra}${firstChicks ? `<div class="line"><span>🐣 First chicks (${fmtDate(l.startDate, true)})</span><b>${money(firstChicks)}</b></div>` : ''}
+    <div class="summary small">${extra}
       <div class="line"><span>${list.length} entr${list.length === 1 ? 'y' : 'ies'}</span><b>${amt ? money(amt) : ''}${kg && base !== 'dead' ? (amt ? ' · ' : '') + (base === 'feed' ? nfmt(round(kg / bagKg(), 2)) + ' bora (' + nfmt(round(kg, 1)) + ' kg)' : kgs(kg)) : ''}${birds && ['dead', 'cut', 'live', 'chicks'].includes(base) ? ' · ' + birds + ' bird' + (birds === 1 ? '' : 's') : ''}</b></div></div>
     ${['sales', 'live', 'meat', 'parts'].includes(base) ? lotSalesSplitHtml(l, base) : ''}
+    ${['buy', 'feed', 'med', 'other'].includes(base) ? lotSpentSplitHtml(l, base, grade, cost) : ''}
     <p class="small muted">✎ edits an entry, 🗑 deletes a mistake. Every change is logged.</p>
     ${list.length ? list.map(r => `<div class="erow">${itemHtml(r, cost(r))}
       <div class="eacts"><button class="eb" data-act="editRec" data-id="${r.id}" aria-label="Edit">✎</button>
