@@ -426,9 +426,10 @@ function openLotEntries(lotId, key) {
     <div class="summary small">${extra}${firstChicks ? `<div class="line"><span>🐣 First chicks (${fmtDate(l.startDate, true)})</span><b>${money(firstChicks)}</b></div>` : ''}
       <div class="line"><span>${list.length} entr${list.length === 1 ? 'y' : 'ies'}</span><b>${amt ? money(amt) : ''}${kg && base !== 'dead' ? (amt ? ' · ' : '') + (base === 'feed' ? nfmt(round(kg / bagKg(), 2)) + ' bora (' + nfmt(round(kg, 1)) + ' kg)' : kgs(kg)) : ''}${birds && ['dead', 'cut', 'live', 'chicks'].includes(base) ? ' · ' + birds + ' bird' + (birds === 1 ? '' : 's') : ''}</b></div></div>
     ${['sales', 'live', 'meat', 'parts'].includes(base) ? lotSalesSplitHtml(l, base) : ''}
-    <p class="small muted">Tap an entry to edit it, or 🗑 to delete a mistake. Every change is logged.</p>
-    ${list.length ? list.map(r => `<div class="row" style="gap:6px;align-items:stretch">${itemHtml(r, cost(r)).replace('class="item"', 'class="item" style="flex:1;min-width:0;width:auto;margin-bottom:6px"')}
-      <button class="btn redl" style="margin-bottom:6px;min-width:48px;padding:0 10px" data-act="deleteEntry" data-id="${r.id}" data-lot="${lotId}" data-v="${key}" aria-label="Delete">🗑</button></div>`).join('') : '<p class="muted">Nothing here yet.</p>'}
+    <p class="small muted">✎ edits an entry, 🗑 deletes a mistake. Every change is logged.</p>
+    ${list.length ? list.map(r => `<div class="erow">${itemHtml(r, cost(r))}
+      <div class="eacts"><button class="eb" data-act="editRec" data-id="${r.id}" aria-label="Edit">✎</button>
+        <button class="eb del" data-act="deleteEntry" data-id="${r.id}" data-lot="${lotId}" data-v="${key}" aria-label="Delete">🗑</button></div></div>`).join('') : '<p class="muted">Nothing here yet.</p>'}
     <div style="height:10px"></div><button class="btn big primary" data-act="closeSheet">Close</button>`);
 }
 function recentRecords(n) {   // newest ENTERED first, even when the entry is for an older date
@@ -437,14 +438,14 @@ function recentRecords(n) {   // newest ENTERED first, even when the entry is fo
 }
 function itemHtml(r, cost) {
   if (r.kind === 'sale') {
-    return `<button class="item" data-act="editRec" data-id="${r.id}">
+    return `<button class="item ei" data-act="editRec" data-id="${r.id}">
       <div class="ic ${r.type}">${r.type === 'live' ? '🐔' : r.type === 'parts' ? '🍗' : '🔪'}</div>
       <div class="mid"><div class="t">${r.flag ? '<span class="flagmark">⚑</span> ' : ''}${kgs(r.kg)} ${SALE_LABEL[r.type] || r.type}${r.type === 'parts' ? '' : ' · ' + esc(breedName(r.breed || lotBreed(lotById(r.lotId))))}</div>
-      <div class="s">${fmtDate(r.date)} · ${esc(lotName(r.lotId))} · ${money(r.rate)}/kg${r.birds ? (r.type === 'meat' ? ' · ✂️ ' + r.birds + ' cut' : ' · ' + r.birds + ' birds') : ''}${r.invoice ? ' · Inv ' + esc(r.invoice) : ''} · ${whoWhen(r)}</div></div>
+      <div class="s">${fmtDate(r.date)} · ${esc(lotName(r.lotId))} · ${money(r.rate)}/kg${r.birds ? (r.type === 'meat' ? ' · ✂️ ' + r.birds + ' cut' : ' · ' + r.birds + ' bird' + (Number(r.birds) === 1 ? '' : 's')) : ''}${r.invoice ? ' · Inv ' + esc(r.invoice) : ''} · ${whoWhen(r)}</div></div>
       <div class="amt">${money(r.amount)}</div></button>`;
   }
   if (r.kind === 'grainsale') {
-    return `<button class="item" data-act="editRec" data-id="${r.id}">
+    return `<button class="item ei" data-act="editRec" data-id="${r.id}">
       <div class="ic" style="background:var(--amber-l)">🌾</div>
       <div class="mid"><div class="t">${r.flag ? '<span class="flagmark">⚑</span> ' : ''}Sold grain ${esc(r.grade)} · ${nfmt(r.qty)} ${r.unit === 'kg' ? 'kg' : 'bora'}</div>
       <div class="s">${fmtDate(r.date)}${daysAgo(r.date)} · ${money(r.rate)}/${r.unit === 'kg' ? 'kg' : 'bora'}${r.note ? ' · ' + esc(r.note) : ''} · ${whoWhen(r)}</div></div>
@@ -452,14 +453,14 @@ function itemHtml(r, cost) {
   }
   if (r.kind === 'purchase') {
     const c = PURCHASE_CATS[r.category] || PURCHASE_CATS.other;
-    return `<button class="item" data-act="editRec" data-id="${r.id}">
+    return `<button class="item ei" data-act="editRec" data-id="${r.id}">
       <div class="ic" style="background:var(--blue-l)">🛒</div>
       <div class="mid"><div class="t">${r.flag ? '<span class="flagmark">⚑</span> ' : ''}${c.icon} ${esc(purchaseTitle(r))}</div>
       <div class="s">${fmtDate(r.date)}${daysAgo(r.date)} · bought${r.supplier ? ' from ' + esc(r.supplier) : ''}${r.lotId ? ' · for ' + esc(lotName(r.lotId)) : ''} · ${whoWhen(r)}</div></div>
       <div class="amt" style="color:var(--red)">−${money(r.amount)}</div></button>`;
   }
   const t = EVENT_TYPES[r.type] || { icon: '•' };
-  return `<button class="item" data-act="editRec" data-id="${r.id}">
+  return `<button class="item ei" data-act="editRec" data-id="${r.id}">
     <div class="ic">${t.icon}</div>
     <div class="mid"><div class="t">${esc(eventTitle(r))}${r.item ? ' · ' + esc(r.item) : ''}</div>
     <div class="s">${fmtDate(r.date)}${daysAgo(r.date)} · ${esc(lotName(r.lotId))}${r.note ? ' · ' + esc(r.note).slice(0, 60) : ''} · ${whoWhen(r)}</div>

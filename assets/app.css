@@ -485,3 +485,22 @@ body.sec-poultry .today .hsale .chip{background:rgba(255,255,255,.92);color:#8A2
 body.sec-poultry .today .hsale .chip.on{background:#FCD34D;color:#5F1F0A;box-shadow:0 1px 6px rgba(0,0,0,.2)}
 body.sec-poultry .today .hshop input:focus{border-color:#FCD34D}
 body.sec-poultry .today .hsave{color:#8A2F10}
+
+/* chicken entry rows: icon + title + amount on the top line, details below at full width */
+.item.ei{display:grid;grid-template-columns:auto minmax(0,1fr) auto;column-gap:8px;row-gap:4px;align-items:center;padding:9px 11px}
+.item.ei .mid{display:contents}
+.item.ei .ic{grid-area:1/1;width:28px;height:28px;border-radius:8px;font-size:15px}
+.item.ei .ic svg.lic{width:16px;height:16px}
+.item.ei .t{grid-area:1/2;min-width:0;font-size:16px;line-height:1.25}
+.item.ei .amt{grid-area:1/3;margin-left:0}
+.item.ei .s{grid-column:1/-1;grid-row:2;line-height:1.45}
+.item.ei .mid>.small{grid-column:1/-1;grid-row:3}
+.item.ei[data-act=editRec]{padding-right:30px}
+/* lot entry lists: ✎ and 🗑 stacked in one narrow column beside the row */
+.erow{display:flex;gap:5px;align-items:stretch;margin-bottom:6px}
+.erow .item.ei{flex:1;min-width:0;width:auto;margin-bottom:0;padding-right:11px}
+.erow .item.ei::after{display:none}
+.eacts{display:flex;flex-direction:column;gap:4px;flex:none;width:40px}
+.eb{flex:1;min-height:30px;border-radius:10px;background:#fff;display:grid;place-items:center;font-size:16px;font-weight:800;color:var(--muted)}
+.eb.del{background:var(--red-l);color:var(--red)}
+.eb:active{transform:scale(.95)}
